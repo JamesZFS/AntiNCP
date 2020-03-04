@@ -1,16 +1,23 @@
 <!-- 主页 -->
 <template>
-  <div class="hello">
-    <h1>homapage</h1>
+  <div class="homepage">
+    <div class="sidebar-boxlist">
+      <NavBar></NavBar>
+    </div>
+    <div>
+      <h1>homapage</h1>
+    </div>
   </div>
 </template>
 
 <script>
+// import Vue from 'vue'
+import NavBar from './NavBar'
 export default {
-  name: 'HelloWorld',
+  name: 'homepage',
+  components: {NavBar},
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App'
     }
   }
 }
@@ -31,5 +38,9 @@ li {
 }
 a {
   color: #42b983;
+}
+.homepage{
+  display: flex;
+  flex-direction: row;
 }
 </style>

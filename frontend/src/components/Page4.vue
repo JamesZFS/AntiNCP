@@ -1,16 +1,22 @@
 <!-- Page4 -->
 <template>
-  <div class="hello">
-    <h1>page4</h1>
+  <div class="page4">
+    <div class="sidebar-boxlist">
+      <NavBar></NavBar>
+    </div>
+    <div>
+      <h1>page4</h1>
+    </div>
   </div>
 </template>
 
 <script>
+import NavBar from './NavBar'
 export default {
-  name: 'HelloWorld',
+  name: 'pag4',
+  components: {NavBar},
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App'
     }
   }
 }
@@ -31,5 +37,9 @@ li {
 }
 a {
   color: #42b983;
+}
+.page4{
+  display: flex;
+  flex-direction: row;
 }
 </style>
