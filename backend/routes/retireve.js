@@ -5,21 +5,61 @@ var axios = require('axios');
 var apis = require('../config/apis');
 var debug = require('debug')('backend:retrieve');
 var fs = require('fs');
-const epidemicData = JSON.parse(fs.readFileSync('public/data/epidemic.aminer.json'));
+const cacheFilePath = 'public/data/epidemic.aminer.json';
+var epidemicData; // cached data
+// init epidemic data
+try {
+    epidemicData = JSON.parse(fs.readFileSync(cacheFilePath));
+} catch (err) {
+    console.error("Can't read from cache file.", err);
+    acquireEpidemicData().then(val => {
+        epidemicData = val;
+        fs.writeFileSync(cacheFilePath, JSON.stringify(epidemicData));
+        debug("Epidemic data updated.");
+    }).catch(err => {
+        console.error("Fatal: fail to update from epidemic data source.");
+        process.exit(1);
+    });
+}
+
+function acquireEpidemicData() { // async
+    debug(`Acquiring epidemic data from source ${apis.AMINER_EPIDEMIC_API}`);
+    return new Promise(function (resolve, reject) {
+        axios.get(apis.AMINER_EPIDEMIC_API)
+            .then(response => {
+                response.data.updateTime = Date.now();
+                resolve(response.data);
+            })
+            .catch(error => {
+                console.error("Can't access AMINER_EPIDEMIC_API.", error);
+                reject(error);
+            });
+    });
+}
 
 // Retrieve middleware
 router.use('/epidemic', function (req, res, next) {
-    res.attached = epidemicData.data;
-    next();
-    // axios.get(apis.AMINER_EPIDEMIC_API)
-    //     .then(response => {
-    //         res.attached = response.data.data;
-    //         next();
-    //     })
-    //     .catch(error => {
-    //         res.status(404).end();
-    //         debug(error)
-    //     });
+    if (Date.now() - epidemicData.updateTime >= apis.AMINER_EPIDEMIC_API_UPDATE_INTERVAL) {
+        // periodically update epidemic data from source
+        acquireEpidemicData().then(val => {
+            epidemicData = val;
+            res.attached = epidemicData.data;
+            next();
+            fs.writeFile(cacheFilePath, JSON.stringify(epidemicData), err => { // async
+                if (err) console.error("Can't write back to cache file path.", err);
+                else debug("Epidemic data updated.");
+            });
+        }).catch(err => {
+            // fail to update
+            debug("Warning: fail to update from epidemic data source.");
+            res.attached = epidemicData.data; // use cached data
+            next();
+        })
+    } else {
+        // use cached data
+        res.attached = epidemicData.data;
+        next();
+    }
 });
 
 /**
@@ -122,7 +162,6 @@ router.get('/epidemic/China', function (req, res) {
  */
 router.get('/epidemic/province', function (req, res, next) {
     let provinceName = req.query.p;
-    debug(provinceName);
     if (provinceName === undefined) {
         next(createError(400));
         return
@@ -138,7 +177,7 @@ router.get('/epidemic/province', function (req, res, next) {
 
 }, function (err, req, res, next) {
     res.locals.message = `Wrong use of api.   Usage: ${req.path}?p=(province name)`;
-    res.status(err.status).render('error', { error: err });
+    res.status(err.status).render('error', {error: err});
 });
 
 
