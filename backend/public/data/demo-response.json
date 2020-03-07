@@ -1,0 +1,22 @@
+{
+	"superiorPlace": "四川省",
+	"superiorLevel": "province",
+	"dataKind": "confirmedCount",
+	"inferiorPlaces": [
+		{
+			"place": "成都",
+			"values": [1, 2, 10, 100, 120],
+			"times": [1100, 1101, 1102, 1103]
+		},
+		{
+			"place": "乐山",
+			"values": [3, 5, 10, 100, 120],
+			"times": [1100, 1101, 1102, 1105]
+		},
+		{
+			"place": "眉山",
+			"values": [3, 5, 10, 100, 120],
+			"times": [1100, 1101, 1102, 1105]
+		}
+	]
+}
