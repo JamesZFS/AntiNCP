@@ -1,0 +1,13 @@
+{
+	"name": "AntiNCP Backend API",
+	"title": "AntiNCP Backend API",
+	"url": "http://localhost:3000",
+	"order": [
+		"GetUser",
+		"PostUser"
+	],
+	"template": {
+		"withCompare": true,
+		"withGenerator": true
+	}
+}
