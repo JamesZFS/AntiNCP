@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "version": "1.0.0",
-  "description": "antincp前端",
+  "description": "AntiNCP Frontend",
   "author": "wzx0645 <zixuan-w17@mails.tsinghua.edu.cn>",
   "private": true,
   "scripts": {
