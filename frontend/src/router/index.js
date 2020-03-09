@@ -5,6 +5,8 @@ import Page1 from '@/components/Page1'
 import Page2 from '@/components/Page2'
 import Page3 from '@/components/Page3'
 import Page4 from '@/components/Page4'
+// import HeatMap from '@/components/Heatmap'
+
 Vue.use(Router)
 
 export default new Router({
@@ -34,5 +36,10 @@ export default new Router({
       name: 'Page4',
       component: Page4
     }
+    // {
+    //   path: '/heatmap',
+    //   name: 'HeatMap',
+    //   component: HeatMap
+    // }
   ]
 })
