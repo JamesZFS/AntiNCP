@@ -37,7 +37,6 @@ function initialize() {
     connection.connect(() => debug('connected.'));
     return doSql(fs.readFileSync(initializingScriptPath, 'utf8')).then((res) => {
         debug('Database initialized successfully.');
-        debug(JSON.stringify(res));
     }).catch((err) => {
         console.error("Database error: initializing failed.", err);
         throw err;
@@ -59,10 +58,7 @@ function finalize() {
  */
 function insertEntry(table, entry) {
     let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES ('${Object.values(entry).join("','")}');`;
-    debug(sql);
-    return doSql(sql).then((res) => {
-        debug('insert success.', res)
-    }); // error unhandled
+    return doSql(sql); // error unhandled
 }
 
 /**
@@ -70,31 +66,97 @@ function insertEntry(table, entry) {
  * @param entry{Object}
  * @return {Promise}
  * @example
-   insertEpidemicEntry({
-       time: '2020-3-9 10:00:30',
-       country: 'China',
-       province: '四川省',
-       city: '成都',
-       confirmedCount: 10,
-       suspectedCount: 12,
-       curedCount: 13,
-       deadCount: 5,
-   }).then((res) => {
-       debug('insert success.');
-       debug(res);
-   }).catch((err) => {
-       debug('insert failed.');
-       console.error(err.message);
-   });
+ insertEpidemicEntry({
+     time: '2020-3-9 10:00:30',
+     country: 'China',
+     province: '四川省',
+     city: '成都',
+     confirmedCount: 10,
+     suspectedCount: 12,
+     curedCount: 13,
+     deadCount: 5,
+ }).then((res) => {
+     debug('insert success.');
+     debug(res);
+ }).catch((err) => {
+     debug('insert failed.');
+     console.error(err.message);
+ });
  */
 function insertEpidemicEntry(entry) {
     return insertEntry('Epidemic', entry);
 }
 
-function test() {
+/**
+ * Clear the whole table
+ * @param table{string}
+ * @return {Promise}
+ */
+function clearTable(table) {
+    let sql = `TRUNCATE TABLE ${table};`;
+    return doSql(sql);
+}
 
+/**
+ * Fetch the whole table
+ * @param table{string}
+ * @return {Promise}
+ */
+function fetchTable(table) {
+    let sql = `SELECT * FROM ${table};`;
+    return doSql(sql);
+}
+
+/**
+ * Count table rows
+ * @param table{string}
+ */
+function countTableRows(table) {
+    let sql = `SELECT COUNT(*) FROM ${table};`;
+    doSql(sql).then(res => {
+        debug('table fetched:');
+        console.log('Row count:', res);
+    }).catch(err => {
+        debug('cannot fetch table.');
+        throw err;
+    })
+}
+
+/**
+ * @param table{string}
+ */
+function showTable(table) {
+    fetchTable(table).then(res => {
+        debug('table fetched:');
+        console.log(res);
+    }).catch(err => {
+        debug('cannot fetch table.');
+        throw err;
+    })
+}
+
+function test() {
+    // let table = 'Epidemic';
+    // let entry = {
+    //     time: '2020-3-9 10:00:30',
+    //     country: 'China',
+    //     province: '四川省',
+    //     city: '成都',
+    //     confirmedCount: 10,
+    //     suspectedCount: 12,
+    //     curedCount: 13,
+    //     deadCount: 5,
+    // };
+    // insertEpidemicEntry(entry);
+    // insertEpidemicEntry(entry);
+    // insertEpidemicEntry(entry);
+    // showTable(table);
+    // clearTable(table);
+    // showTable(table);
 }
 
 module.exports = {
-    initialize, finalize, test
+    initialize, finalize, test,
+    insertEntry, insertEpidemicEntry,
+    clearTable, fetchTable, showTable, countTableRows
 };

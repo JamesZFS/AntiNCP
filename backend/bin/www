@@ -8,6 +8,7 @@ const debug = require('debug')('backend:server');
 const app = require('../app');
 const http = require('http');
 const dbManager = require('../database/db-manager');
+const fetcher = require('../fetch/fetcher');
 
 /**
  * Get port from environment and store in Express.
@@ -26,13 +27,24 @@ const server = http.createServer(app);
  * Listen on provided port, on all network interfaces.
  */
 
-dbManager.initialize().then(() => { // initialize db, then start listening
-    server.listen(port);
-    server.on('error', onError);
-    server.on('listening', onListening);
-    dbManager.test();
-    dbManager.finalize();
-}).catch((err) => process.exit(1));
+dbManager
+    .initialize()
+    .then(() => {  // initialize db, then start listening
+        dbManager.test();
+        return dbManager.clearTable('epidemic'); // for test only
+    })
+    .then(() => fetcher.insertEpidemicDataFromDXYAreaData())
+    .then(() => {
+        dbManager.countTableRows('epidemic');
+        server.listen(port);
+        server.on('error', onError);
+        server.on('listening', onListening);
+    })
+    .catch(err => {
+        debug('Caught error in server');
+        dbManager.finalize();
+        throw err
+    });
 
 /**
  * Normalize a port into a number, string, or false.
