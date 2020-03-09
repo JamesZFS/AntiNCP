@@ -3,7 +3,7 @@ USE `AntiNCP`;
 # epidemic data table
 CREATE TABLE IF NOT EXISTS `Epidemic` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `time` TIMESTAMP(4) NOT NULL COMMENT 'Updated timestamp',
+  `time` DATETIME NOT NULL COMMENT 'Updated date-time',
   `country` CHAR(32) NOT NULL,
   `province` CHAR(32) NULL,
   `city` CHAR(32) NULL,
