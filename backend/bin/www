@@ -31,11 +31,11 @@ dbManager
     .initialize()
     .then(() => {  // initialize db, then start listening
         dbManager.test();
-        return dbManager.clearTable('epidemic'); // for test only
+        return dbManager.clearTable('Epidemic'); // for test only
     })
     .then(() => fetcher.insertEpidemicDataFromDXYAreaData())
     .then(() => {
-        dbManager.countTableRows('epidemic');
+        dbManager.countTableRows('Epidemic');
         server.listen(port);
         server.on('error', onError);
         server.on('listening', onListening);

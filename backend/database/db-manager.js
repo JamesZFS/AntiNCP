@@ -1,7 +1,7 @@
 const fs = require('fs');
 const debug = require('debug')('backend:db-manager');
 const mysql = require('mysql');
-const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
+const dbCfg = require('../config/db-cfg').THUCG_MYSQL_CFG; // you may choose a different mysql server
 const connection = mysql.createConnection(dbCfg);
 const initializingScriptPath = 'database/db-initialize.sql';
 
@@ -52,13 +52,29 @@ function finalize() {
 }
 
 /**
- * Insert a new epidemic data entry into a given table
+ * Insert a data entry into a given table
  * @param table{string}
  * @param entry{Object}
  * @return {Promise<Object>}
  */
 function insertEntry(table, entry) {
     let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES ('${Object.values(entry).join("','")}');`;
+    return doSql(sql); // error unhandled
+}
+
+/**
+ * Insert a data entry batch into a given table
+ * @param table{string}
+ * @param entries{Object[]} have to make sure they have **the same keys**
+ * @return {Promise<Object>}
+ */
+function insertEntries(table, entries) {
+    let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
+    let vals = [];
+    for (let entry of entries) {
+        vals.push(`('${Object.values(entry).join("','")}')`);
+    }
+    sql += vals.join(',') + ';';
     return doSql(sql); // error unhandled
 }
 
@@ -86,6 +102,15 @@ function insertEntry(table, entry) {
  */
 function insertEpidemicEntry(entry) {
     return insertEntry('Epidemic', entry);
+}
+
+/**
+ * Insert multiple epidemic data entries into 'Epidemic' table
+ * @param entries{Object[]}
+ * @return {Promise<Object>}
+ */
+function insertEpidemicEntries(entries) {
+    return insertEntries('Epidemic', entries);
 }
 
 /**
@@ -158,6 +183,6 @@ function test() {
 
 module.exports = {
     initialize, finalize, test,
-    insertEntry, insertEpidemicEntry,
+    insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, showTable, countTableRows
 };
