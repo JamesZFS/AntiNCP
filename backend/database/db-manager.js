@@ -1,7 +1,7 @@
 const fs = require('fs');
 const debug = require('debug')('backend:db-manager');
 const mysql = require('mysql');
-const dbCfg = require('../config/db-cfg').THUCG_MYSQL_CFG; // you may choose a different mysql server
+const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
 const connection = mysql.createConnection(dbCfg);
 const initializingScriptPath = 'database/db-initialize.sql';
 
@@ -139,7 +139,7 @@ function fetchTable(table) {
  */
 function countTableRows(table) {
     let sql = `SELECT COUNT(*) FROM ${table};`;
-    doSql(sql).then(res => {
+    return doSql(sql).then(res => {
         debug('table fetched:');
         console.log('Row count:', res);
     }).catch(err => {
@@ -152,7 +152,7 @@ function countTableRows(table) {
  * @param table{string}
  */
 function showTable(table) {
-    fetchTable(table).then(res => {
+    return fetchTable(table).then(res => {
         debug('table fetched:');
         console.log(res);
     }).catch(err => {
@@ -162,23 +162,6 @@ function showTable(table) {
 }
 
 function test() {
-    // let table = 'Epidemic';
-    // let entry = {
-    //     time: '2020-3-9 10:00:30',
-    //     country: 'China',
-    //     province: '四川省',
-    //     city: '成都',
-    //     confirmedCount: 10,
-    //     suspectedCount: 12,
-    //     curedCount: 13,
-    //     deadCount: 5,
-    // };
-    // insertEpidemicEntry(entry);
-    // insertEpidemicEntry(entry);
-    // insertEpidemicEntry(entry);
-    // showTable(table);
-    // clearTable(table);
-    // showTable(table);
 }
 
 module.exports = {

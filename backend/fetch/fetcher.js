@@ -1,30 +1,34 @@
 // Auto data fetching system
 const debug = require('debug')('backend:fetcher');
 const csv = require('fast-csv');
-const scheduler = require('node-schedule');
+const fs = require('fs');
+const path = require('path');
+const download = require('download');
 const db = require('../database/db-manager');
-const DXYAreaDataCSVPath = 'public/data/DXYArea.csv';
-
+const scheduler = require('./scheduler');
+const DXYAreaDataDir = 'public/data/area/';
+const dataSource = require('../config/third-party');
 const expectedFields = ['updateTime', 'provinceName', 'cityName', 'city_confirmedCount', 'city_suspectedCount', 'city_curedCount', 'city_deadCount'];
 const dbEntryFields = ['time', 'province', 'city', 'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'];
 
 /**
  * Inserting epidemic data from DXY area data csv into database, asynchronously
  * This takes countable seconds to finish
+ * @param csvPath{string}
  * @param batchSize{int}
  * @param strict{bool} if true, stop parsing when encounter an error row
  * @return {Promise<int>}
  */
-function insertEpidemicDataFromDXYAreaData(batchSize = 10000, strict = true) {
+function insertEpidemicDataFromDXYAreaData(csvPath, batchSize = 10000, strict = true) {
     return new Promise((resolve, reject) => {
         let firstLine = true;
         let field2index = {};
         let count = 0;
         let entryBatch = [];
         debug('inserting epidemic data from DXY area data csv...');
-        let parser = csv.parseFile(DXYAreaDataCSVPath)
+        let parser = csv.parseFile(csvPath)
             .on('error', error => {
-                debug(`error when parsing csv file ${DXYAreaDataCSVPath}`);
+                debug(`error when parsing csv file ${csvPath}`);
                 reject(error);
             })
             .on('data', async row => {
@@ -73,6 +77,60 @@ function insertEpidemicDataFromDXYAreaData(batchSize = 10000, strict = true) {
     });
 }
 
+/**
+ * Reload epidemic data in the db, auto-selecting the newest csv file
+ * auto download if no csv is found
+ */
+async function reloadEpidemicData() {
+    try {
+        let csvPath = selectNewestFile(DXYAreaDataDir);
+        if (csvPath === undefined) { // no csv found
+            await downloadEpidemicData();
+            return reloadEpidemicData();
+        }
+        await db.clearTable('Epidemic');
+        await insertEpidemicDataFromDXYAreaData(csvPath);
+        await db.countTableRows('Epidemic');
+    } catch (err) {
+        debug('Fail to reload epidemic data.');
+        throw err;
+    }
+}
+
+/**
+ * Download epidemic data from dxy api, save it to DXYAreaDataDir
+ */
+async function downloadEpidemicData() {
+    debug('Downloading Epidemic Data... (Be patient, this may take a while)');
+    let filePath = path.join(DXYAreaDataDir, Date.now() + '.csv');
+    try {
+        await download(dataSource.DXY_AREA_API, filePath);
+    } catch (err) {
+        debug('Fail to download epidemic data.');
+        fs.unlinkSync(filePath);
+        throw err;
+    }
+}
+
+function selectNewestFile(dir) {
+    let files = fs.readdirSync(dir);
+    if (files.length === 0) return undefined;
+    files.sort(function (a, b) {
+        let pb = parseInt(b);
+        return isNaN(pb) ? -1 : pb - parseInt(a);
+    });
+    return path.join(dir, files[0]);
+}
+
+// download newest csv and update db twice a day
+scheduler.jobTwiceADay.callback = async function () {
+    debug('Auto update begins.');
+    await downloadEpidemicData();
+    await reloadEpidemicData();
+    debug('Auto update finished.');
+};
+
 module.exports = {
-    insertEpidemicDataFromDXYAreaData
+    reloadEpidemicData, downloadEpidemicData,
+    scheduler
 };

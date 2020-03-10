@@ -1,5 +1,5 @@
 node_modules
 doc
 /public/data/DXY-COVID-19-Data-json/
-/public/data/area_data.json
+/public/data/area/
 /public/data/DXYArea.csv
