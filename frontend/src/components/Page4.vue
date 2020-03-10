@@ -17,7 +17,9 @@
     name: 'pag4',
     components: {NavBar},
     data () {
-      return {}
+      return {
+        count: 0
+      }
     }
   }
 </script>

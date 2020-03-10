@@ -5,7 +5,7 @@
       <NavBar></NavBar>
     </div>
     <div>
-      <h1>page2</h1>
+      <h1>疫情相关报道时间轴</h1>
     </div>
   </div>
 </template>
@@ -17,7 +17,9 @@
     name: 'pag2',
     components: {NavBar},
     data () {
-      return {}
+      return {
+        count: 0
+      }
     }
   }
 </script>

@@ -19,7 +19,9 @@
     name: 'homepage',
     components: {NavBar, HeatMap},
     data () {
-      return {}
+      return {
+        count: 0
+      }
     }
   }
 </script>

@@ -5,19 +5,23 @@
       <NavBar></NavBar>
     </div>
     <div>
-      <h1>page3</h1>
+      <h1>xx省新冠肺炎疫情相关词云</h1>
+      <h2>数据来自各地主流媒体报道</h2>
+      <WordCloud></WordCloud>
     </div>
   </div>
 </template>
 
 <script>
   import NavBar from './NavBar'
-
+  import WordCloud from './WordCloud'
   export default {
     name: 'pag3',
-    components: {NavBar},
+    components: {NavBar,WordCloud},
     data () {
-      return {}
+      return {
+        count: 0
+      }
     }
   }
 </script>

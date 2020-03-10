@@ -36,7 +36,9 @@
   export default {
     name: 'navbar',
     data () {
-      return {}
+      return {
+        count: 0
+      }
     }
   }
 </script>

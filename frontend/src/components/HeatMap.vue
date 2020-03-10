@@ -1,7 +1,6 @@
 <!-- 热度图组件 -->
 <template>
   <div>
-    <h1>HeatMap</h1>
     <div id="heatmap" style="width: 80vw;height: 80vh;"></div>
   </div>
 </template>
@@ -15,6 +14,9 @@
   export default {
     name: 'heatmap',
     data () {
+      return {
+        count:0
+      }
     },
     methods: {
       drawheatmap (id) {
