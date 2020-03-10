@@ -10,6 +10,7 @@
   import echarts from 'echarts'
   import china from 'echarts/map/js/china'
   import 四川 from 'echarts/map/js/province/sichuan'
+  import 'echarts/lib/component/visualMap'
 
   export default {
     name: 'heatmap',
@@ -24,7 +25,7 @@
             formatter: '{b}确诊{c} (人)'
           },
           visualMap: {
-            show: false,
+            show: true,
             min: 0,
             max: 200,
             text: ['High', 'Low'],
