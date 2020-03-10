@@ -30,6 +30,14 @@ function doSqls(sqls) {
 }
 
 /**
+ * Use a database
+ * @param schema{string}
+ */
+function useDB(schema) {
+    return doSql(`USE ${schema}`);
+}
+
+/**
  * Initialize db. Call once before listening
  * @return {Promise<Object>}
  */
@@ -161,11 +169,42 @@ function showTable(table) {
     })
 }
 
+/**
+ * Select given fields from the table
+ * @param table{string}
+ * @param fields{string|string[]}
+ * @param conditions{undefined|string|string[]}
+ * @param distinct{undefined|boolean} whether to de-duplicate
+ * @return Promise<Object>
+ */
+function selectInTable(table, fields, conditions, distinct) {
+    if (typeof fields === 'string') fields = [fields];
+    let sql = `SELECT ${distinct === true ? 'DISTINCT ' : ''}${fields.join(',')} FROM ${table}`;
+    if (conditions) {
+        if (typeof conditions === 'string') conditions = [conditions];
+        sql += ` WHERE (${conditions.join(') AND (')})`;
+    }
+    sql += ';';
+    return doSql(sql);
+}
+
+/**
+ * Select given fields from the table
+ * @param fields{string|string[]}
+ * @param conditions{undefined|string|string[]}
+ * @param distinct{undefined|boolean} whether to de-duplicate
+ * @return Promise<Object>
+ */
+function selectEpidemicData(fields, conditions, distinct) {
+    return selectInTable('Epidemic', fields, conditions, distinct);
+}
+
 function test() {
 }
 
 module.exports = {
-    initialize, finalize, test,
+    useDB, initialize, finalize, test,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
-    clearTable, fetchTable, showTable, countTableRows
+    clearTable, fetchTable, showTable, countTableRows,
+    selectInTable, selectEpidemicData
 };

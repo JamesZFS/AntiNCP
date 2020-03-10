@@ -14,4 +14,6 @@ const THUCG_MYSQL_CFG = {
     multipleStatements: true,
 };
 
-module.exports = {LOCAL_MYSQL_CFG, THUCG_MYSQL_CFG};
+const EPIDEMIC_DATA_KINDS = ['confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'];
+
+module.exports = {LOCAL_MYSQL_CFG, THUCG_MYSQL_CFG, EPIDEMIC_DATA_KINDS};

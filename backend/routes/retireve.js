@@ -1,83 +1,37 @@
-var express = require('express');
-var createError = require('http-errors');
-var router = express.Router();
-var axios = require('axios');
-var apis = require('../config/third-party');
-var debug = require('debug')('backend:retrieve');
-var fs = require('fs');
-// const cacheFilePath = 'public/data/epidemic.aminer.json';
-const cacheFilePath = 'public/data/demo-response.json';
-var demoData = JSON.parse(fs.readFileSync(cacheFilePath)); // cached data
-var epidemicData;
-// // todo init epidemic data, #1
-// try {
-//     epidemicData = JSON.parse(fs.readFileSync(cacheFilePath));
-// } catch (err) {
-//     console.error("Can't read from cache file.", err);
-//     acquireEpidemicData().then(val => {
-//         epidemicData = val;
-//         fs.writeFileSync(cacheFilePath, JSON.stringify(epidemicData));
-//         debug("Epidemic data updated.");
-//     }).catch(err => {
-//         console.error("Fatal: fail to update from epidemic data source.");
-//         process.exit(1);
-//     });
-// }
-//
-// // todo
-// function acquireEpidemicData() { // async
-//     debug(`Acquiring epidemic data from source ${apis.AMINER_EPIDEMIC_API}`);
-//     return new Promise(function (resolve, reject) {
-//         axios.get(apis.AMINER_EPIDEMIC_API)
-//             .then(response => {
-//                 response.data.updateTime = Date.now();
-//                 resolve(response.data);
-//             })
-//             .catch(error => {
-//                 console.error("Can't access AMINER_EPIDEMIC_API.", error);
-//                 reject(error);
-//             });
-//     });
-// }
+const express = require('express');
+const createError = require('http-errors');
+const router = express.Router();
+const debug = require('debug')('backend:retrieve');
+const db = require('../database/db-manager');
+const EPIDEMIC_DATA_KINDS = require('../config/db-cfg').EPIDEMIC_DATA_KINDS;
+const EPIDEMIC_USAGE = require('../config/consts').EPIDEMIC_USAGE;
 
-// // Retrieve middleware
-// router.use('/epidemic', function (req, res, next) {
-//     if (Date.now() - epidemicData.updateTime >= apis.AMINER_EPIDEMIC_API_UPDATE_INTERVAL) {
-//         // periodically update epidemic data from source
-//         acquireEpidemicData().then(val => {
-//             epidemicData = val;
-//             res.attached = epidemicData.data;
-//             next();
-//             fs.writeFile(cacheFilePath, JSON.stringify(epidemicData), err => { // async
-//                 if (err) console.error("Can't write back to cache file path.", err);
-//                 else debug("Epidemic data updated.");
-//             });
-//         }).catch(err => {
-//             // fail to update
-//             debug("Warning: fail to update from epidemic data source.");
-//             res.attached = epidemicData.data; // use cached data
-//             next();
-//         })
-//     } else {
-//         // use cached data
-//         res.attached = epidemicData.data;
-//         next();
-//     }
-// });
+const TO_INFERIOR = {
+    'world': 'country',
+    'country': 'province',
+    'province': 'city'
+};
 
 /**
  * @api {get} /retrieve/epidemic  Get epidemic data api
  * @apiName GetEpidemicData
+ * @apiVersion 0.1.0
  * @apiGroup Retrieve
  * @apiPermission everyone
  *
  * @apiDescription Retrieve epidemic data in a specific superior place(world/country/province)
- * !! this apis is in progress
  *
+ * **this apis is in progress (world and China overall data is not available)**
+ *
+ * @apiParam (Query Param) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}
  * @apiParam (Query Param) {string}  superiorPlace  superior place name
- * @apiParam (Query Param) {string}  dataKind       epidemic data kind
+ * @apiParam (Query Param) {string}  superiorLevel  superior place level, in {'world', 'country', 'province'}
  *
  * @apiSuccess {Object}  . epidemic data in different inferior places and time stamps
+ * @apiError 400   wrong usage or param invalid
+ * @apiError 404   place not found
+ *
+ * @apiError 500   internal database error
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/retrieve/epidemic?superiorPlace=四川省&dataKind=confirmedCount"
@@ -106,22 +60,78 @@ var epidemicData;
  *   ]
  * }
  */
-router.get('/epidemic', function (req, res, next) {
+router.get('/epidemic', async function (req, res) {
+    let superiorLevel = req.query.superiorLevel;
     let superiorPlace = req.query.superiorPlace;
     let dataKind = req.query.dataKind;
-    if (superiorPlace === undefined || dataKind === undefined) {
-        next(createError(400));
+    // type & usage check
+    if (typeof superiorLevel !== 'string' || typeof superiorPlace !== 'string' || typeof dataKind !== 'string' ||
+        TO_INFERIOR[superiorLevel] === undefined || EPIDEMIC_DATA_KINDS.indexOf(dataKind) < 0) {
+        // handle 400 error
+        let err = createError(400);
+        res.locals.message = EPIDEMIC_USAGE;
+        res.status(err.status).render('error', {error: err});
         return;
     }
-    // todo unimplemented!
-    if (superiorPlace === "四川省" && dataKind === "confirmedCount") {
-        res.status(200).send(demoData);
-    } else {
-        res.status(404).end();
+    let conditions = []; // for where clause
+    let fields = ['time', dataKind]; // columns to select
+    switch (superiorLevel) {
+        case 'world':
+            fields.push('country');
+            conditions.push(`province = '-'`); // means country data
+            res.status(404).send('Unimplemented!');
+            return;
+        case 'country':
+            fields.push('province');
+            conditions.push(`country = '${superiorPlace}'`, `city = '-'`); // means province data
+            res.status(404).send('Unimplemented!');
+            return;
+        case 'province':
+            fields.push('city');
+            conditions.push(`province = '${superiorPlace}'`);
+            break;
     }
-}, function (err, req, res, next) {
-    res.locals.message = `Wrong use of api.   Usage: ${req.path}?superiorPlace={...}&dataKind={...}`;
-    res.status(err.status).render('error', {error: err});
+    let inferiorLevel = TO_INFERIOR[superiorLevel];
+    let inferiorPlaces;
+    let result;
+    // search for satisfying results in db
+    try {
+        // scan inferior place list
+        inferiorPlaces = await db.selectEpidemicData(inferiorLevel, conditions, true);
+        if (!inferiorPlaces) {
+            res.status(404).send(`Superior place '${superiorPlace}' not found`);
+            return;
+        }
+        // get epidemic data array
+        result = await db.selectEpidemicData(fields, conditions);
+    } catch (err) {
+        res.status(500).send("epidemic database error");
+        debug('Cannot select epidemic data.');
+        throw err;
+    }
+    // reconstruct response json, see demo-response.json for illustration
+    let inferiorPlaceBuffer = [];
+    for (let place of inferiorPlaces) {
+        place = place[inferiorLevel];
+        let item = {
+            place: place,
+            values: [],
+            times: [],
+        };
+        for (let packet of result) {
+            if (packet[inferiorLevel] === place) {
+                item.values.push(packet[dataKind]);
+                item.times.push(Date.parse(packet['time']) / 1000); // to unix time
+            }
+        }
+        inferiorPlaceBuffer.push(item);
+    }
+    res.status(200).send({
+        superiorPlace: superiorPlace,
+        superiorLevel: superiorLevel,
+        dataKind: dataKind,
+        inferiorPlaces: inferiorPlaceBuffer,
+    });
 });
 
 
