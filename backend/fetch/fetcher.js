@@ -10,19 +10,21 @@ const dbEntryFields = ['time', 'province', 'city', 'confirmedCount', 'suspectedC
 /**
  * Inserting epidemic data from DXY area data csv into database, asynchronously
  * This takes countable seconds to finish
- * @return {Promise}
+ * @param strict{bool} if true, stop parsing when encounter an error row
+ * @return {Promise<int>}
  */
-function insertEpidemicDataFromDXYAreaData() {
+function insertEpidemicDataFromDXYAreaData(strict = true) {
     return new Promise((resolve, reject) => {
         let firstLine = true;
         let field2index = {};
+        let count = 0;
         debug('inserting epidemic data from DXY area data csv...');
-        csv.parseFile(DXYAreaDataCSVPath)
+        let parser = csv.parseFile(DXYAreaDataCSVPath)
             .on('error', error => {
                 debug(`error when parsing csv file ${DXYAreaDataCSVPath}`);
                 reject(error);
             })
-            .on('data', row => {
+            .on('data', async row => {
                 if (firstLine) { // table head
                     firstLine = false;
                     for (let i = 0; i < expectedFields.length; ++i) {
@@ -35,17 +37,27 @@ function insertEpidemicDataFromDXYAreaData() {
                     }
                     return;
                 }
+                if (++count % 10000 === 0) debug(`parsed ${count} rows.`);
                 // table data
                 let entry = {};
                 entry['country'] = '中国'; // default
                 for (let field in field2index) {
                     entry[field] = row[field2index[field]];
                 }
-                db.insertEpidemicEntry(entry).catch(reject);
+                parser.pause(); // wait for db to finish insertion
+                db.insertEpidemicEntry(entry)
+                    .then(() => parser.resume())
+                    .catch(err => {
+                        debug('parsing error row:', err);
+                        if (strict) {
+                            parser.end();
+                            reject(err);
+                        }
+                    });
             })
             .on('end', rowCount => {
                 debug(`successfully parsed ${rowCount} rows`);
-                resolve(); // todo csv reading stream finishes earlier than db queries, bug occurs
+                resolve(rowCount);
             });
     });
 }

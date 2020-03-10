@@ -8,7 +8,7 @@ const initializingScriptPath = 'database/db-initialize.sql';
 /**
  * Do an mysql command asynchronously
  * @param sql{string}
- * @returns {Promise}
+ * @returns {Promise<Object>}
  */
 function doSql(sql) {
     return new Promise(function (resolve, reject) {
@@ -22,7 +22,7 @@ function doSql(sql) {
 /**
  * Schedule multiple mysql commands in order
  * @param sqls{Array<string>}
- * @returns {Promise}
+ * @returns {Promise<Object>}
  */
 function doSqls(sqls) {
     sql = sqls.join(' ');
@@ -31,14 +31,15 @@ function doSqls(sqls) {
 
 /**
  * Initialize db. Call once before listening
- * @return {Promise}
+ * @return {Promise<Object>}
  */
 function initialize() {
     connection.connect(() => debug('connected.'));
     return doSql(fs.readFileSync(initializingScriptPath, 'utf8')).then((res) => {
         debug('Database initialized successfully.');
+        return Promise.resolve(res);
     }).catch((err) => {
-        console.error("Database error: initializing failed.", err);
+        console.error("Database error: initializing failed.");
         throw err;
     });
 }
@@ -54,7 +55,7 @@ function finalize() {
  * Insert a new epidemic data entry into a given table
  * @param table{string}
  * @param entry{Object}
- * @return {Promise}
+ * @return {Promise<Object>}
  */
 function insertEntry(table, entry) {
     let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES ('${Object.values(entry).join("','")}');`;
@@ -64,7 +65,7 @@ function insertEntry(table, entry) {
 /**
  * Insert a new epidemic data entry into 'Epidemic' table
  * @param entry{Object}
- * @return {Promise}
+ * @return {Promise<Object>}
  * @example
  insertEpidemicEntry({
      time: '2020-3-9 10:00:30',

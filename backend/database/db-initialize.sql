@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `Epidemic` (
   `suspectedCount` INT NULL DEFAULT -1,
   `curedCount` INT NULL DEFAULT -1,
   `deadCount` INT NULL DEFAULT -1,
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE)
+  PRIMARY KEY (`id`, `time`),
+  UNIQUE INDEX `id_UNIQUE` (`id` ASC))
 COMMENT = 'Epidemic data across the world.';
 # other tables...
