@@ -25,7 +25,7 @@ function insertEpidemicDataFromDXYAreaData(csvPath, batchSize = 10000, strict = 
         let field2index = {};
         let count = 0;
         let entryBatch = [];
-        debug('inserting epidemic data from DXY area data csv...');
+        debug(`inserting epidemic data from DXY area data csv ${csvPath}`);
         let parser = csv.parseFile(csvPath)
             .on('error', error => {
                 debug(`error when parsing csv file ${csvPath}`);
@@ -37,6 +37,7 @@ function insertEpidemicDataFromDXYAreaData(csvPath, batchSize = 10000, strict = 
                     for (let i = 0; i < expectedFields.length; ++i) {
                         let idx = row.indexOf(expectedFields[i]);
                         if (idx < 0) {
+                            parser.end();
                             reject(`expected field ${expectedFields[i]} not found in csv.`);
                             return;
                         }
@@ -83,13 +84,13 @@ function insertEpidemicDataFromDXYAreaData(csvPath, batchSize = 10000, strict = 
  */
 async function reloadEpidemicData() {
     try {
-        let csvPath = selectNewestFile(DXYAreaDataDir);
+        let csvPath = selectNewestFile(DXYAreaDataDir, '.csv');
         if (csvPath === undefined) { // no csv found
             await downloadEpidemicData();
             return reloadEpidemicData();
         }
         await db.clearTable('Epidemic');
-        await insertEpidemicDataFromDXYAreaData(csvPath);
+        await insertEpidemicDataFromDXYAreaData(csvPath, 10000, true);
         await db.countTableRows('Epidemic');
     } catch (err) {
         debug('Fail to reload epidemic data.');
@@ -112,8 +113,10 @@ async function downloadEpidemicData() {
     }
 }
 
-function selectNewestFile(dir) {
+function selectNewestFile(dir, suffix = 'csv') {
+    if (!suffix.startsWith('.')) suffix = '.' + suffix;
     let files = fs.readdirSync(dir);
+    files = files.filter(val => val.endsWith(suffix)); // neglect stuffs like .DS_STORE
     if (files.length === 0) return undefined;
     files.sort(function (a, b) {
         let pb = parseInt(b);
