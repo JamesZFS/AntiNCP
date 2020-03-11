@@ -20,7 +20,7 @@
     },
     methods: {
       drawheatmap (id) {
-        this.charts = echarts.init(document.getElementById(id))
+        this.charts = echarts.init(document.getElementById(id));
         this.charts.setOption({
           tooltip: {
             trigger: 'item',
@@ -54,7 +54,7 @@
               {name: '吉林', value: '1'}, {name: '福建', value: '0'},
               {name: '贵州', value: '21'}, {name: '广东', value: '84'},
               {name: '青海', value: '0'}, {name: '西藏', value: '0'},
-              {name: '四川', value: '70'}, {name: '宁夏', value: '4'},
+              {name: '四川', value: '10'}, {name: '宁夏', value: '4'},
               {name: '海南', value: '3'}, {name: '台湾', value: '29'},
               {name: '香港', value: '53'}, {name: '澳门', value: '0'}
             ]
