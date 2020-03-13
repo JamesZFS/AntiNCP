@@ -11,19 +11,19 @@
 </template>
 
 <script>
-  // import Vue from 'vue'
-  import NavBar from './NavBar'
-  import HeatMap from './HeatMap'
+// import Vue from 'vue'
+import NavBar from './NavBar'
+import HeatMap from './HeatMap'
 
-  export default {
-    name: 'homepage',
-    components: {NavBar, HeatMap},
-    data () {
-      return {
-        count: 0
-      }
+export default {
+  name: 'homepage',
+  components: {NavBar, HeatMap},
+  data () {
+    return {
+      count: 0
     }
   }
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

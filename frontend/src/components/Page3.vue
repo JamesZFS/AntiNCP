@@ -13,17 +13,17 @@
 </template>
 
 <script>
-  import NavBar from './NavBar'
-  import WordCloud from './WordCloud'
-  export default {
-    name: 'pag3',
-    components: {NavBar,WordCloud},
-    data () {
-      return {
-        count: 0
-      }
+import NavBar from './NavBar'
+import WordCloud from './WordCloud'
+export default {
+  name: 'pag3',
+  components: {NavBar,WordCloud},
+  data () {
+    return {
+      count: 0
     }
   }
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

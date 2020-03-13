@@ -12,18 +12,18 @@
 </template>
 
 <script>
-  import NavBar from './NavBar'
-  import HeatMap from './HeatMap'
+import NavBar from './NavBar'
+import HeatMap from './HeatMap'
 
-  export default {
-    name: 'pag1',
-    components: {NavBar, HeatMap},
-    data () {
-      return {
-        count: 0
-      }
+export default {
+  name: 'pag1',
+  components: {NavBar, HeatMap},
+  data () {
+    return {
+      count: 0
     }
   }
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
