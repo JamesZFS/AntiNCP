@@ -7,7 +7,7 @@ import Page3 from '@/components/Page3'
 import Page4 from '@/components/Page4'
 // import HeatMap from '@/components/Heatmap'
 
-Vue.use(Router)
+Vue.use(Router);
 
 export default new Router({
   routes: [

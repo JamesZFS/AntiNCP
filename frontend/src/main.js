@@ -5,13 +5,19 @@ import App from './App'
 import router from './router'
 import 'element-ui/lib/theme-chalk/index.css'
 import ElementUI from 'element-ui'
+import axios from 'axios';
+import VueAxios from 'vue-axios';
+import VueLogger from 'vuejs-logger';
+import loggerCfg from '../config/logger';
 
-Vue.config.productionTip = false
-Vue.use(ElementUI)
+Vue.config.productionTip = false;
+Vue.use(ElementUI);
+Vue.use(VueAxios, axios);
+Vue.use(VueLogger, loggerCfg);
 /* eslint-disable no-new */
 new Vue({
   el: '#app',
   router,
   components: {App},
   template: '<App/>'
-})
+});
