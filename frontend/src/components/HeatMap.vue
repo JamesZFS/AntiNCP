@@ -28,14 +28,14 @@ export default {
         },
         visualMap: {
           show: true,
-          min: 0,
-          max: 200,
+          // min: 0,
+          // max: 200,
           text: ['High', 'Low'],
           realtime: false,
-          calculable: true,
-          inRange: {
-            color: ['lightskyblue', 'yellow', 'orangered']
-          }
+          calculable: true
+          // inRange: {
+          //   color: ['lightskyblue', 'yellow', 'orangered']
+          // }
         },
         series: {
           type: 'map',

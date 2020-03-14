@@ -96,16 +96,12 @@
       return {
         max: 2000,
         maxdic: {
-          '疑似': 25000,
-          '确诊': 3600,
+          '疑似': 18000,
+          '确诊': 2100,
           '治愈': 4000,
-          '死亡': 3200
-        }
-      }
-    },
-    methods: {
-      drawTimeAxis() {
-        this.charts.setOption({
+          '死亡': 2000
+        },
+        myoption: {
           baseOption: {
             timeline: {
               axisType: 'time',
@@ -152,7 +148,7 @@
               visualMap: {
                 show: true,
                 min: 0,
-                max: this.max,
+                max: 18000,
                 text: ['High', 'Low'],
                 realtime: false,
                 calculable: true,
@@ -176,7 +172,7 @@
               visualMap: {
                 show: true,
                 min: 0,
-                max: this.max,
+                max: 18000,
                 text: ['High', 'Low'],
                 realtime: false,
                 calculable: true,
@@ -201,7 +197,7 @@
               visualMap: {
                 show: true,
                 min: 0,
-                max: this.max,
+                max: 18000,
                 text: ['High', 'Low'],
                 realtime: false,
                 calculable: true,
@@ -226,7 +222,7 @@
               visualMap: {
                 show: true,
                 min: 0,
-                max: this.max,
+                max: 18000,
                 text: ['High', 'Low'],
                 realtime: false,
                 calculable: true,
@@ -251,7 +247,7 @@
               visualMap: {
                 show: true,
                 min: 0,
-                max: this.max,
+                max: 18000,
                 text: ['High', 'Low'],
                 realtime: false,
                 calculable: true,
@@ -276,7 +272,7 @@
               visualMap: {
                 show: true,
                 min: 0,
-                max: this.max,
+                max: 18000,
                 text: ['High', 'Low'],
                 realtime: false,
                 calculable: true,
@@ -301,7 +297,7 @@
               visualMap: {
                 show: true,
                 min: 0,
-                max: this.max,
+                max: 18000,
                 text: ['High', 'Low'],
                 realtime: false,
                 calculable: true,
@@ -326,7 +322,7 @@
               visualMap: {
                 show: true,
                 min: 0,
-                max: this.max,
+                max: 18000,
                 text: ['High', 'Low'],
                 realtime: false,
                 calculable: true,
@@ -343,27 +339,34 @@
               ]
             }
           ]
-        })
+        }
+      }
+    },
+    methods: {
+      drawTimeAxis() {
+        console.log('GG')
+        console.log(this.myoption)
+        this.charts.setOption(this.myoption)
       }
     },
     // 调用
     mounted() {
       this.charts = echarts.init(document.getElementById('TimeAxis'))
-      this.$nextTick(function () {
+      //console.log(this.charts.getOption())
+      this.$nextTick( () => {
         this.drawTimeAxis()
       })
-      // // var ecConfig = require('echarts/config');
-      // var tmp_maxdic = this.maxdic
-      // this.charts.on('legendselectchanged', function (obj) {
-      //   // this.max = tmp_maxdic[obj.name]
-      //   var options = this.getOption()
-      //   // console.log()
-      //   options.visualMap[0].max = tmp_maxdic[obj.name]
-      //   // this.clear()
-      //   console.log('GG')
-      //   console.log(options)
-      //   this.setOption(options,true)
-      // })
+      var tmp_maxdic = this.maxdic
+      this.charts.on('legendselectchanged', (obj) => {
+        var tmp_max = tmp_maxdic[obj.name]
+        for(var i = 0; i < this.myoption.options.length; i++) {
+          this.myoption.options[i].visualMap.max = tmp_max
+          console.log(this.myoption.options[i].visualMap.max)
+        }
+        this.myoption.baseOption.legend.selected = obj.selected
+        this.charts.setOption(this.myoption,true)
+        this.charts.resize()
+      })
     }
   }
 </script>
