@@ -104,11 +104,11 @@
         myoption: {
           baseOption: {
             timeline: {
-              axisType: 'time',
+              axisType: 'category',
               realtime: true,
               // loop: false,
               autoPlay: true,
-              currentIndex: 2,
+              // currentIndex: 2,
               playInterval: 1000,
               data: [
                 '2020-01-10', '2020-01-11', '2020-01-12',
