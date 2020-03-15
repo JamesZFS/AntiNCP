@@ -143,6 +143,7 @@ router.get('/epidemic', async function (req, res) {
  * @apiVersion 0.1.0
  * @apiGroup Retrieve
  * @apiPermission everyone
+ * @apiIgnore Not finished Method
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/retrieve/epidemic/timeline/world/?dataKind=confirmedCount,deadCount"
@@ -174,6 +175,7 @@ router.get('/epidemic/timeline/world', function (req, res) {
  * @apiVersion 0.1.0
  * @apiGroup Retrieve
  * @apiPermission everyone
+ * @apiIgnore Not finished Method
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/retrieve/epidemic/timeline/country/?country=中国&dataKind=confirmedCount,deadCount"
@@ -203,28 +205,53 @@ router.get('/epidemic/timeline/country', function (req, res) {
 /**
  * @api {get} /retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.1.0
+ * @apiVersion 0.1.1
  * @apiGroup Retrieve
  * @apiPermission everyone
  *
- * @apiExample {curl} Example usage:
+ * @apiParam (Query Param) {string}  country
+ * @apiParam (Query Param) {string}  province
+ * @apiParam (Query Param) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}, can be multiple
+ * @apiParam (Query Param) {none} verbose        return {name:..., value:...} or just the value buffer. see the example 2 for details
+ *
+ * @apiExample {curl} Example usage 1:
  *     curl "http://localhost:3000/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount"
  *
- * @apiExample Response (example):
+ * @apiExample Response (example 1):
  {
     "country": "中国",
 	"province": "四川省",
 	"city": ["成都", "乐山", "眉山"],
 	"timeline": {
 		"confirmedCount": {
-			"1-1": [1, 2, 10],
-			"1-2": [2, 3, 11],
-			"1-3": [2, 4, 10]
+			"2020-01-01": [1, 2, 10],
+			"2020-01-02": [2, 3, 11],
+			"2020-01-03": [2, 4, 10]
 		},
 		"deadCount": {
-			"1-1": [1, 2, 10],
-			"1-2": [1, 3, 11],
-			"1-3": [1, 3, 12]
+			"2020-01-01": [1, 2, 10],
+			"2020-01-02": [1, 3, 11],
+			"2020-01-03": [1, 3, 12]
+		}
+	}
+ }
+ *
+ * @apiExample {curl} Example usage 2:
+ *     curl "http://localhost:3000/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount&verbose"
+ *
+ * @apiExample Response (example 2):
+ {
+    "country": "中国",
+	"province": "四川省",
+	"city": ["成都", "乐山", "眉山"],
+	"timeline": {
+		"confirmedCount": {
+			"2020-01-01": [{"name":"成都", "value":1}, {"name":"乐山", "value":2}, {...}],
+			"2020-01-02": [{...},{...},{...}],
+		},
+		"deadCount": {
+			"2020-01-01": [...],
+			"2020-01-02": [...],
 		}
 	}
  }
@@ -233,6 +260,7 @@ router.get('/epidemic/timeline/province', async function (req, res) {
     let country = req.query.country;
     let province = req.query.province;
     let dataKind = req.query.dataKind;
+    let verbose = req.query.verbose !== undefined;
     // type & usage check
     if (country === undefined || province === undefined || dataKind === undefined ||
         dataKind.split(',').some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
@@ -290,7 +318,10 @@ router.get('/epidemic/timeline/province', async function (req, res) {
             }
             // item is the expected city: fill in new date item
             for (let dataKind of dataKinds) {
-                series[dataKind][expDate].push(item[dataKind]);
+                series[dataKind][expDate].push(verbose ? {
+                    name: item.city,
+                    value: item[dataKind],
+                } : item[dataKind]);
             }
             ++expCityIdx;
         }
@@ -301,10 +332,10 @@ router.get('/epidemic/timeline/province', async function (req, res) {
             timeline: series
         });
     } catch (err) {
-        res.status(500).send(err);
+        debug('Unconfirmed error:', err);
+        res.status(500).end();
     }
-})
-;
+});
 
 /**
  * @api {get} /retrieve/test Test api
