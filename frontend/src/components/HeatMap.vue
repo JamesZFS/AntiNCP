@@ -40,7 +40,7 @@ export default {
         series: {
           type: 'map',
           map: 'china',
-          data: [{name: '北京', value: '105'}, {name: '天津', value: '3'},
+          data: [null, {name: '天津', value: '3'},
             {name: '上海', value: '24'}, {name: '重庆', value: '35'},
             {name: '河北', value: '5'}, {name: '河南', value: '3'},
             {name: '云南', value: '20'}, {name: '辽宁', value: '15'},

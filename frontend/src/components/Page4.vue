@@ -5,17 +5,17 @@
       <NavBar></NavBar>
     </div>
     <div>
-      <TimeAxis></TimeAxis>
+      <TimelineHeatMap></TimelineHeatMap>
     </div>
   </div>
 </template>
 
 <script>
 import NavBar from './NavBar'
-import TimeAxis from './TimeAxis'
+import TimelineHeatMap from './TimelineHeatMap'
 export default {
   name: 'pag4',
-  components: {NavBar, TimeAxis},
+  components: {NavBar, TimelineHeatMap},
   data () {
     return {
       count: 0

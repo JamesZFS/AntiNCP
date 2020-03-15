@@ -8,10 +8,7 @@
 
 <script>
   import echarts from 'echarts'
-  import china from 'echarts/map/js/china'
-  import 四川 from 'echarts/map/js/province/sichuan'
-  import 陕西 from 'echarts/map/js/province/shanxi1'
-  import 'echarts/lib/component/visualMap'
+  // import 'echarts/lib/component/visualMap'
   import wordcloud from 'echarts-wordcloud'
 
   export default {
@@ -37,7 +34,7 @@
           visualMap: {
             show: true,
             min: 0,
-            max: 7,
+            max: 160,
             text: ['High', 'Low'],
             realtime: false,
             calculable: true,

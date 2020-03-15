@@ -7,17 +7,17 @@
     <div>
       <h1>xx省新冠肺炎疫情相关词云</h1>
       <h2>数据来自各地主流媒体报道</h2>
-      <WordCloud></WordCloud>
+      <TimelineWordCloud></TimelineWordCloud>
     </div>
   </div>
 </template>
 
 <script>
 import NavBar from './NavBar'
-import WordCloud from './WordCloud'
+import TimelineWordCloud from './TimelineWordCloud'
 export default {
   name: 'pag3',
-  components: {NavBar,WordCloud},
+  components: {NavBar,TimelineWordCloud},
   data () {
     return {
       count: 0
