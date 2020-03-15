@@ -4,7 +4,6 @@ const router = express.Router();
 const debug = require('debug')('backend:retrieve');
 const db = require('../database/db-manager');
 const EPIDEMIC_DATA_KINDS = require('../config/db-cfg').EPIDEMIC_DATA_KINDS;
-const EPIDEMIC_USAGE = require('../config/consts').EPIDEMIC_USAGE;
 
 const TO_INFERIOR = {
     'world': 'country',
@@ -18,6 +17,7 @@ const TO_INFERIOR = {
  * @apiVersion 0.1.0
  * @apiGroup Retrieve
  * @apiPermission everyone
+ * @apiDeprecated
  *
  * @apiDescription Retrieve epidemic data in a specific superior place(world/country/province)
  *
@@ -65,11 +65,14 @@ router.get('/epidemic', async function (req, res) {
     let superiorPlace = req.query.superiorPlace;
     let dataKind = req.query.dataKind;
     // type & usage check
-    if (typeof superiorLevel !== 'string' || typeof superiorPlace !== 'string' || typeof dataKind !== 'string' ||
+    if (superiorLevel === undefined || superiorPlace === undefined || dataKind === undefined ||
         TO_INFERIOR[superiorLevel] === undefined || EPIDEMIC_DATA_KINDS.indexOf(dataKind) < 0) {
         // handle 400 error
         let err = createError(400);
-        res.locals.message = EPIDEMIC_USAGE;
+        res.locals.message = "Wrong use of api.   " +
+            "Usage: /retrieve/epidemic?superiorPlace={...}" +
+            "&superiorLevel={'world', 'country', 'province'}" +
+            "&dataKind={'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}";
         res.status(err.status).render('error', {error: err});
         return;
     }
@@ -134,6 +137,174 @@ router.get('/epidemic', async function (req, res) {
     });
 });
 
+/**
+ * @api {get} /retrieve/epidemic/timeline/world  Get world epidemic data timeline api
+ * @apiName GetEpidemicDataTimelineWorld
+ * @apiVersion 0.1.0
+ * @apiGroup Retrieve
+ * @apiPermission everyone
+ *
+ * @apiExample {curl} Example usage:
+ *     curl "http://localhost:3000/retrieve/epidemic/timeline/world/?dataKind=confirmedCount,deadCount"
+ *
+ * @apiExample Response (example):
+ {
+    "country": ["中国", "美国", "英国"]
+	"timeline": {
+		"confirmedCount": {
+			"1-1": [1, 2, 10],
+			"1-2": [2, 3, 11],
+			"1-3": [2, 4, 10]
+		},
+		"deadCount": {
+			"1-1": [1, 2, 10],
+			"1-2": [1, 3, 11],
+			"1-3": [1, 3, 12]
+		}
+	}
+ }
+ */
+router.get('/epidemic/timeline/world', function (req, res) {
+    res.status(403).send('unimplemented!');
+});
+
+/**
+ * @api {get} /retrieve/epidemic/timeline/country  Get country epidemic data timeline api
+ * @apiName GetEpidemicDataTimelineCountry
+ * @apiVersion 0.1.0
+ * @apiGroup Retrieve
+ * @apiPermission everyone
+ *
+ * @apiExample {curl} Example usage:
+ *     curl "http://localhost:3000/retrieve/epidemic/timeline/country/?country=中国&dataKind=confirmedCount,deadCount"
+ *
+ * @apiExample Response (example):
+ {
+    "country": "中国",
+	"province": ["四川省", "湖北省", "陕西省"],
+	"timeline": {
+		"confirmedCount": {
+			"1-1": [1, 2, 10],
+			"1-2": [2, 3, 11],
+			"1-3": [2, 4, 10]
+		},
+		"deadCount": {
+			"1-1": [1, 2, 10],
+			"1-2": [1, 3, 11],
+			"1-3": [1, 3, 12]
+		}
+	}
+ }
+ */
+router.get('/epidemic/timeline/country', function (req, res) {
+    res.status(403).send('unimplemented!');
+});
+
+/**
+ * @api {get} /retrieve/epidemic/timeline/province  Get province epidemic data timeline api
+ * @apiName GetEpidemicDataTimelineProvince
+ * @apiVersion 0.1.0
+ * @apiGroup Retrieve
+ * @apiPermission everyone
+ *
+ * @apiExample {curl} Example usage:
+ *     curl "http://localhost:3000/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount"
+ *
+ * @apiExample Response (example):
+ {
+    "country": "中国",
+	"province": "四川省",
+	"city": ["成都", "乐山", "眉山"],
+	"timeline": {
+		"confirmedCount": {
+			"1-1": [1, 2, 10],
+			"1-2": [2, 3, 11],
+			"1-3": [2, 4, 10]
+		},
+		"deadCount": {
+			"1-1": [1, 2, 10],
+			"1-2": [1, 3, 11],
+			"1-3": [1, 3, 12]
+		}
+	}
+ }
+ */
+router.get('/epidemic/timeline/province', async function (req, res) {
+    let country = req.query.country;
+    let province = req.query.province;
+    let dataKind = req.query.dataKind;
+    // type & usage check
+    if (country === undefined || province === undefined || dataKind === undefined ||
+        dataKind.split(',').some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
+        // handle 400 error
+        let err = createError(400);
+        res.locals.message = "Wrong use of api.  Usage example: " +
+            "/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount";
+        res.status(err.status).render('error', {error: err});
+        return;
+    }
+    try {
+        let cities = await db.selectAvailableCities(country, province);
+        if (cities.length === 0) {
+            res.status(404).send("country or province not found.");
+            return;
+        }
+        cities = cities.map(value => value.city);
+        // debug('cities:', cities);
+        let fields = `DATE_FORMAT(date,'%Y-%m-%d') AS date, city, ${dataKind}`; // columns to select
+        let condition = `country='${country}' and province='${province}'`; // for where clause
+        let result = await db.selectEpidemicData(fields, condition, false,
+            'GROUP BY city, date ORDER BY date ASC, city ASC');
+        let dataKinds = dataKind.split(',');
+        let series = {};
+        // init timeline object
+        for (let dataKind of dataKinds) {
+            series[dataKind] = {};
+        }
+        let expCityIdx = cities.length; // expected index in the cities table
+        let expDate = '';
+        let prevDate = '';
+        // scan db result, O(N)
+        for (let item of result) {
+            if (item.date !== expDate) { // new date row
+                // complete the previous date data array
+                for (let dataKind of dataKinds) {
+                    let a = series[dataKind][expDate]; // cur row
+                    let b = series[dataKind][prevDate]; // prev row
+                    for (let i = expCityIdx; i < cities.length; ++i) a[i] = (b === undefined ? NaN : b[i]);
+                    series[dataKind][item.date] = []; // new array
+                }
+                expCityIdx = 0;
+                prevDate = expDate;
+                expDate = item.date;
+            }
+            if (item.city !== cities[expCityIdx]) { // expected city data missing
+                let j = expCityIdx + 1;
+                while (cities[j] !== item.city) ++j;
+                for (let dataKind of dataKinds) {
+                    let a = series[dataKind][expDate]; // cur row
+                    let b = series[dataKind][prevDate]; // prev row
+                    for (let i = expCityIdx; i < j; ++i) a[i] = (b === undefined ? NaN : b[i]);
+                }
+                expCityIdx = j;
+            }
+            // item is the expected city: fill in new date item
+            for (let dataKind of dataKinds) {
+                series[dataKind][expDate].push(item[dataKind]);
+            }
+            ++expCityIdx;
+        }
+        res.status(200).send({
+            country: country,
+            province: province,
+            city: cities,
+            timeline: series
+        });
+    } catch (err) {
+        res.status(500).send(err);
+    }
+})
+;
 
 /**
  * @api {get} /retrieve/test Test api
@@ -145,7 +316,7 @@ router.get('/epidemic', async function (req, res) {
  * @apiDescription A test api
  *
  * @apiExample Example usage:
- * curl -i http://localhost:3000/retrieve
+ * curl -i http://localhost:3000/retrieve/test
  *
  * @apiSuccess {String}   result    "ok!"
  *
