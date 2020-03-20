@@ -30,12 +30,9 @@ const server = http.createServer(app);
 async function launch() {
     debug('Initializing...');
     try { // initialize db and reload data
-        if (process.argv.indexOf('--no-refresh') >= 0) {
-            await dbManager.useDB('AntiNCP');
-        } else {
-            await dbManager.initialize();
-            await fetcher.reloadEpidemicData();
-        }
+        await dbManager.initialize();
+        await fetcher.downloadEpidemicData();
+        if (process.argv.indexOf('--reload') >= 0) await fetcher.reloadEpidemicData();
     } catch (err) {
         debug('Caught error in server');
         dbManager.finalize();

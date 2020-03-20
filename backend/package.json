@@ -5,14 +5,14 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "start-no-refresh": "node ./bin/www --no-refresh",
+    "reload": "node ./bin/www --reload",
     "api": "apidoc -i . -e node_modules/*,"
   },
   "dependencies": {
     "axios": "^0.19.2",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
-    "download": "^7.1.0",
+    "download-file": "^0.1.5",
     "express": "~4.16.0",
     "fast-csv": "^4.1.1",
     "http-errors": "~1.6.2",
