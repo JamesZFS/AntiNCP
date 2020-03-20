@@ -14,7 +14,7 @@ const TO_INFERIOR = {
 /**
  * @api {get} /retrieve/epidemic  Get epidemic data api
  * @apiName GetEpidemicData
- * @apiVersion 0.1.0
+ * @apiVersion 0.1.1
  * @apiGroup Retrieve
  * @apiPermission everyone
  * @apiDeprecated
@@ -27,14 +27,14 @@ const TO_INFERIOR = {
  * @apiParam (Query Param) {string}  superiorPlace  superior place name
  * @apiParam (Query Param) {string}  superiorLevel  superior place level, in {'world', 'country', 'province'}
  *
- * @apiSuccess {Object}  . epidemic data in different inferior places and time stamps
+ * @apiSuccess {Object}  . epidemic data in different inferior places and date time
  * @apiError 400   wrong usage or param invalid
  * @apiError 404   place not found
  *
  * @apiError 500   internal database error
  *
  * @apiExample {curl} Example usage:
- *     curl "http://localhost:3000/retrieve/epidemic?superiorPlace=四川省&dataKind=confirmedCount"
+ *     curl "http://localhost:3000/retrieve/epidemic?superiorPlace=四川省&superiorLevel=province&dataKind=confirmedCount"
  *
  * @apiExample Response (example):
  * {
@@ -77,16 +77,16 @@ router.get('/epidemic', async function (req, res) {
         return;
     }
     let conditions = []; // for where clause
-    let fields = ['time', dataKind]; // columns to select
+    let fields = ['date', dataKind]; // columns to select
     switch (superiorLevel) {
         case 'world':
             fields.push('country');
-            conditions.push(`province = '-'`); // means country data
+            conditions.push(`province = ''`); // means country data
             res.status(404).send('Unimplemented!');
             return;
         case 'country':
             fields.push('province');
-            conditions.push(`country = '${superiorPlace}'`, `city = '-'`); // means province data
+            conditions.push(`country = '${superiorPlace}'`, `city = ''`); // means province data
             res.status(404).send('Unimplemented!');
             return;
         case 'province':
@@ -124,7 +124,7 @@ router.get('/epidemic', async function (req, res) {
         for (let packet of result) {
             if (packet[inferiorLevel] === place) {
                 item.values.push(packet[dataKind]);
-                item.times.push(Date.parse(packet['time']) / 1000); // to unix time
+                item.times.push(Date.parse(packet['date']) / 1000); // to unix time
             }
         }
         inferiorPlaceBuffer.push(item);
@@ -175,7 +175,10 @@ router.get('/epidemic/timeline/world', function (req, res) {
  * @apiVersion 0.1.0
  * @apiGroup Retrieve
  * @apiPermission everyone
- * @apiIgnore Not finished Method
+ *
+ * @apiParam (Query Param) {string}  country
+ * @apiParam (Query Param) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}, can be multiple
+ * @apiParam (Query Param) {none} verbose       return {name:..., value:...} or just the value buffer. see the example 2 for details
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/retrieve/epidemic/timeline/country/?country=中国&dataKind=confirmedCount,deadCount"
@@ -198,14 +201,91 @@ router.get('/epidemic/timeline/world', function (req, res) {
 	}
  }
  */
-router.get('/epidemic/timeline/country', function (req, res) {
-    res.status(403).send('unimplemented!');
+router.get('/epidemic/timeline/country', async function (req, res) {
+    let country = req.query.country;
+    let dataKind = req.query.dataKind;
+    let verbose = req.query.verbose !== undefined;
+    // type & usage check
+    if (country === undefined || dataKind === undefined ||
+        dataKind.split(',').some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
+        // handle 400 error
+        let err = createError(400);
+        res.locals.message = "Wrong use of api.  Usage example: " +
+            "/retrieve/epidemic/timeline/province/?country=中国&dataKind=confirmedCount,deadCount";
+        res.status(err.status).render('error', {error: err});
+        return;
+    }
+    try {
+        let provinces = await db.selectAvailableProvinces(country);
+        if (provinces.length === 0) {
+            res.status(404).send("country or province not found.");
+            return;
+        }
+        provinces = provinces.map(value => value.province);
+        // debug('provinces:', provinces);
+        let fields = `DATE_FORMAT(date,'%Y-%m-%d') AS date, province, ${dataKind}`; // columns to select
+        let condition = `country='${country}' AND province<>'' AND city=''`; // city == '' means province entry
+        let result = await db.selectEpidemicData(fields, condition, false,
+            'GROUP BY province, date ORDER BY date ASC, province ASC');
+        let dataKinds = dataKind.split(',');
+        let series = {};
+        // init timeline object
+        for (let dataKind of dataKinds) {
+            series[dataKind] = {};
+        }
+        let expProvinceIdx = provinces.length; // expected index in the provinces table
+        let expDate = '';
+        let prevDate = '';
+        // scan db result, O(N)
+        for (let item of result) {
+            if (item.date !== expDate) { // new date row
+                // complete the previous date data array
+                for (let dataKind of dataKinds) {
+                    let a = series[dataKind][expDate]; // cur row
+                    let b = series[dataKind][prevDate]; // prev row
+                    for (let i = expProvinceIdx; i < provinces.length; ++i)
+                        a[i] = (b === undefined ? (verbose ? {name: provinces[i], value: 0} : 0) : b[i]);
+                    series[dataKind][item.date] = []; // new array
+                }
+                expProvinceIdx = 0;
+                prevDate = expDate;
+                expDate = item.date;
+            }
+            if (item.province !== provinces[expProvinceIdx]) { // expected province data missing
+                let j = expProvinceIdx + 1;
+                while (provinces[j] !== item.province) ++j;
+                for (let dataKind of dataKinds) {
+                    let a = series[dataKind][expDate]; // cur row
+                    let b = series[dataKind][prevDate]; // prev row
+                    for (let i = expProvinceIdx; i < j; ++i)
+                        a[i] = (b === undefined ? (verbose ? {name: provinces[i], value: 0} : 0) : b[i]);
+                }
+                expProvinceIdx = j;
+            }
+            // item is the expected province: fill in new date item
+            for (let dataKind of dataKinds) {
+                series[dataKind][expDate].push(verbose ? {
+                    name: item.province,
+                    value: item[dataKind],
+                } : item[dataKind]);
+            }
+            ++expProvinceIdx;
+        }
+        res.status(200).send({
+            country: country,
+            province: provinces,
+            timeline: series
+        });
+    } catch (err) {
+        debug('Unconfirmed error:', err);
+        res.status(500).end();
+    }
 });
 
 /**
  * @api {get} /retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.1.1
+ * @apiVersion 0.1.2
  * @apiGroup Retrieve
  * @apiPermission everyone
  *
@@ -280,7 +360,7 @@ router.get('/epidemic/timeline/province', async function (req, res) {
         cities = cities.map(value => value.city);
         // debug('cities:', cities);
         let fields = `DATE_FORMAT(date,'%Y-%m-%d') AS date, city, ${dataKind}`; // columns to select
-        let condition = `country='${country}' and province='${province}'`; // for where clause
+        let condition = `country='${country}' AND province='${province}'`; // for where clause
         let result = await db.selectEpidemicData(fields, condition, false,
             'GROUP BY city, date ORDER BY date ASC, city ASC');
         let dataKinds = dataKind.split(',');
@@ -299,7 +379,8 @@ router.get('/epidemic/timeline/province', async function (req, res) {
                 for (let dataKind of dataKinds) {
                     let a = series[dataKind][expDate]; // cur row
                     let b = series[dataKind][prevDate]; // prev row
-                    for (let i = expCityIdx; i < cities.length; ++i) a[i] = (b === undefined ? NaN : b[i]);
+                    for (let i = expCityIdx; i < cities.length; ++i)
+                        a[i] = (b === undefined ? (verbose ? {name: cities[i], value: 0} : 0) : b[i]);
                     series[dataKind][item.date] = []; // new array
                 }
                 expCityIdx = 0;
@@ -312,7 +393,8 @@ router.get('/epidemic/timeline/province', async function (req, res) {
                 for (let dataKind of dataKinds) {
                     let a = series[dataKind][expDate]; // cur row
                     let b = series[dataKind][prevDate]; // prev row
-                    for (let i = expCityIdx; i < j; ++i) a[i] = (b === undefined ? NaN : b[i]);
+                    for (let i = expCityIdx; i < j; ++i)
+                        a[i] = (b === undefined ? (verbose ? {name: cities[i], value: 0} : 0) : b[i]);
                 }
                 expCityIdx = j;
             }

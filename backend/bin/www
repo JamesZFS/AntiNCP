@@ -31,7 +31,7 @@ async function launch() {
     debug('Initializing...');
     try { // initialize db and reload data
         await dbManager.initialize();
-        await fetcher.downloadEpidemicData();
+        // await fetcher.downloadEpidemicData();
         if (process.argv.indexOf('--reload') >= 0) await fetcher.reloadEpidemicData();
     } catch (err) {
         debug('Caught error in server');
