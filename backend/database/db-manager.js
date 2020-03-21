@@ -211,7 +211,7 @@ function selectAvailableProvinces(country) {
 }
 
 function selectAvailableCountries() {
-    return selectInTable('Epidemic', 'country', undefined, true, 'ORDER BY country ASC');
+    return selectInTable('Epidemic', 'country', null, true, 'ORDER BY country ASC');
 }
 
 function test() {

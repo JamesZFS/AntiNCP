@@ -112,7 +112,7 @@ async function downloadEpidemicData() {
             else resolve();
         }));
     } catch (err) {
-        debug('Fail to download epidemic data.');
+        debug('Fail to download epidemic data.', err);
         fs.unlinkSync(filePath);
         throw err;
     }
