@@ -6,7 +6,7 @@ const bs = require('binarysearch');
 async function backendCommunicationTest() {
   try {
     let res = await vue.axios.get(COMMUNICATION_TEST);
-    console.assert(res.data.result === 'ok!', `backend communication test failed with wrong response ${res}`);
+    console.assert(res.data === 'OK!', `backend communication test failed with wrong response ${res}`);
   } catch (err) {
     vue.$log.error(`backend communication test failed with ${err}`);
   }
