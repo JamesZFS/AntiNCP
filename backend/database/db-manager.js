@@ -175,16 +175,17 @@ function showTable(table) {
  * @param fields{string|string[]}
  * @param conditions{undefined|string|string[]}
  * @param distinct{undefined|boolean} whether to de-duplicate
+ * @param extra{undefined|string} as sql suffix
  * @return Promise<Object>
  */
-function selectInTable(table, fields, conditions, distinct) {
+function selectInTable(table, fields, conditions, distinct, extra) {
     if (typeof fields === 'string') fields = [fields];
     let sql = `SELECT ${distinct === true ? 'DISTINCT ' : ''}${fields.join(',')} FROM ${table}`;
     if (conditions) {
         if (typeof conditions === 'string') conditions = [conditions];
         sql += ` WHERE (${conditions.join(') AND (')})`;
     }
-    sql += ';';
+    sql += typeof extra === 'string' ? ` ${extra};` : ';';
     return doSql(sql);
 }
 
@@ -193,10 +194,24 @@ function selectInTable(table, fields, conditions, distinct) {
  * @param fields{string|string[]}
  * @param conditions{undefined|string|string[]}
  * @param distinct{undefined|boolean} whether to de-duplicate
+ * @param extra{undefined|string} as sql suffix
  * @return Promise<Object>
  */
-function selectEpidemicData(fields, conditions, distinct) {
-    return selectInTable('Epidemic', fields, conditions, distinct);
+function selectEpidemicData(fields, conditions, distinct, extra) {
+    return selectInTable('Epidemic', fields, conditions, distinct, extra);
+}
+
+// todo need faster implementation, eg: cache table
+function selectAvailableCities(country, province) {
+    return selectInTable('Epidemic', 'city', `country='${country}' AND province='${province}' AND city<>''`, true, 'ORDER BY city ASC');
+}
+
+function selectAvailableProvinces(country) {
+    return selectInTable('Epidemic', 'province', `country='${country}' AND province<>'' AND city=''`, true, 'ORDER BY province ASC');
+}
+
+function selectAvailableCountries() {
+    return selectInTable('Epidemic', 'country', undefined, true, 'ORDER BY country ASC');
 }
 
 function test() {
@@ -206,5 +221,6 @@ module.exports = {
     useDB, initialize, finalize, test,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, showTable, countTableRows,
-    selectInTable, selectEpidemicData
+    selectInTable, selectEpidemicData,
+    selectAvailableCities, selectAvailableProvinces, selectAvailableCountries
 };
