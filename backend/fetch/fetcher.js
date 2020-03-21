@@ -3,28 +3,27 @@ const debug = require('debug')('backend:fetcher');
 const csv = require('fast-csv');
 const fs = require('fs');
 const path = require('path');
-const download = require('download');
+const download = require('download-file');
 const db = require('../database/db-manager');
 const scheduler = require('./scheduler');
-const DXYAreaDataDir = 'public/data/area/';
-const dataSource = require('../config/third-party');
-const expectedFields = ['updateTime', 'provinceName', 'cityName', 'city_confirmedCount', 'city_suspectedCount', 'city_curedCount', 'city_deadCount'];
-const dbEntryFields = ['time', 'province', 'city', 'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'];
+const dataSource = require('../config/third-party').CHL; // may select other data sources
 
 /**
- * Inserting epidemic data from DXY area data csv into database, asynchronously
+ * Inserting epidemic data from area data csv into database, asynchronously
  * This takes countable seconds to finish
  * @param csvPath{string}
+ * @param header2DBField{Object} a dict indicates a map from csv header to db field
  * @param batchSize{int}
  * @param strict{bool} if true, stop parsing when encounter an error row
  * @return {Promise<int>}
  */
-function insertEpidemicDataFromDXYAreaData(csvPath, batchSize = 10000, strict = true) {
+function insertEpidemicDataFromCSVAreaData(csvPath, header2DBField, batchSize = 10000, strict = true) {
     return new Promise((resolve, reject) => {
         let firstLine = true;
-        let field2index = {};
+        let field2Index = {};
         let count = 0;
         let entryBatch = [];
+        let specifyCountry = Object.values(header2DBField).indexOf('country') >= 0;
         debug(`inserting epidemic data from DXY area data csv ${csvPath}`);
         let parser = csv.parseFile(csvPath)
             .on('error', error => {
@@ -34,22 +33,22 @@ function insertEpidemicDataFromDXYAreaData(csvPath, batchSize = 10000, strict = 
             .on('data', async row => {
                 if (firstLine) { // table head
                     firstLine = false;
-                    for (let i = 0; i < expectedFields.length; ++i) {
-                        let idx = row.indexOf(expectedFields[i]);
+                    for (let [header, dbField] of Object.entries(header2DBField)) {
+                        let idx = row.indexOf(header);
                         if (idx < 0) {
                             parser.end();
-                            reject(`expected field ${expectedFields[i]} not found in csv.`);
+                            reject(`expected field ${header} not found in csv.`);
                             return;
                         }
-                        field2index[dbEntryFields[i]] = idx;
+                        field2Index[dbField] = idx;
                     }
                     return;
                 }
                 // table data
                 let entry = {};
-                entry['country'] = '中国'; // default
-                for (let field in field2index) {
-                    entry[field] = row[field2index[field]];
+                if (!specifyCountry) entry['country'] = '中国'; // default
+                for (let field in field2Index) {
+                    entry[field] = row[field2Index[field]];
                 }
                 entryBatch.push(entry);
                 if (++count % batchSize === 0) {   // insert batch into db
@@ -84,13 +83,13 @@ function insertEpidemicDataFromDXYAreaData(csvPath, batchSize = 10000, strict = 
  */
 async function reloadEpidemicData() {
     try {
-        let csvPath = selectNewestFile(DXYAreaDataDir, '.csv');
-        if (csvPath === undefined) { // no csv found
-            await downloadEpidemicData();
+        let csvPath = selectNewestFile(dataSource.downloadDir, '.csv');
+        if (csvPath === null) { // if no csv found
+            await downloadEpidemicData(); // download data from source and then reload
             return reloadEpidemicData();
         }
         await db.clearTable('Epidemic');
-        await insertEpidemicDataFromDXYAreaData(csvPath, 10000, true);
+        await insertEpidemicDataFromCSVAreaData(csvPath, dataSource.header2DBField, 10000, true);
         await db.countTableRows('Epidemic');
     } catch (err) {
         debug('Fail to reload epidemic data.');
@@ -103,9 +102,15 @@ async function reloadEpidemicData() {
  */
 async function downloadEpidemicData() {
     debug('Downloading Epidemic Data... (Be patient, this may take a while)');
-    let filePath = path.join(DXYAreaDataDir, Date.now() + '.csv');
+    let filePath = path.join(dataSource.downloadDir, Date.now() + '.csv');
     try {
-        await download(dataSource.DXY_AREA_API, filePath);
+        await new Promise((resolve, reject) => download(dataSource.areaAPI, {
+            directory: dataSource.downloadDir,
+            filename: Date.now() + '.csv',
+        }, err => {
+            if (err) reject(err);
+            else resolve();
+        }));
     } catch (err) {
         debug('Fail to download epidemic data.');
         fs.unlinkSync(filePath);
@@ -115,9 +120,15 @@ async function downloadEpidemicData() {
 
 function selectNewestFile(dir, suffix = 'csv') {
     if (!suffix.startsWith('.')) suffix = '.' + suffix;
-    let files = fs.readdirSync(dir);
+    let files;
+    try {
+        files = fs.readdirSync(dir);
+    } catch (err) {
+        fs.mkdirSync(dir);
+        return null;
+    }
     files = files.filter(val => val.endsWith(suffix)); // neglect stuffs like .DS_STORE
-    if (files.length === 0) return undefined;
+    if (files.length === 0) return null;
     files.sort(function (a, b) {
         let pb = parseInt(b);
         return isNaN(pb) ? -1 : pb - parseInt(a);
@@ -126,12 +137,12 @@ function selectNewestFile(dir, suffix = 'csv') {
 }
 
 // download newest csv and update db twice a day
-scheduler.jobTwiceADay.callback = async function () {
-    debug('Auto update begins.');
+scheduler.scheduleJob(scheduler.onceADay, async function (time) {
+    debug(`Auto update begins at ${time}`);
     await downloadEpidemicData();
     await reloadEpidemicData();
     debug('Auto update finished.');
-};
+});
 
 module.exports = {
     reloadEpidemicData, downloadEpidemicData,

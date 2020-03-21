@@ -203,11 +203,11 @@ function selectEpidemicData(fields, conditions, distinct, extra) {
 
 // todo need faster implementation, eg: cache table
 function selectAvailableCities(country, province) {
-    return selectInTable('Epidemic', 'city', `country='${country}' and province='${province}'`, true, 'ORDER BY city ASC');
+    return selectInTable('Epidemic', 'city', `country='${country}' AND province='${province}' AND city<>''`, true, 'ORDER BY city ASC');
 }
 
 function selectAvailableProvinces(country) {
-    return selectInTable('Epidemic', 'province', `country='${country}'`, true, 'ORDER BY province ASC');
+    return selectInTable('Epidemic', 'province', `country='${country}' AND province<>'' AND city=''`, true, 'ORDER BY province ASC');
 }
 
 function selectAvailableCountries() {
