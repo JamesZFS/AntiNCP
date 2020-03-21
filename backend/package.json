@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node ./bin/www",
     "reload": "node ./bin/www --reload",
+    "download": "node ./bin/www --download --reload",
     "api": "apidoc -i . -e node_modules/*,"
   },
   "dependencies": {

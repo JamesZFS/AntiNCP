@@ -84,8 +84,8 @@ function insertEpidemicDataFromCSVAreaData(csvPath, header2DBField, batchSize = 
 async function reloadEpidemicData() {
     try {
         let csvPath = selectNewestFile(dataSource.downloadDir, '.csv');
-        if (csvPath === undefined) { // no csv found
-            await downloadEpidemicData();
+        if (csvPath === null) { // if no csv found
+            await downloadEpidemicData(); // download data from source and then reload
             return reloadEpidemicData();
         }
         await db.clearTable('Epidemic');
@@ -120,9 +120,15 @@ async function downloadEpidemicData() {
 
 function selectNewestFile(dir, suffix = 'csv') {
     if (!suffix.startsWith('.')) suffix = '.' + suffix;
-    let files = fs.readdirSync(dir);
+    let files;
+    try {
+        files = fs.readdirSync(dir);
+    } catch (err) {
+        fs.mkdirSync(dir);
+        return null;
+    }
     files = files.filter(val => val.endsWith(suffix)); // neglect stuffs like .DS_STORE
-    if (files.length === 0) return undefined;
+    if (files.length === 0) return null;
     files.sort(function (a, b) {
         let pb = parseInt(b);
         return isNaN(pb) ? -1 : pb - parseInt(a);
@@ -131,12 +137,12 @@ function selectNewestFile(dir, suffix = 'csv') {
 }
 
 // download newest csv and update db twice a day
-scheduler.jobTwiceADay.callback = async function () {
-    debug('Auto update begins.');
+scheduler.scheduleJob(scheduler.onceADay, async function (time) {
+    debug(`Auto update begins at ${time}`);
     await downloadEpidemicData();
     await reloadEpidemicData();
     debug('Auto update finished.');
-};
+});
 
 module.exports = {
     reloadEpidemicData, downloadEpidemicData,
