@@ -495,7 +495,6 @@ router.get('/epidemic', async function (req, res) {
     });
 });
 
-<<<<<<< HEAD
 
 /**
  * @api {get} /retrieve/test Test api
@@ -524,6 +523,4 @@ router.get('/test', function (req, res) {
         });
 });
 
-=======
->>>>>>> 4cd9e4dc9735f0c4e611ab44a37be5bc153cd221
 module.exports = router;
