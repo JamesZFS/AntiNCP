@@ -66,7 +66,7 @@ function finalize() {
  * @return {Promise<Object>}
  */
 function insertEntry(table, entry) {
-    let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES ('${Object.values(entry).join("','")}');`;
+    let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES (${Object.values(entry).join(',')});`;
     return doSql(sql); // error unhandled
 }
 
@@ -80,7 +80,7 @@ function insertEntries(table, entries) {
     let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {
-        vals.push(`('${Object.values(entry).join("','")}')`);
+        vals.push(`(${Object.values(entry).join(',')})`);
     }
     sql += vals.join(',') + ';';
     return doSql(sql); // error unhandled
@@ -174,18 +174,19 @@ function showTable(table) {
  * @param table{string}
  * @param fields{string|string[]}
  * @param conditions{undefined|string|string[]}
- * @param distinct{undefined|boolean} whether to de-duplicate
- * @param extra{undefined|string} as sql suffix
+ * @param distinct{boolean} whether to de-duplicate
+ * @param extra{string} as sql suffix
  * @return Promise<Object>
  */
-function selectInTable(table, fields, conditions, distinct, extra) {
+function selectInTable(table, fields, conditions, distinct = false, extra = '') {
     if (typeof fields === 'string') fields = [fields];
-    let sql = `SELECT ${distinct === true ? 'DISTINCT ' : ''}${fields.join(',')} FROM ${table}`;
+    let sql = `SELECT ${distinct ? 'DISTINCT ' : ''}${fields.join(',')} FROM ${table} `;
     if (conditions) {
         if (typeof conditions === 'string') conditions = [conditions];
-        sql += ` WHERE (${conditions.join(') AND (')})`;
+        sql += `WHERE (${conditions.join(') AND (')}) `;
     }
-    sql += typeof extra === 'string' ? ` ${extra};` : ';';
+    sql += extra;
+    // debug(sql);
     return doSql(sql);
 }
 
@@ -214,11 +215,27 @@ function selectAvailableCountries() {
     return selectInTable('Epidemic', 'country', null, true, 'ORDER BY country ASC');
 }
 
-function test() {
+/**
+ * Call mysql escapeId
+ * @param id{string}
+ * @return {string}
+ */
+function escapeId(id) {
+    return mysql.escapeId(id);
 }
 
+/**
+ * Call mysql escape
+ * @param value{string}
+ * @return {string}
+ */
+function escape(value) {
+    return mysql.escape(value);
+}
+
+
 module.exports = {
-    useDB, initialize, finalize, test,
+    useDB, initialize, finalize, escapeId, escape,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, showTable, countTableRows,
     selectInTable, selectEpidemicData,

@@ -14,7 +14,7 @@ const TO_INFERIOR = {
 /**
  * @api {get} /retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.1.0
+ * @apiVersion 0.1.3
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -42,10 +42,10 @@ const TO_INFERIOR = {
  }
  */
 router.get('/epidemic/timeline/world', async function (req, res) {
-    let dataKind = req.query.dataKind;
+    let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
     // type & usage check
-    if (dataKind === undefined || dataKind.split(',').some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
+    if (dataKinds === undefined || (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
         // handle 400 error
         let err = createError(400);
         res.locals.message = "Wrong use of api.  Usage example: " +
@@ -57,11 +57,11 @@ router.get('/epidemic/timeline/world', async function (req, res) {
         let countries = await db.selectAvailableCountries();
         countries = countries.map(value => value.country);
         // debug('countries:', countries);
-        let fields = `DATE_FORMAT(date,'%Y-%m-%d') AS date, country, ${dataKind}`; // columns to select
+        // columns to select: (be aware of code injection!)
+        let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `country`].concat(dataKinds.map(val => db.escapeId(val)));
         let condition = `country<>'' AND province=''`; // province == '' means country entry
         let result = await db.selectEpidemicData(fields, condition, false,
             'GROUP BY country, date ORDER BY date ASC, country ASC');
-        let dataKinds = dataKind.split(',');
         let series = {};
         // init timeline object
         for (let dataKind of dataKinds) {
@@ -118,7 +118,7 @@ router.get('/epidemic/timeline/world', async function (req, res) {
 /**
  * @api {get} /retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.1.0
+ * @apiVersion 0.1.3
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -149,11 +149,11 @@ router.get('/epidemic/timeline/world', async function (req, res) {
  */
 router.get('/epidemic/timeline/country', async function (req, res) {
     let country = req.query.country;
-    let dataKind = req.query.dataKind;
+    let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
     // type & usage check
-    if (country === undefined || dataKind === undefined ||
-        dataKind.split(',').some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
+    if (country === undefined || dataKinds === undefined ||
+        (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
         // handle 400 error
         let err = createError(400);
         res.locals.message = "Wrong use of api.  Usage example: " +
@@ -169,11 +169,11 @@ router.get('/epidemic/timeline/country', async function (req, res) {
         }
         provinces = provinces.map(value => value.province);
         // debug('provinces:', provinces);
-        let fields = `DATE_FORMAT(date,'%Y-%m-%d') AS date, province, ${dataKind}`; // columns to select
+        // columns to select: (be aware of code injection!)
+        let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `province`].concat(dataKinds.map(val => db.escapeId(val)));
         let condition = `country='${country}' AND province<>'' AND city=''`; // city == '' means province entry
         let result = await db.selectEpidemicData(fields, condition, false,
             'GROUP BY province, date ORDER BY date ASC, province ASC');
-        let dataKinds = dataKind.split(',');
         let series = {};
         // init timeline object
         for (let dataKind of dataKinds) {
@@ -231,7 +231,7 @@ router.get('/epidemic/timeline/country', async function (req, res) {
 /**
  * @api {get} /retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.1.2
+ * @apiVersion 0.1.3
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -285,11 +285,11 @@ router.get('/epidemic/timeline/country', async function (req, res) {
 router.get('/epidemic/timeline/province', async function (req, res) {
     let country = req.query.country;
     let province = req.query.province;
-    let dataKind = req.query.dataKind;
+    let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
     // type & usage check
-    if (country === undefined || province === undefined || dataKind === undefined ||
-        dataKind.split(',').some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
+    if (country === undefined || province === undefined || dataKinds === undefined ||
+        (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
         // handle 400 error
         let err = createError(400);
         res.locals.message = "Wrong use of api.  Usage example: " +
@@ -305,11 +305,11 @@ router.get('/epidemic/timeline/province', async function (req, res) {
         }
         cities = cities.map(value => value.city);
         // debug('cities:', cities);
-        let fields = `DATE_FORMAT(date,'%Y-%m-%d') AS date, city, ${dataKind}`; // columns to select
+        // columns to select: (be aware of code injection!)
+        let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `city`].concat(dataKinds.map(val => db.escapeId(val)));
         let condition = `country='${country}' AND province='${province}' AND city<>''`; // for where clause
         let result = await db.selectEpidemicData(fields, condition, false,
             'GROUP BY city, date ORDER BY date ASC, city ASC');
-        let dataKinds = dataKind.split(',');
         let series = {};
         // init timeline object
         for (let dataKind of dataKinds) {
@@ -368,7 +368,7 @@ router.get('/epidemic/timeline/province', async function (req, res) {
 /**
  * @api {get} /retrieve/epidemic  Get epidemic data api
  * @apiName GetEpidemicData
- * @apiVersion 0.1.1
+ * @apiVersion 0.1.3
  * @apiGroup Test
  * @apiPermission everyone
  * @apiDeprecated
@@ -431,7 +431,7 @@ router.get('/epidemic', async function (req, res) {
         return;
     }
     let conditions = []; // for where clause
-    let fields = ['date', dataKind]; // columns to select
+    let fields = ['date', db.escapeId(dataKind)]; // columns to select
     switch (superiorLevel) {
         case 'world':
             fields.push('country');

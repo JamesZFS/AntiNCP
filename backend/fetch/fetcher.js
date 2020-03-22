@@ -48,7 +48,7 @@ function insertEpidemicDataFromCSVAreaData(csvPath, header2DBField, batchSize = 
                 let entry = {};
                 if (!specifyCountry) entry['country'] = '中国'; // default
                 for (let field in field2Index) {
-                    entry[field] = row[field2Index[field]];
+                    entry[field] = db.escape(row[field2Index[field]]);
                 }
                 entryBatch.push(entry);
                 if (++count % batchSize === 0) {   // insert batch into db
