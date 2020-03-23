@@ -38,6 +38,7 @@ async function launch() {
         await dbManager.finalize();
         throw err;
     }
+    fetcher.initialize();
     debug('Initialize Finished.');
     server.listen(port);
     server.on('error', onError);
