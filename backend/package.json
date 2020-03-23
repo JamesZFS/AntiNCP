@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "AntiNCP Backend",
   "private": true,
   "scripts": {
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "axios": "^0.19.2",
+    "chalk": "^3.0.0",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "download-file": "^0.1.5",

@@ -1,9 +1,58 @@
 const fs = require('fs');
 const debug = require('debug')('backend:db-manager');
 const mysql = require('mysql');
+const chalk = require('chalk');
 const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
-const connection = mysql.createConnection(dbCfg);
 const initializingScriptPath = 'database/db-initialize.sql';
+
+/**
+ * Insist reconnecting until connection is make, throw unrecoverable error if fails
+ * @return {Promise<void>}
+ */
+async function insistConnecting() {
+    connection = mysql.createConnection(dbCfg); // Recreate the connection, since the old one cannot be reused.
+    return new Promise((resolve, reject) => connection.connect(err => {
+        if (err) { // The server is either down or restarting (takes a while sometimes).
+            console.error('Database error: when try to connect to db,', chalk.red(err.message));
+            debug("Attempting to reconnect in 2 sec...");
+            // We introduce a delay before attempting to reconnect,
+            // to avoid a hot loop, and to allow our node script to process asynchronous requests in the meantime.
+            setTimeout(() => insistConnecting()
+                .then(() => resolve())
+                .catch(err => reject(err)), 2000); // Unhandleable error
+        } else {
+            debug("Connected.");
+            resolve();
+        }
+    }));
+}
+
+/**
+ * Try to (re)connecting to database
+ * @return {Promise<void>}
+ */
+async function handleDisconnect() {
+    try {
+        await insistConnecting();
+    } catch (err) {
+        console.error('Database error: cannot connect to db!');
+        throw err;
+    }
+    // If you're also serving http, display a 503 error.
+    connection.on('error', function (err) {
+        if (err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
+            debug('Connection lost, attempting to reconnect...');
+            initialize();                         // lost due to either server restart, or a
+        } else {                                      // connnection idle timeout (the wait_timeout
+            console.error('Unknown database connection error.');
+            throw err;                                  // server variable configures this)
+        }
+    });
+}
+
+async function reconnect() {
+    return handleDisconnect();
+}
 
 /**
  * Do an mysql command asynchronously
@@ -39,24 +88,38 @@ function useDB(schema) {
 
 /**
  * Initialize db. Call once before listening
- * @return {Promise<Object>}
+ * @return {Promise<void>}
  */
-function initialize() {
-    connection.connect(() => debug('connected.'));
-    return doSql(fs.readFileSync(initializingScriptPath, 'utf8')).then((res) => {
-        debug('Database initialized successfully.');
-        return Promise.resolve(res);
-    }).catch((err) => {
+async function initialize() {
+    // Load init script:
+    try {
+        await reconnect();
+        await doSql(fs.readFileSync(initializingScriptPath, 'utf8'));
+        await finalize();
+        await reconnect(); // To make sure script takes effect
+        await useDB('AntiNCP');
+    } catch (err) {
         console.error("Database error: initializing failed.");
         throw err;
-    });
+    }
+    debug('Database initialized successfully.');
 }
 
 /**
  * Finalize db. Call at most once
+ * @return {Promise<void>}
  */
-function finalize() {
-    connection.end(() => debug('disconnected.'));
+async function finalize() {
+    return new Promise(resolve => {
+        try {
+            connection.end(() => {
+                debug('disconnected.');
+                resolve();
+            });
+        } catch (e) {
+            resolve();
+        }
+    });
 }
 
 /**
@@ -235,7 +298,7 @@ function escape(value) {
 
 
 module.exports = {
-    useDB, initialize, finalize, escapeId, escape,
+    initialize, finalize, escapeId, escape,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, showTable, countTableRows,
     selectInTable, selectEpidemicData,

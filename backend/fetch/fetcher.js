@@ -137,14 +137,15 @@ function selectNewestFile(dir, suffix = 'csv') {
 }
 
 // download newest csv and update db twice a day
-scheduler.scheduleJob(scheduler.onceADay, async function (time) {
-    debug(`Auto update begins at ${time}`);
-    await downloadEpidemicData();
-    await reloadEpidemicData();
-    debug('Auto update finished.');
-});
+function initialize() {
+    scheduler.scheduleJob(scheduler.onceADay, async function (time) {
+        debug(`Auto update begins at ${time}`);
+        await downloadEpidemicData();
+        await reloadEpidemicData();
+        debug('Auto update finished.');
+    });
+}
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData,
-    scheduler
+    reloadEpidemicData, downloadEpidemicData, initialize
 };
