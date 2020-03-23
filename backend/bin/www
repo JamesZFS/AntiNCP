@@ -35,8 +35,8 @@ async function launch() {
         if (process.argv.indexOf('--reload') >= 0) await fetcher.reloadEpidemicData();
     } catch (err) {
         debug('Caught error in server');
-        dbManager.finalize();
-        throw err
+        await dbManager.finalize();
+        throw err;
     }
     debug('Initialize Finished.');
     server.listen(port);
