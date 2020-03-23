@@ -369,11 +369,7 @@ router.get('/epidemic/timeline/province', async function (req, res) {
  * @api {get} /retrieve/epidemic  Get epidemic data api
  * @apiName GetEpidemicData
  * @apiVersion 0.1.1
-<<<<<<< HEAD
- * @apiGroup Retrieve
-=======
  * @apiGroup Test
->>>>>>> 4cd9e4dc9735f0c4e611ab44a37be5bc153cd221
  * @apiPermission everyone
  * @apiDeprecated
  *
@@ -496,26 +492,6 @@ router.get('/epidemic', async function (req, res) {
 });
 
 
-/**
- * @api {get} /retrieve/test Test api
- * @apiVersion 0.1.0
- * @apiName GetTest
- * @apiGroup Retrieve
- * @apiPermission everyone
- *
- * @apiDescription A test api
- *
- * @apiExample Example usage:
- * curl -i http://localhost:3000/retrieve/test
- *
- * @apiSuccess {String}   result    "ok!"
- *
- * @apiExample Response (example):
- *  HTTP/1.1 200 OK
- *     {
- *       "result": "ok!"
- *     }
- */
 router.get('/test', function (req, res) {
     res.status(200)
         .send({

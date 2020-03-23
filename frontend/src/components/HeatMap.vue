@@ -57,6 +57,206 @@ export default {
             {name: '四川', value: '10'}, {name: '宁夏', value: '4'},
             {name: '海南', value: '3'}, {name: '台湾', value: '29'},
             {name: '香港', value: '53'}, {name: '澳门', value: '0'}
+          ],
+          options: [
+            {
+              title: {text: '2020-01-10'+this.cur_superiorPlace+'疫情状况',textStyle: {
+                  fontSize: 25
+                },},
+              visualMap: {
+                show: true,
+                min: 0,
+                max: 18000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                  color: ['lightskyblue', 'yellow', 'orangered']
+                }
+              },
+              map: this.cur_superiorPlace,
+              series: [
+                {data: dataMap.datasuspected['0']},
+                {data: dataMap.datapositive['0']},
+                {data: dataMap.datacured['0']},
+                {data: dataMap.datadeath['0']}
+              ]
+            },
+            {
+              title: {
+                text: '2020-01-11'+this.cur_superiorPlace+'疫情状况', textStyle: {
+                  fontSize: 25
+                },
+              },
+              visualMap: {
+                show: true,
+                min: 0,
+                max: 18000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                  color: ['lightskyblue', 'yellow', 'orangered']
+                }
+              },
+              map: this.cur_superiorPlace,
+              series: [
+                {data: dataMap.datasuspected['1']},
+                {data: dataMap.datapositive['1']},
+                {data: dataMap.datacured['1']},
+                {data: dataMap.datadeath['1']}
+              ]
+            },
+            {
+              title: {
+                text: '2020-01-12'+this.cur_superiorPlace+'疫情状况', textStyle: {
+                  fontSize: 25
+                },
+              },
+              visualMap: {
+                show: true,
+                min: 0,
+                max: 18000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                  color: ['lightskyblue', 'yellow', 'orangered']
+                }
+              },
+              map: this.cur_superiorPlace,
+              series: [
+                {data: dataMap.datasuspected['2']},
+                {data: dataMap.datapositive['2']},
+                {data: dataMap.datacured['2']},
+                {data: dataMap.datadeath['2']}
+              ]
+            },
+            {
+              title: {
+                text: '2020-01-13'+this.cur_superiorPlace+'疫情状况', textStyle: {
+                  fontSize: 25
+                },
+              },
+              visualMap: {
+                show: true,
+                min: 0,
+                max: 18000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                  color: ['lightskyblue', 'yellow', 'orangered']
+                }
+              },
+              map: this.cur_superiorPlace,
+              series: [
+                {data: dataMap.datasuspected['3']},
+                {data: dataMap.datapositive['3']},
+                {data: dataMap.datacured['3']},
+                {data: dataMap.datadeath['3']}
+              ]
+            },
+            {
+              title: {
+                text: '2020-01-14'+this.cur_superiorPlace+'疫情状况', textStyle: {
+                  fontSize: 25
+                },
+              },
+              visualMap: {
+                show: true,
+                min: 0,
+                max: 18000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                  color: ['lightskyblue', 'yellow', 'orangered']
+                }
+              },
+              map: this.cur_superiorPlace,
+              series: [
+                {data: dataMap.datasuspected['4']},
+                {data: dataMap.datapositive['4']},
+                {data: dataMap.datacured['4']},
+                {data: dataMap.datadeath['4']}
+              ]
+            },
+            {
+              title: {
+                text: '2020-01-15'+this.cur_superiorPlace+'疫情状况', textStyle: {
+                  fontSize: 25
+                },
+              },
+              visualMap: {
+                show: true,
+                min: 0,
+                max: 18000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                  color: ['lightskyblue', 'yellow', 'orangered']
+                }
+              },
+              map: this.cur_superiorPlace,
+              series: [
+                {data: dataMap.datasuspected['5']},
+                {data: dataMap.datapositive['5']},
+                {data: dataMap.datacured['5']},
+                {data: dataMap.datadeath['5']}
+              ]
+            },
+            {
+              title: {
+                text: '2020-01-16'+this.cur_superiorPlace+'疫情状况', textStyle: {
+                  fontSize: 25
+                },
+              },
+              visualMap: {
+                show: true,
+                min: 0,
+                max: 18000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                  color: ['lightskyblue', 'yellow', 'orangered']
+                }
+              },
+              map: this.cur_superiorPlace,
+              series: [
+                {data: dataMap.datasuspected['6']},
+                {data: dataMap.datapositive['6']},
+                {data: dataMap.datacured['6']},
+                {data: dataMap.datadeath['6']}
+              ]
+            },
+            {
+              title: {
+                text: '2020-01-17'+this.cur_superiorPlace+'疫情状况', textStyle: {
+                  fontSize: 25
+                },
+              },
+              visualMap: {
+                show: true,
+                min: 0,
+                max: 18000,
+                text: ['High', 'Low'],
+                realtime: false,
+                calculable: true,
+                inRange: {
+                  color: ['lightskyblue', 'yellow', 'orangered']
+                }
+              },
+              map: this.cur_superiorPlace,
+              series: [
+                {data: dataMap.datasuspected['7']},
+                {data: dataMap.datapositive['7']},
+                {data: dataMap.datacured['7']},
+                {data: dataMap.datadeath['7']}
+              ]
+            }
           ]
         }
       })
@@ -91,3 +291,4 @@ export default {
     color: #42b983;
   }
 </style>
+

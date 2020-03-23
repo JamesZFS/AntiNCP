@@ -1,22 +1,64 @@
 <!-- 含有时间轴的热度图组件 -->
 <template>
   <div class="hello">
-    <h1>TimelineHeatMap</h1>
+    <div>
+      <el-button @click="returnworldmap()">全球疫情地图</el-button>
+      <el-button @click="returnchinamap()">中国疫情地图</el-button>
+    </div>
     <div id="TimelineHeatMap" style="width: 80vw;height: 80vh;"></div>
   </div>
 </template>
 
 <script>
   import echarts from 'echarts'
+  import $ from 'jquery'
   import china from 'echarts/map/js/china'
+  // import china from 'echarts/map/json/china.json'
+  import USA from '../assets/worldcountryjson/USA.json'
+  // import China from '../assets/worldcountryjson/China.json'
+  import world from 'echarts/map/js/world'
   import 四川 from 'echarts/map/js/province/sichuan'
   import 陕西 from 'echarts/map/js/province/shanxi1'
+  import 新疆 from 'echarts/map/js/province/xinjiang'
+  import 西藏 from 'echarts/map/js/province/xizang'
+  import 安徽 from 'echarts/map/js/province/anhui'
+  import 澳门 from 'echarts/map/js/province/aomen'
+  import 北京 from 'echarts/map/js/province/beijing'
+  import 重庆 from 'echarts/map/js/province/chongqing'
+  import 福建 from 'echarts/map/js/province/fujian'
+  import 甘肃 from 'echarts/map/js/province/gansu'
+  import 广东 from 'echarts/map/js/province/guangdong'
+  import 广西 from 'echarts/map/js/province/guangxi'
+  import 贵州 from 'echarts/map/js/province/guizhou'
+  import 海南 from 'echarts/map/js/province/hainan'
+  import 河北 from 'echarts/map/js/province/hebei'
+  import 黑龙江 from 'echarts/map/js/province/heilongjiang'
+  import 河南 from 'echarts/map/js/province/henan'
+  import 湖北 from 'echarts/map/js/province/hubei'
+  import 湖南 from 'echarts/map/js/province/hunan'
+  import 江苏 from 'echarts/map/js/province/jiangsu'
+  import 江西 from 'echarts/map/js/province/jiangxi'
+  import 吉林 from 'echarts/map/js/province/jilin'
+  import 辽宁 from 'echarts/map/js/province/liaoning'
+  import 内蒙古 from 'echarts/map/js/province/neimenggu'
+  import 宁夏 from 'echarts/map/js/province/ningxia'
+  import 青海 from 'echarts/map/js/province/qinghai'
+  import 山东 from 'echarts/map/js/province/shandong'
+  import 上海 from 'echarts/map/js/province/shanghai'
+  import 山西 from 'echarts/map/js/province/shanxi'
+  import 台湾 from 'echarts/map/js/province/taiwan'
+  import 天津 from 'echarts/map/js/province/tianjin'
+  import 香港 from 'echarts/map/js/province/xianggang'
+  import 云南 from 'echarts/map/js/province/yunnan'
+  import 浙江 from 'echarts/map/js/province/zhejiang'
   import 'echarts/lib/component/visualMap'
+  import vue from "vue";
+  const modulesFiles = require.context('../assets/worldcountryjson', true, /\.json$/)
 
   var dataMap = {};
 
   function dataFormatter(obj) {
-    var pList = ['北京', '天津', '河北', '山西', '内蒙古', '辽宁', '吉林', '黑龙江', '上海', '江苏', '浙江', '安徽', '福建', '江西', '山东', '河南', '湖北', '湖南', '广东', '广西', '海南', '重庆', '四川', '贵州', '云南', '西藏', '陕西', '甘肃', '青海', '宁夏', '新疆'];
+    var pList = ['北京', '天津', '河北', '山西', '内蒙古自治区', '辽宁', '吉林', '黑龙江', '上海', '江苏', '浙江', '安徽', '福建', '江西', '山东', '河南', '湖北', '湖南', '广东', '广西', '海南', '重庆', '四川', '贵州', '云南', '西藏', '陕西', '甘肃', '青海', '宁夏', '新疆'];
     var temp;
     for (var day = 0; day <= 10; day++) {
       temp = obj[day];
@@ -94,277 +136,202 @@
     name: 'HelloWorld',
     data() {
       return {
+        cur_superiorPlace: 'china',
+        cur_superiorLevel: 'country',
+        cur_dataMap: {},
         max: 2000,
         maxdic: {
           '疑似': 18000,
           '确诊': 2100,
           '治愈': 4000,
           '死亡': 2000
-        },
-        myoption: {
-          baseOption: {
-            timeline: {
-              axisType: 'category',
-              realtime: true,
-              // loop: false,
-              autoPlay: true,
-              // currentIndex: 2,
-              playInterval: 1000,
-              data: [
-                '2020-01-10', '2020-01-11', '2020-01-12',
-                '2020-01-13', '2020-01-14', '2020-01-15', '2020-01-16'
-              ]
-            },
-            title: {
-              subtext: '数据来自丁香园',
-              subtextStyle: {
-                fontSize: 20
-              },
-            },
-            tooltip: {},
-            legend: {
-              left: 'right',
-              textStyle: {
-                fontSize: 25
-              },
-              data: ['疑似', '确诊', '治愈', '死亡'],
-              selectedMode: 'single',
-            },
-            // calculable : true,
-            grid: {
-              top: 80,
-              bottom: 100
-            },
-            series: [
-              {name: '疑似', type: 'map'},
-              {name: '确诊', type: 'map'},
-              {name: '治愈', type: 'map'},
-              {name: '死亡', type: 'map'}
+        }
+      }
+    },
+    computed:{
+      myoption: function() {
+        return {
+        baseOption: {
+          timeline: {
+            axisType: 'category',
+            realtime: true,
+            // loop: false,
+            autoPlay: true,
+            // currentIndex: 2,
+            playInterval: 1000,
+            data: [
+              '2020-01-10','2020-01-11'
             ]
           },
-          options: [
-            {
-              title: {text: '2020-01-10全国疫情状况'},
-              visualMap: {
-                show: true,
-                min: 0,
-                max: 18000,
-                text: ['High', 'Low'],
-                realtime: false,
-                calculable: true,
-                inRange: {
-                  color: ['lightskyblue', 'yellow', 'orangered']
-                }
-              },
-              series: [
-                {map: 'china', data: dataMap.datasuspected['0']},
-                {map: 'china', data: dataMap.datapositive['0']},
-                {map: 'china', data: dataMap.datacured['0']},
-                {map: 'china', data: dataMap.datadeath['0']}
-              ]
+          title: {
+            subtext: '数据来自丁香园',
+            subtextStyle: {
+              fontSize: 20
             },
-            {
-              title: {
-                text: '2020-01-11全国疫情状况', textStyle: {
-                  fontSize: 25
-                },
-              },
-              visualMap: {
-                show: true,
-                min: 0,
-                max: 18000,
-                text: ['High', 'Low'],
-                realtime: false,
-                calculable: true,
-                inRange: {
-                  color: ['lightskyblue', 'yellow', 'orangered']
-                }
-              },
-              map: 'china',
-              series: [
-                {map: 'china', data: dataMap.datasuspected['1']},
-                {map: 'china', data: dataMap.datapositive['1']},
-                {map: 'china', data: dataMap.datacured['1']},
-                {map: 'china', data: dataMap.datadeath['1']}
-              ]
+          },
+          tooltip: {},
+          legend: {
+            left: 'right',
+            textStyle: {
+              fontSize: 25
             },
-            {
-              title: {
-                text: '2020-01-12全国疫情状况', textStyle: {
-                  fontSize: 25
-                },
-              },
-              visualMap: {
-                show: true,
-                min: 0,
-                max: 18000,
-                text: ['High', 'Low'],
-                realtime: false,
-                calculable: true,
-                inRange: {
-                  color: ['lightskyblue', 'yellow', 'orangered']
-                }
-              },
-              map: 'china',
-              series: [
-                {map: 'china', data: dataMap.datasuspected['2']},
-                {map: 'china', data: dataMap.datapositive['2']},
-                {map: 'china', data: dataMap.datacured['2']},
-                {map: 'china', data: dataMap.datadeath['2']}
-              ]
-            },
-            {
-              title: {
-                text: '2020-01-13全国疫情状况', textStyle: {
-                  fontSize: 25
-                },
-              },
-              visualMap: {
-                show: true,
-                min: 0,
-                max: 18000,
-                text: ['High', 'Low'],
-                realtime: false,
-                calculable: true,
-                inRange: {
-                  color: ['lightskyblue', 'yellow', 'orangered']
-                }
-              },
-              map: 'china',
-              series: [
-                {map: 'china', data: dataMap.datasuspected['3']},
-                {map: 'china', data: dataMap.datapositive['3']},
-                {map: 'china', data: dataMap.datacured['3']},
-                {map: 'china', data: dataMap.datadeath['3']}
-              ]
-            },
-            {
-              title: {
-                text: '2020-01-14全国疫情状况', textStyle: {
-                  fontSize: 25
-                },
-              },
-              visualMap: {
-                show: true,
-                min: 0,
-                max: 18000,
-                text: ['High', 'Low'],
-                realtime: false,
-                calculable: true,
-                inRange: {
-                  color: ['lightskyblue', 'yellow', 'orangered']
-                }
-              },
-              map: 'china',
-              series: [
-                {map: 'china', data: dataMap.datasuspected['4']},
-                {map: 'china', data: dataMap.datapositive['4']},
-                {map: 'china', data: dataMap.datacured['4']},
-                {map: 'china', data: dataMap.datadeath['4']}
-              ]
-            },
-            {
-              title: {
-                text: '2020-01-15全国疫情状况', textStyle: {
-                  fontSize: 25
-                },
-              },
-              visualMap: {
-                show: true,
-                min: 0,
-                max: 18000,
-                text: ['High', 'Low'],
-                realtime: false,
-                calculable: true,
-                inRange: {
-                  color: ['lightskyblue', 'yellow', 'orangered']
-                }
-              },
-              map: 'china',
-              series: [
-                {map: 'china', data: dataMap.datasuspected['5']},
-                {map: 'china', data: dataMap.datapositive['5']},
-                {map: 'china', data: dataMap.datacured['5']},
-                {map: 'china', data: dataMap.datadeath['5']}
-              ]
-            },
-            {
-              title: {
-                text: '2020-01-16全国疫情状况', textStyle: {
-                  fontSize: 25
-                },
-              },
-              visualMap: {
-                show: true,
-                min: 0,
-                max: 18000,
-                text: ['High', 'Low'],
-                realtime: false,
-                calculable: true,
-                inRange: {
-                  color: ['lightskyblue', 'yellow', 'orangered']
-                }
-              },
-              map: 'china',
-              series: [
-                {map: 'china', data: dataMap.datasuspected['6']},
-                {map: 'china', data: dataMap.datapositive['6']},
-                {map: 'china', data: dataMap.datacured['6']},
-                {map: 'china', data: dataMap.datadeath['6']}
-              ]
-            },
-            {
-              title: {
-                text: '2020-01-17全国疫情状况', textStyle: {
-                  fontSize: 25
-                },
-              },
-              visualMap: {
-                show: true,
-                min: 0,
-                max: 18000,
-                text: ['High', 'Low'],
-                realtime: false,
-                calculable: true,
-                inRange: {
-                  color: ['lightskyblue', 'yellow', 'orangered']
-                }
-              },
-              map: 'china',
-              series: [
-                {map: 'china', data: dataMap.datasuspected['7']},
-                {map: 'china', data: dataMap.datapositive['7']},
-                {map: 'china', data: dataMap.datacured['7']},
-                {map: 'china', data: dataMap.datadeath['7']}
-              ]
-            }
+            data: ['疑似', '确诊', '治愈', '死亡'],
+            selectedMode: 'single',
+          },
+          // calculable : true,
+          grid: {
+            top: 80,
+            bottom: 100
+          },
+          series: [
+            {name: '疑似', type: 'map',map: this.cur_superiorPlace},
+            {name: '确诊', type: 'map',map: this.cur_superiorPlace},
+            {name: '治愈', type: 'map',map: this.cur_superiorPlace},
+            {name: '死亡', type: 'map',map: this.cur_superiorPlace}
           ]
-        }
+        },
+        options: [
+          {
+            title: {text: '2020-01-10'+this.cur_superiorPlace+'疫情状况',textStyle: {
+                fontSize: 25
+              },},
+            visualMap: {
+              show: true,
+              min: 0,
+              max: 18000,
+              text: ['High', 'Low'],
+              realtime: false,
+              calculable: true,
+              inRange: {
+                color: ['lightskyblue', 'yellow', 'orangered']
+              }
+            },
+            map: this.cur_superiorPlace,
+            series: [
+              {data: dataMap.datasuspected['0']},
+              {data: dataMap.datapositive['0']},
+              {data: dataMap.datacured['0']},
+              {data: dataMap.datadeath['0']}
+            ]
+          },
+          {
+
+            title: {text: '2020-01-11'+this.cur_superiorPlace+'疫情状况',textStyle: {
+                fontSize: 25
+              },},
+            visualMap: {
+              show: true,
+              min: 0,
+              max: 18000,
+              text: ['High', 'Low'],
+              realtime: false,
+              calculable: true,
+              inRange: {
+                color: ['lightskyblue', 'yellow', 'orangered']
+              }
+            },
+            map: this.cur_superiorPlace,
+            series: [
+              {data: dataMap.datasuspected['1']},
+              {data: dataMap.datapositive['1']},
+              {data: dataMap.datacured['1']},
+              {data: dataMap.datadeath['1']}
+            ]
+          }
+        ]
+      }
       }
     },
     methods: {
       drawTimeAxis() {
-        console.log('GG')
+        this.charts.setOption(this.myoption,true)
+        this.charts.resize()
+      },
+      async get_epidemic_data() {
+        if(this.cur_superiorLevel == 'country'){
+          var request_country = ''
+          if(this.cur_superiorPlace == 'china')
+            request_country = '中国'
+          else if(this.cur_superiorPlace == 'USA')
+            request_country = '美国'
+          try {
+            let res = await vue.axios.get('/api/retrieve/epidemic/timeline/country', {
+              params: {
+                dataKind: 'confirmedCount,deadCount',
+                country: request_country,
+                verbose: ''
+              }
+            })
+            console.log(res)
+            var tmp_option = this.myoption.options.pop()
+            console.log(tmp_option)
+            console.log(this.myoption.options)
+          } catch (err) {
+            vue.$log.error(`backend communication test failed with ${err}`);
+          }
+        }
+
+      },
+      returnworldmap() {
+        this.cur_superiorPlace = 'world'
+        this.cur_superiorLevel = 'world'
+        this.charts.setOption(this.myoption, true)
+        this.charts.resize()
+      },
+      returnchinamap(){
+        this.cur_superiorPlace = 'china'
+        this.cur_superiorLevel = 'country'
+        this.charts.setOption(this.myoption, true)
+        this.charts.resize()
         console.log(this.myoption)
-        this.charts.setOption(this.myoption)
       }
     },
     // 调用
     mounted() {
       this.charts = echarts.init(document.getElementById('TimelineHeatMap'))
-      //console.log(this.charts.getOption())
-      this.$nextTick( () => {
+      this.get_epidemic_data()
+      this.$nextTick(() => {
+        console.log(this.cur_superiorPlace)
+        console.log(this.cur_superiorLevel)
         this.drawTimeAxis()
+      })
+      this.charts.on('click',(params) => {
+        if(this.cur_superiorLevel == 'world')
+        {
+          if(params.name == 'China')
+          {
+            echarts.registerMap('china', china)
+            this.cur_superiorPlace = 'china'
+            this.cur_superiorLevel = 'country'
+          }
+          else if(params.name == 'United States')
+          {
+            echarts.registerMap('USA', USA)
+            this.cur_superiorPlace = 'USA'
+            this.cur_superiorLevel = 'country'
+          }
+          // echarts.registerMap('China', geoJson)
+        }
+        else if(this.cur_superiorLevel == 'country' && this.cur_superiorPlace=='china')
+        {
+          // this.cur_superiorPlace = 'china'
+          this.cur_superiorLevel = 'province'
+          this.cur_superiorPlace = params.name
+        }
+        console.log(this.cur_superiorPlace)
+        console.log(this.cur_superiorLevel)
+        this.charts.setOption(this.myoption, true)
+        this.charts.resize()
+        // this.myoption.
       })
       var tmp_maxdic = this.maxdic
       this.charts.on('legendselectchanged', (obj) => {
         var tmp_max = tmp_maxdic[obj.name]
-        for(var i = 0; i < this.myoption.options.length; i++) {
+        for (var i = 0; i < this.myoption.options.length; i++) {
           this.myoption.options[i].visualMap.max = tmp_max
-          console.log(this.myoption.options[i].visualMap.max)
         }
         this.myoption.baseOption.legend.selected = obj.selected
-        this.charts.setOption(this.myoption,true)
+        this.charts.setOption(this.myoption, true)
         this.charts.resize()
       })
     }
