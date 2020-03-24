@@ -14,7 +14,7 @@ const TO_INFERIOR = {
 /**
  * @api {get} /retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.1.3
+ * @apiVersion 0.2.0
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -26,7 +26,19 @@ const TO_INFERIOR = {
  *
  * @apiExample Response (example):
  {
-    "country": ["中国", "美国", "英国"]
+    "country": ["中国", "美国", "英国"],
+    "worldTimeline": [
+        "confirmedCount": [
+			["2020-01-01", 10],
+			["2020-01-02", 20],
+			["2020-01-03", 30],
+		],
+		"deadCount": [
+			["2020-01-01", 10],
+			["2020-01-02", 20],
+			["2020-01-03", 30],
+		]
+    ],
 	"timeline": {
 		"confirmedCount": {
 			"1-1": [1, 2, 10],
@@ -54,58 +66,74 @@ router.get('/epidemic/timeline/world', async function (req, res) {
         return;
     }
     try {
-        let countries = await db.selectAvailableCountries();
-        countries = countries.map(value => value.country);
-        // debug('countries:', countries);
-        // columns to select: (be aware of code injection!)
-        let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `country`].concat(dataKinds.map(val => db.escapeId(val)));
-        let condition = `country<>'' AND province=''`; // province == '' means country entry
-        let result = await db.selectEpidemicData(fields, condition, false,
-            'GROUP BY country, date ORDER BY date ASC, country ASC');
-        let series = {};
-        // init timeline object
-        for (let dataKind of dataKinds) {
-            series[dataKind] = {};
-        }
-        let expCountryIdx = countries.length; // expected index in the countries table
-        let expDate = '';
-        let prevDate = '';
-        // scan db result, O(N)
-        for (let item of result) {
-            if (item.date !== expDate) { // new date row
-                // complete the previous date data array
-                for (let dataKind of dataKinds) {
-                    let a = series[dataKind][expDate]; // cur row
-                    let b = series[dataKind][prevDate]; // prev row
-                    for (let i = expCountryIdx; i < countries.length; ++i)
-                        a[i] = (b === undefined ? (verbose ? {name: countries[i], value: 0} : 0) : b[i]);
-                    series[dataKind][item.date] = []; // new array
-                }
-                expCountryIdx = 0;
-                prevDate = expDate;
-                expDate = item.date;
-            }
-            if (item.country !== countries[expCountryIdx]) { // expected country data missing
-                let j = expCountryIdx + 1;
-                while (countries[j] !== item.country) ++j;
-                for (let dataKind of dataKinds) {
-                    let a = series[dataKind][expDate]; // cur row
-                    let b = series[dataKind][prevDate]; // prev row
-                    for (let i = expCountryIdx; i < j; ++i)
-                        a[i] = (b === undefined ? (verbose ? {name: countries[i], value: 0} : 0) : b[i]);
-                }
-                expCountryIdx = j;
-            }
-            // item is the expected country: fill in new date item
+        { // Get epidemic world data, todo need faster impl
+            var worldTimeline = {};
             for (let dataKind of dataKinds) {
-                series[dataKind][expDate].push(verbose ? {
-                    name: item.country,
-                    value: item[dataKind],
-                } : item[dataKind]);
+                worldTimeline[dataKind] = [];
             }
-            ++expCountryIdx;
+            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds.map(val => `SUM(${val}) AS ${val}`));
+            let condition = `province=''`; // for where clause
+            let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
+            for (let item of result) {
+                for (let dataKind of dataKinds) {
+                    worldTimeline[dataKind].push([item.date, item[dataKind]]);
+                }
+            }
+        }
+        { // Get epidemic country data
+            var countries = await db.selectAvailableCountries();
+            countries = countries.map(value => value.country);
+            // columns to select:
+            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `country`].concat(dataKinds);
+            let condition = `province=''`; // province == '' means country entry
+            let result = await db.selectEpidemicData(fields, condition, false,
+                'GROUP BY country, date ORDER BY date ASC, country ASC');
+            var series = {};
+            // init timeline object
+            for (let dataKind of dataKinds) {
+                series[dataKind] = {};
+            }
+            let expCountryIdx = countries.length; // expected index in the countries table
+            let expDate = '';
+            let prevDate = '';
+            // scan db result, O(N)
+            for (let item of result) {
+                if (item.date !== expDate) { // new date row
+                    // complete the previous date data array
+                    for (let dataKind of dataKinds) {
+                        let a = series[dataKind][expDate]; // cur row
+                        let b = series[dataKind][prevDate]; // prev row
+                        for (let i = expCountryIdx; i < countries.length; ++i)
+                            a[i] = (b === undefined ? (verbose ? {name: countries[i], value: 0} : 0) : b[i]);
+                        series[dataKind][item.date] = []; // new array
+                    }
+                    expCountryIdx = 0;
+                    prevDate = expDate;
+                    expDate = item.date;
+                }
+                if (item.country !== countries[expCountryIdx]) { // expected country data missing
+                    let j = expCountryIdx + 1;
+                    while (countries[j] !== item.country) ++j;
+                    for (let dataKind of dataKinds) {
+                        let a = series[dataKind][expDate]; // cur row
+                        let b = series[dataKind][prevDate]; // prev row
+                        for (let i = expCountryIdx; i < j; ++i)
+                            a[i] = (b === undefined ? (verbose ? {name: countries[i], value: 0} : 0) : b[i]);
+                    }
+                    expCountryIdx = j;
+                }
+                // item is the expected country: fill in new date item
+                for (let dataKind of dataKinds) {
+                    series[dataKind][expDate].push(verbose ? {
+                        name: item.country,
+                        value: item[dataKind],
+                    } : item[dataKind]);
+                }
+                ++expCountryIdx;
+            }
         }
         res.status(200).send({
+            worldTimeline: worldTimeline,
             country: countries,
             timeline: series
         });
@@ -118,7 +146,7 @@ router.get('/epidemic/timeline/world', async function (req, res) {
 /**
  * @api {get} /retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.1.3
+ * @apiVersion 0.2.0
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -132,7 +160,19 @@ router.get('/epidemic/timeline/world', async function (req, res) {
  * @apiExample Response (example):
  {
     "country": "中国",
-	"province": ["四川省", "湖北省", "陕西省"],
+	"superTimeline": {
+	    "confirmedCount": [
+			["2020-01-01", 10],
+			["2020-01-02", 20],
+			["2020-01-03", 30],
+		],
+		"deadCount": [
+			["2020-01-01", 10],
+			["2020-01-02", 20],
+			["2020-01-03", 30],
+		]
+	},
+    "province": ["四川省", "湖北省", "陕西省"],
 	"timeline": {
 		"confirmedCount": {
 			"1-1": [1, 2, 10],
@@ -162,63 +202,79 @@ router.get('/epidemic/timeline/country', async function (req, res) {
         return;
     }
     try {
-        let provinces = await db.selectAvailableProvinces(country);
-        if (provinces.length === 0) {
-            res.status(404).send("country not found.");
-            return;
-        }
-        provinces = provinces.map(value => value.province);
-        // debug('provinces:', provinces);
-        // columns to select: (be aware of code injection!)
-        let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `province`].concat(dataKinds.map(val => db.escapeId(val)));
-        let condition = `country='${country}' AND province<>'' AND city=''`; // city == '' means province entry
-        let result = await db.selectEpidemicData(fields, condition, false,
-            'GROUP BY province, date ORDER BY date ASC, province ASC');
-        let series = {};
-        // init timeline object
-        for (let dataKind of dataKinds) {
-            series[dataKind] = {};
-        }
-        let expProvinceIdx = provinces.length; // expected index in the provinces table
-        let expDate = '';
-        let prevDate = '';
-        // scan db result, O(N)
-        for (let item of result) {
-            if (item.date !== expDate) { // new date row
-                // complete the previous date data array
-                for (let dataKind of dataKinds) {
-                    let a = series[dataKind][expDate]; // cur row
-                    let b = series[dataKind][prevDate]; // prev row
-                    for (let i = expProvinceIdx; i < provinces.length; ++i)
-                        a[i] = (b === undefined ? (verbose ? {name: provinces[i], value: 0} : 0) : b[i]);
-                    series[dataKind][item.date] = []; // new array
-                }
-                expProvinceIdx = 0;
-                prevDate = expDate;
-                expDate = item.date;
-            }
-            if (item.province !== provinces[expProvinceIdx]) { // expected province data missing
-                let j = expProvinceIdx + 1;
-                while (provinces[j] !== item.province) ++j;
-                for (let dataKind of dataKinds) {
-                    let a = series[dataKind][expDate]; // cur row
-                    let b = series[dataKind][prevDate]; // prev row
-                    for (let i = expProvinceIdx; i < j; ++i)
-                        a[i] = (b === undefined ? (verbose ? {name: provinces[i], value: 0} : 0) : b[i]);
-                }
-                expProvinceIdx = j;
-            }
-            // item is the expected province: fill in new date item
+        { // Get epidemic country data
+            var countryTimeline = {};
             for (let dataKind of dataKinds) {
-                series[dataKind][expDate].push(verbose ? {
-                    name: item.province,
-                    value: item[dataKind],
-                } : item[dataKind]);
+                countryTimeline[dataKind] = [];
             }
-            ++expProvinceIdx;
+            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
+            let condition = `country='${country}' AND province=''`; // for where clause
+            let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
+            for (let item of result) {
+                for (let dataKind of dataKinds) {
+                    countryTimeline[dataKind].push([item.date, item[dataKind]]);
+                }
+            }
+        }
+        { // Get epidemic province data
+            var provinces = await db.selectAvailableProvinces(country);
+            if (provinces.length === 0) {
+                res.status(404).send("country not found.");
+                return;
+            }
+            provinces = provinces.map(value => value.province);
+            // columns to select:
+            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `province`].concat(dataKinds);
+            let condition = `country='${country}' AND province<>'' AND city=''`; // city == '' means province entry
+            let result = await db.selectEpidemicData(fields, condition, false,
+                'GROUP BY province, date ORDER BY date ASC, province ASC');
+            var series = {};
+            // init timeline object
+            for (let dataKind of dataKinds) {
+                series[dataKind] = {};
+            }
+            let expProvinceIdx = provinces.length; // expected index in the provinces table
+            let expDate = '';
+            let prevDate = '';
+            // scan db result, O(N)
+            for (let item of result) {
+                if (item.date !== expDate) { // new date row
+                    // complete the previous date data array
+                    for (let dataKind of dataKinds) {
+                        let a = series[dataKind][expDate]; // cur row
+                        let b = series[dataKind][prevDate]; // prev row
+                        for (let i = expProvinceIdx; i < provinces.length; ++i)
+                            a[i] = (b === undefined ? (verbose ? {name: provinces[i], value: 0} : 0) : b[i]);
+                        series[dataKind][item.date] = []; // new array
+                    }
+                    expProvinceIdx = 0;
+                    prevDate = expDate;
+                    expDate = item.date;
+                }
+                if (item.province !== provinces[expProvinceIdx]) { // expected province data missing
+                    let j = expProvinceIdx + 1;
+                    while (provinces[j] !== item.province) ++j;
+                    for (let dataKind of dataKinds) {
+                        let a = series[dataKind][expDate]; // cur row
+                        let b = series[dataKind][prevDate]; // prev row
+                        for (let i = expProvinceIdx; i < j; ++i)
+                            a[i] = (b === undefined ? (verbose ? {name: provinces[i], value: 0} : 0) : b[i]);
+                    }
+                    expProvinceIdx = j;
+                }
+                // item is the expected province: fill in new date item
+                for (let dataKind of dataKinds) {
+                    series[dataKind][expDate].push(verbose ? {
+                        name: item.province,
+                        value: item[dataKind],
+                    } : item[dataKind]);
+                }
+                ++expProvinceIdx;
+            }
         }
         res.status(200).send({
             country: country,
+            countryTimeline: countryTimeline,
             province: provinces,
             timeline: series
         });
@@ -231,7 +287,7 @@ router.get('/epidemic/timeline/country', async function (req, res) {
 /**
  * @api {get} /retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.1.3
+ * @apiVersion 0.2.0
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -247,6 +303,18 @@ router.get('/epidemic/timeline/country', async function (req, res) {
  {
     "country": "中国",
 	"province": "四川省",
+	"provinceTimeline": {
+	    "confirmedCount": [
+			["2020-01-01", 10],
+			["2020-01-02", 20],
+			["2020-01-03", 30],
+		],
+		"deadCount": [
+			["2020-01-01", 10],
+			["2020-01-02", 20],
+			["2020-01-03", 30],
+		]
+	},
 	"city": ["成都市", "乐山市", "眉山市"],
 	"timeline": {
 		"confirmedCount": {
@@ -269,6 +337,16 @@ router.get('/epidemic/timeline/country', async function (req, res) {
  {
     "country": "中国",
 	"province": "四川省",
+	"provinceTimeline": {
+	    "confirmedCount": [
+			["2020-01-01", 10],
+			...
+		],
+		"deadCount": [
+			["2020-01-01", 10],
+			...
+		]
+	}
 	"city": ["成都", "乐山", "眉山"],
 	"timeline": {
 		"confirmedCount": {
@@ -298,64 +376,76 @@ router.get('/epidemic/timeline/province', async function (req, res) {
         return;
     }
     try {
-        let cities = await db.selectAvailableCities(country, province);
-        if (cities.length === 0) {
-            res.status(404).send("country or province not found.");
-            return;
-        }
-        cities = cities.map(value => value.city);
-        // debug('cities:', cities);
-        // columns to select: (be aware of code injection!)
-        let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `city`].concat(dataKinds.map(val => db.escapeId(val)));
-        let condition = `country='${country}' AND province='${province}' AND city<>''`; // for where clause
-        let result = await db.selectEpidemicData(fields, condition, false,
-            'GROUP BY city, date ORDER BY date ASC, city ASC');
-        let series = {};
-        // init timeline object
-        for (let dataKind of dataKinds) {
-            series[dataKind] = {};
-        }
-        let expCityIdx = cities.length; // expected index in the cities table
-        let expDate = '';
-        let prevDate = '';
-        // scan db result, O(N)
-        for (let item of result) {
-            if (item.date !== expDate) { // new date row
-                // complete the previous date data array
-                for (let dataKind of dataKinds) {
-                    let a = series[dataKind][expDate]; // cur row
-                    let b = series[dataKind][prevDate]; // prev row
-                    for (let i = expCityIdx; i < cities.length; ++i)
-                        a[i] = (b === undefined ? (verbose ? {name: cities[i], value: 0} : 0) : b[i]);
-                    series[dataKind][item.date] = []; // new array
-                }
-                expCityIdx = 0;
-                prevDate = expDate;
-                expDate = item.date;
-            }
-            if (item.city !== cities[expCityIdx]) { // expected city data missing
-                let j = expCityIdx + 1;
-                while (cities[j] !== item.city) ++j;
-                for (let dataKind of dataKinds) {
-                    let a = series[dataKind][expDate]; // cur row
-                    let b = series[dataKind][prevDate]; // prev row
-                    for (let i = expCityIdx; i < j; ++i)
-                        a[i] = (b === undefined ? (verbose ? {name: cities[i], value: 0} : 0) : b[i]);
-                }
-                expCityIdx = j;
-            }
-            // item is the expected city: fill in new date item
+        { // Get epidemic provincial data
+            var provinceTimeline = {};
             for (let dataKind of dataKinds) {
-                series[dataKind][expDate].push(verbose ? {
-                    name: item.city,
-                    value: item[dataKind],
-                } : item[dataKind]);
+                provinceTimeline[dataKind] = [];
             }
-            ++expCityIdx;
+            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
+            let condition = `country='${country}' AND province='${province}' AND city=''`; // for where clause
+            let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
+            for (let item of result) {
+                for (let dataKind of dataKinds) {
+                    provinceTimeline[dataKind].push([item.date, item[dataKind]]);
+                }
+            }
+        }
+        { // Get epidemic city data
+            var cities = await db.selectAvailableCities(country, province);
+            cities = cities.map(value => value.city);
+            // columns to select:
+            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `city`].concat(dataKinds);
+            let condition = `country='${country}' AND province='${province}' AND city<>''`; // for where clause
+            let result = await db.selectEpidemicData(fields, condition, false,
+                'GROUP BY city, date ORDER BY date ASC, city ASC');
+            var series = {};
+            // init timeline object
+            for (let dataKind of dataKinds) {
+                series[dataKind] = {};
+            }
+            let expCityIdx = cities.length; // expected index in the cities table
+            let expDate = '';
+            let prevDate = '';
+            // scan db result, O(N)
+            for (let item of result) {
+                if (item.date !== expDate) { // new date row
+                    // complete the previous date data array
+                    for (let dataKind of dataKinds) {
+                        let a = series[dataKind][expDate]; // cur row
+                        let b = series[dataKind][prevDate]; // prev row
+                        for (let i = expCityIdx; i < cities.length; ++i)
+                            a[i] = (b === undefined ? (verbose ? {name: cities[i], value: 0} : 0) : b[i]);
+                        series[dataKind][item.date] = []; // new array
+                    }
+                    expCityIdx = 0;
+                    prevDate = expDate;
+                    expDate = item.date;
+                }
+                if (item.city !== cities[expCityIdx]) { // expected city data missing
+                    let j = expCityIdx + 1;
+                    while (cities[j] !== item.city) ++j;
+                    for (let dataKind of dataKinds) {
+                        let a = series[dataKind][expDate]; // cur row
+                        let b = series[dataKind][prevDate]; // prev row
+                        for (let i = expCityIdx; i < j; ++i)
+                            a[i] = (b === undefined ? (verbose ? {name: cities[i], value: 0} : 0) : b[i]);
+                    }
+                    expCityIdx = j;
+                }
+                // item is the expected city: fill in new date item
+                for (let dataKind of dataKinds) {
+                    series[dataKind][expDate].push(verbose ? {
+                        name: item.city,
+                        value: item[dataKind],
+                    } : item[dataKind]);
+                }
+                ++expCityIdx;
+            }
         }
         res.status(200).send({
             country: country,
             province: province,
+            provinceTimeline: provinceTimeline,
             city: cities,
             timeline: series
         });
