@@ -264,8 +264,10 @@
     },
     methods: {
       drawTimeAxis() {
+        console.time('测试渲染的时间：')
         this.charts.setOption(this.myoption, true)
         this.charts.resize()
+        console.timeEnd('测试渲染的时间：')
       },
       dataImport(res) {
         //清空this.myoption.options和时间标签
@@ -287,12 +289,16 @@
           tmp_suboption.series[3].data = res.data.timeline['deadCount'][time_index]
           //name修正
           for (var i = 0; i < tmp_suboption.series[3].data.length; i++) {
-            if(name_filter[tmp_suboption.series[0].data[i].name]!= undefined)
+            for(var j = 0; j < 4; j++)
             {
-              tmp_suboption.series[0].data[i].name = name_filter[tmp_suboption.series[0].data[i].name]
-              tmp_suboption.series[1].data[i].name = name_filter[tmp_suboption.series[1].data[i].name]
-              tmp_suboption.series[2].data[i].name = name_filter[tmp_suboption.series[2].data[i].name]
-              tmp_suboption.series[3].data[i].name = name_filter[tmp_suboption.series[3].data[i].name]
+              if(this.cur_superiorPlace == 'world')
+                tmp_suboption.series[j].label.normal.show = false
+              else
+                tmp_suboption.series[j].label.normal.show = true
+              if(name_filter[tmp_suboption.series[j].data[i].name]!= undefined)
+              {
+                tmp_suboption.series[j].data[i].name = name_filter[tmp_suboption.series[j].data[i].name]
+              }
             }
           }
           this.myoption.options.push(tmp_suboption)
@@ -337,7 +343,19 @@
           }
         }
         else if(this.cur_superiorLevel == 'world'){
-          console.log('unfinished')
+          try {
+            let res = await vue.axios.get('/api/retrieve/epidemic/timeline/world', {
+              params: {
+                dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
+                verbose: ''
+              }
+            })
+            this.dataImport(res)
+            this.drawTimeAxis()
+            console.log(res)
+          } catch (err) {
+            vue.$log.error(`backend communication test failed with ${err}`);
+          }
         }
 
       },
