@@ -48,7 +48,7 @@ function insertEpidemicDataFromCSVAreaData(csvPath, header2DBField, batchSize = 
                 let entry = {};
                 if (!specifyCountry) entry['country'] = '中国'; // default
                 for (let field in field2Index) {
-                    entry[field] = row[field2Index[field]];
+                    entry[field] = db.escape(row[field2Index[field]]);
                 }
                 entryBatch.push(entry);
                 if (++count % batchSize === 0) {   // insert batch into db
@@ -112,7 +112,7 @@ async function downloadEpidemicData() {
             else resolve();
         }));
     } catch (err) {
-        debug('Fail to download epidemic data.');
+        debug('Fail to download epidemic data.', err);
         fs.unlinkSync(filePath);
         throw err;
     }
@@ -137,14 +137,15 @@ function selectNewestFile(dir, suffix = 'csv') {
 }
 
 // download newest csv and update db twice a day
-scheduler.scheduleJob(scheduler.onceADay, async function (time) {
-    debug(`Auto update begins at ${time}`);
-    await downloadEpidemicData();
-    await reloadEpidemicData();
-    debug('Auto update finished.');
-});
+function initialize() {
+    scheduler.scheduleJob(scheduler.onceADay, async function (time) {
+        debug(`Auto update begins at ${time}`);
+        await downloadEpidemicData();
+        await reloadEpidemicData();
+        debug('Auto update finished.');
+    });
+}
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData,
-    scheduler
+    reloadEpidemicData, downloadEpidemicData, initialize
 };

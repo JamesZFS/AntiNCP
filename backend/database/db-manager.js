@@ -1,9 +1,58 @@
 const fs = require('fs');
 const debug = require('debug')('backend:db-manager');
 const mysql = require('mysql');
+const chalk = require('chalk');
 const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
-const connection = mysql.createConnection(dbCfg);
 const initializingScriptPath = 'database/db-initialize.sql';
+
+/**
+ * Insist reconnecting until connection is make, throw unrecoverable error if fails
+ * @return {Promise<void>}
+ */
+async function insistConnecting() {
+    connection = mysql.createConnection(dbCfg); // Recreate the connection, since the old one cannot be reused.
+    return new Promise((resolve, reject) => connection.connect(err => {
+        if (err) { // The server is either down or restarting (takes a while sometimes).
+            console.error('Database error: when try to connect to db,', chalk.red(err.message));
+            debug("Attempting to reconnect in 2 sec...");
+            // We introduce a delay before attempting to reconnect,
+            // to avoid a hot loop, and to allow our node script to process asynchronous requests in the meantime.
+            setTimeout(() => insistConnecting()
+                .then(() => resolve())
+                .catch(err => reject(err)), 2000); // Unhandleable error
+        } else {
+            debug("Connected.");
+            resolve();
+        }
+    }));
+}
+
+/**
+ * Try to (re)connecting to database
+ * @return {Promise<void>}
+ */
+async function handleDisconnect() {
+    try {
+        await insistConnecting();
+    } catch (err) {
+        console.error('Database error: cannot connect to db!');
+        throw err;
+    }
+    // If you're also serving http, display a 503 error.
+    connection.on('error', function (err) {
+        if (err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
+            debug('Connection lost, attempting to reconnect...');
+            initialize();                         // lost due to either server restart, or a
+        } else {                                      // connnection idle timeout (the wait_timeout
+            console.error('Unknown database connection error.');
+            throw err;                                  // server variable configures this)
+        }
+    });
+}
+
+async function reconnect() {
+    return handleDisconnect();
+}
 
 /**
  * Do an mysql command asynchronously
@@ -39,24 +88,38 @@ function useDB(schema) {
 
 /**
  * Initialize db. Call once before listening
- * @return {Promise<Object>}
+ * @return {Promise<void>}
  */
-function initialize() {
-    connection.connect(() => debug('connected.'));
-    return doSql(fs.readFileSync(initializingScriptPath, 'utf8')).then((res) => {
-        debug('Database initialized successfully.');
-        return Promise.resolve(res);
-    }).catch((err) => {
+async function initialize() {
+    // Load init script:
+    try {
+        await reconnect();
+        await doSql(fs.readFileSync(initializingScriptPath, 'utf8'));
+        await finalize();
+        await reconnect(); // To make sure script takes effect
+        await useDB('AntiNCP');
+    } catch (err) {
         console.error("Database error: initializing failed.");
         throw err;
-    });
+    }
+    debug('Database initialized successfully.');
 }
 
 /**
  * Finalize db. Call at most once
+ * @return {Promise<void>}
  */
-function finalize() {
-    connection.end(() => debug('disconnected.'));
+async function finalize() {
+    return new Promise(resolve => {
+        try {
+            connection.end(() => {
+                debug('disconnected.');
+                resolve();
+            });
+        } catch (e) {
+            resolve();
+        }
+    });
 }
 
 /**
@@ -66,7 +129,7 @@ function finalize() {
  * @return {Promise<Object>}
  */
 function insertEntry(table, entry) {
-    let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES ('${Object.values(entry).join("','")}');`;
+    let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES (${Object.values(entry).join(',')});`;
     return doSql(sql); // error unhandled
 }
 
@@ -80,7 +143,7 @@ function insertEntries(table, entries) {
     let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {
-        vals.push(`('${Object.values(entry).join("','")}')`);
+        vals.push(`(${Object.values(entry).join(',')})`);
     }
     sql += vals.join(',') + ';';
     return doSql(sql); // error unhandled
@@ -174,18 +237,19 @@ function showTable(table) {
  * @param table{string}
  * @param fields{string|string[]}
  * @param conditions{undefined|string|string[]}
- * @param distinct{undefined|boolean} whether to de-duplicate
- * @param extra{undefined|string} as sql suffix
+ * @param distinct{boolean} whether to de-duplicate
+ * @param extra{string} as sql suffix
  * @return Promise<Object>
  */
-function selectInTable(table, fields, conditions, distinct, extra) {
+function selectInTable(table, fields, conditions, distinct = false, extra = '') {
     if (typeof fields === 'string') fields = [fields];
-    let sql = `SELECT ${distinct === true ? 'DISTINCT ' : ''}${fields.join(',')} FROM ${table}`;
+    let sql = `SELECT ${distinct ? 'DISTINCT ' : ''}${fields.join(',')} FROM ${table} `;
     if (conditions) {
         if (typeof conditions === 'string') conditions = [conditions];
-        sql += ` WHERE (${conditions.join(') AND (')})`;
+        sql += `WHERE (${conditions.join(') AND (')}) `;
     }
-    sql += typeof extra === 'string' ? ` ${extra};` : ';';
+    sql += extra;
+    // debug(sql);
     return doSql(sql);
 }
 
@@ -211,14 +275,30 @@ function selectAvailableProvinces(country) {
 }
 
 function selectAvailableCountries() {
-    return selectInTable('Epidemic', 'country', undefined, true, 'ORDER BY country ASC');
+    return selectInTable('Epidemic', 'country', null, true, 'ORDER BY country ASC');
 }
 
-function test() {
+/**
+ * Call mysql escapeId
+ * @param id{string}
+ * @return {string}
+ */
+function escapeId(id) {
+    return mysql.escapeId(id);
 }
+
+/**
+ * Call mysql escape
+ * @param value{string}
+ * @return {string}
+ */
+function escape(value) {
+    return mysql.escape(value);
+}
+
 
 module.exports = {
-    useDB, initialize, finalize, test,
+    initialize, finalize, escapeId, escape,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, showTable, countTableRows,
     selectInTable, selectEpidemicData,

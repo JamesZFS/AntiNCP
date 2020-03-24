@@ -17,6 +17,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(express.static(path.resolve(__dirname, '../frontend/dist'))); // host frontend as static pages
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);

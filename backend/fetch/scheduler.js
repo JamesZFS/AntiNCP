@@ -1,9 +1,9 @@
 const schedule = require('node-schedule');
 
 const twiceADay = new schedule.RecurrenceRule();
-twiceADay.hour = [12, 24];  // trigger at 12, 24'o clock every day
+Object.assign(twiceADay, {hour: [4, 16], minute: [0], second: [0]});  // trigger at 4, 16'o clock every day
 
 const onceADay = new schedule.RecurrenceRule();
-onceADay.hour = [24];  // trigger at 24'o clock every day
+Object.assign(onceADay, {hour: [4], minute: [0], second: [0]});  // trigger at 4'o clock every day
 
 module.exports = {scheduleJob: schedule.scheduleJob, twiceADay, onceADay};
