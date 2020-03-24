@@ -24,7 +24,7 @@ function insertEpidemicDataFromCSVAreaData(csvPath, header2DBField, batchSize = 
         let count = 0;
         let entryBatch = [];
         let specifyCountry = Object.values(header2DBField).indexOf('country') >= 0;
-        debug(`inserting epidemic data from DXY area data csv ${csvPath}`);
+        debug(`inserting epidemic data from source area data csv ${csvPath}`);
         let parser = csv.parseFile(csvPath)
             .on('error', error => {
                 debug(`error when parsing csv file ${csvPath}`);
@@ -98,7 +98,7 @@ async function reloadEpidemicData() {
 }
 
 /**
- * Download epidemic data from dxy api, save it to DXYAreaDataDir
+ * Download epidemic data from source api, save it to downloadDir
  */
 async function downloadEpidemicData() {
     debug('Downloading Epidemic Data... (Be patient, this may take a while)');

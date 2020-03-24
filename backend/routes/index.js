@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var retrieveRouter = require('./retireve');
+var retrieveRouter = require('./retrieve');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -10,7 +10,7 @@ router.get('/', function (req, res, next) {
 router.use('/retrieve', retrieveRouter);
 
 /**
- * @api {get} /test Test api
+ * @api {get} /api/test Test api
  * @apiVersion 0.1.1
  * @apiName GetTest
  * @apiGroup Test
