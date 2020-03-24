@@ -3,7 +3,7 @@
 // see http://vuejs-templates.github.io/webpack for documentation.
 
 const path = require('path');
-const BACKEND_PORT = require('../../backend/config/consts').DEFAULT_PORT;
+const hostPort = require('../../backend/config/consts').HOST_PORT;
 
 module.exports = {
   dev: {
@@ -13,7 +13,7 @@ module.exports = {
     assetsPublicPath: '/',
     proxyTable: { // to resolve CORS problem at dev time, from now on, all request towards the backend should start with `/api`
       '/api': {
-        target: `http://localhost:${BACKEND_PORT}`,
+        target: `http://localhost:${hostPort}`,
         changeOrigin: true,
         pathRewrite: {
           '^/api': ''

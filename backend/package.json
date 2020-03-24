@@ -7,10 +7,9 @@
     "start": "node ./bin/www",
     "reload": "node ./bin/www --reload",
     "download": "node ./bin/www --download --reload",
-    "api": "apidoc -i . -e node_modules/*,"
+    "api": "apidoc -i . -e 'node_modules/*'"
   },
   "dependencies": {
-    "apidoc": "^0.20.1",
     "axios": "^0.19.2",
     "chalk": "^3.0.0",
     "cookie-parser": "~1.4.3",

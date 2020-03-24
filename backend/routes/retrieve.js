@@ -582,11 +582,4 @@ router.get('/epidemic', async function (req, res) {
 });
 
 
-router.get('/test', function (req, res) {
-    res.status(200)
-        .send({
-            result: "ok!"
-        });
-});
-
 module.exports = router;
