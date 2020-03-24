@@ -359,8 +359,6 @@
     },
     methods: {
       drawTimelineWordCloud() {
-        console.log('GG')
-        console.log(this.myoption)
         this.charts.setOption(
            this.myoption
         )
