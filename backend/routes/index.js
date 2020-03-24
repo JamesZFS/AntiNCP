@@ -19,7 +19,7 @@ router.use('/retrieve', retrieveRouter);
  * @apiDescription A test api
  *
  * @apiExample Example usage:
- * curl http://localhost:3000/test
+ * curl http://localhost:3000/api/test
  *
  * @apiSuccess {String}   result    "ok!"
  *

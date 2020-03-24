@@ -12,9 +12,9 @@ const TO_INFERIOR = {
 };
 
 /**
- * @api {get} /retrieve/epidemic/timeline/world  Get world epidemic data timeline api
+ * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.2.0
+ * @apiVersion 0.2.1
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -22,7 +22,7 @@ const TO_INFERIOR = {
  * @apiParam (Query Param) {none} verbose       return {name:..., value:...} or just the value buffer.
  *
  * @apiExample {curl} Example usage:
- *     curl "http://localhost:3000/retrieve/epidemic/timeline/world/?dataKind=confirmedCount,deadCount"
+ *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/world/?dataKind=confirmedCount,deadCount"
  *
  * @apiExample Response (example):
  {
@@ -144,9 +144,9 @@ router.get('/epidemic/timeline/world', async function (req, res) {
 });
 
 /**
- * @api {get} /retrieve/epidemic/timeline/country  Get country epidemic data timeline api
+ * @api {get} /api/retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.2.0
+ * @apiVersion 0.2.1
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -155,7 +155,7 @@ router.get('/epidemic/timeline/world', async function (req, res) {
  * @apiParam (Query Param) {none} verbose       return {name:..., value:...} or just the value buffer
  *
  * @apiExample {curl} Example usage:
- *     curl "http://localhost:3000/retrieve/epidemic/timeline/country/?country=中国&dataKind=confirmedCount,deadCount"
+ *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/country/?country=中国&dataKind=confirmedCount,deadCount"
  *
  * @apiExample Response (example):
  {
@@ -285,9 +285,9 @@ router.get('/epidemic/timeline/country', async function (req, res) {
 });
 
 /**
- * @api {get} /retrieve/epidemic/timeline/province  Get province epidemic data timeline api
+ * @api {get} /api/retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.2.0
+ * @apiVersion 0.2.1
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -297,7 +297,7 @@ router.get('/epidemic/timeline/country', async function (req, res) {
  * @apiParam (Query Param) {none} verbose        return {name:..., value:...} or just the value buffer. see the example 2 for details
  *
  * @apiExample {curl} Example usage 1:
- *     curl "http://localhost:3000/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount"
+ *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount"
  *
  * @apiExample Response (example 1):
  {
@@ -331,7 +331,7 @@ router.get('/epidemic/timeline/country', async function (req, res) {
  }
  *
  * @apiExample {curl} Example usage 2:
- *     curl "http://localhost:3000/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount&verbose"
+ *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount&verbose"
  *
  * @apiExample Response (example 2):
  {
@@ -453,132 +453,6 @@ router.get('/epidemic/timeline/province', async function (req, res) {
         debug('Unconfirmed error:', err);
         res.status(500).end();
     }
-});
-
-/**
- * @api {get} /retrieve/epidemic  Get epidemic data api
- * @apiName GetEpidemicData
- * @apiVersion 0.1.3
- * @apiGroup Test
- * @apiPermission everyone
- * @apiDeprecated
- *
- * @apiDescription Retrieve epidemic data in a specific superior place(world/country/province)
- *
- * **this apis is in progress (world and China overall data is not available)**
- *
- * @apiParam (Query Param) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}
- * @apiParam (Query Param) {string}  superiorPlace  superior place name
- * @apiParam (Query Param) {string}  superiorLevel  superior place level, in {'world', 'country', 'province'}
- *
- * @apiSuccess {Object}  . epidemic data in different inferior places and date time
- * @apiError 400   wrong usage or param invalid
- * @apiError 404   place not found
- *
- * @apiError 500   internal database error
- *
- * @apiExample {curl} Example usage:
- *     curl "http://localhost:3000/retrieve/epidemic?superiorPlace=四川省&superiorLevel=province&dataKind=confirmedCount"
- *
- * @apiExample Response (example):
- * {
- *   "superiorPlace": "四川省",
- *   "superiorLevel": "province",
- *   "dataKind": "confirmedCount",
- *   "inferiorPlaces": [
- *   	{
- *   		"name": "成都",
- *   		"values": [1, 2, 10, 100, 120],
- *   		"times": [1100, 1101, 1102, 1103]
- *   	},
- *   	{
- *   		"name": "乐山",
- *   		"values": [3, 5, 10, 100, 120],
- *   		"times": [1100, 1101, 1102, 1105]
- *   	},
- *   	{
- *   		"name": "眉山",
- *   		"values": [3, 5, 10, 100, 120],
- *   		"times": [1100, 1101, 1102, 1105]
- *   	}
- *   ]
- * }
- */
-router.get('/epidemic', async function (req, res) {
-    let superiorLevel = req.query.superiorLevel;
-    let superiorPlace = req.query.superiorPlace;
-    let dataKind = req.query.dataKind;
-    // type & usage check
-    if (superiorLevel === undefined || superiorPlace === undefined || dataKind === undefined ||
-        TO_INFERIOR[superiorLevel] === undefined || EPIDEMIC_DATA_KINDS.indexOf(dataKind) < 0) {
-        // handle 400 error
-        let err = createError(400);
-        res.locals.message = "Wrong use of api.   " +
-            "Usage: /retrieve/epidemic?superiorPlace={...}" +
-            "&superiorLevel={'world', 'country', 'province'}" +
-            "&dataKind={'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}";
-        res.status(err.status).render('error', {error: err});
-        return;
-    }
-    let conditions = []; // for where clause
-    let fields = ['date', db.escapeId(dataKind)]; // columns to select
-    switch (superiorLevel) {
-        case 'world':
-            fields.push('country');
-            conditions.push(`province = ''`); // means country data
-            res.status(404).send('Unimplemented!');
-            return;
-        case 'country':
-            fields.push('province');
-            conditions.push(`country = '${superiorPlace}'`, `city = ''`); // means province data
-            res.status(404).send('Unimplemented!');
-            return;
-        case 'province':
-            fields.push('city');
-            conditions.push(`province = '${superiorPlace}'`);
-            break;
-    }
-    let inferiorLevel = TO_INFERIOR[superiorLevel];
-    let inferiorPlaces;
-    let result;
-    // search for satisfying results in db
-    try {
-        // scan inferior place list
-        inferiorPlaces = await db.selectEpidemicData(inferiorLevel, conditions, true);
-        if (!inferiorPlaces) {
-            res.status(404).send(`Superior place '${superiorPlace}' not found`);
-            return;
-        }
-        // get epidemic data array
-        result = await db.selectEpidemicData(fields, conditions);
-    } catch (err) {
-        res.status(500).send("epidemic database error");
-        debug('Cannot select epidemic data.');
-        throw err;
-    }
-    // reconstruct response json, see demo-response.json for illustration
-    let inferiorPlaceBuffer = [];
-    for (let place of inferiorPlaces) {
-        place = place[inferiorLevel];
-        let item = {
-            name: place,
-            values: [],
-            times: [],
-        };
-        for (let packet of result) {
-            if (packet[inferiorLevel] === place) {
-                item.values.push(packet[dataKind]);
-                item.times.push(Date.parse(packet['date']) / 1000); // to unix time
-            }
-        }
-        inferiorPlaceBuffer.push(item);
-    }
-    res.status(200).send({
-        superiorPlace: superiorPlace,
-        superiorLevel: superiorLevel,
-        dataKind: dataKind,
-        inferiorPlaces: inferiorPlaceBuffer,
-    });
 });
 
 
