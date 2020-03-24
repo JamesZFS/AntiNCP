@@ -52,6 +52,7 @@ const TO_INFERIOR = {
 		}
 	}
  }
+ * @apiSampleRequest /api/retrieve/epidemic/timeline/world
  */
 router.get('/epidemic/timeline/world', async function (req, res) {
     let dataKinds = req.query.dataKind;
@@ -186,6 +187,7 @@ router.get('/epidemic/timeline/world', async function (req, res) {
 		}
 	}
  }
+ * @apiSampleRequest /api/retrieve/epidemic/timeline/country
  */
 router.get('/epidemic/timeline/country', async function (req, res) {
     let country = req.query.country;
@@ -218,10 +220,6 @@ router.get('/epidemic/timeline/country', async function (req, res) {
         }
         { // Get epidemic province data
             var provinces = await db.selectAvailableProvinces(country);
-            if (provinces.length === 0) {
-                res.status(404).send("country not found.");
-                return;
-            }
             provinces = provinces.map(value => value.province);
             // columns to select:
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `province`].concat(dataKinds);
@@ -359,6 +357,7 @@ router.get('/epidemic/timeline/country', async function (req, res) {
 		}
 	}
  }
+ * @apiSampleRequest /api/retrieve/epidemic/timeline/province
  */
 router.get('/epidemic/timeline/province', async function (req, res) {
     let country = req.query.country;

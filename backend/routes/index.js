@@ -4,7 +4,7 @@ var retrieveRouter = require('./retrieve');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
-    res.render('index', {title: 'Express'});
+    res.render('index', {title: 'AntiNCP Backend', content: 'See our `/doc` for api usage.'});
 });
 
 router.use('/retrieve', retrieveRouter);
@@ -25,6 +25,8 @@ router.use('/retrieve', retrieveRouter);
  *
  * @apiExample Response (example):
  *     "OK!"
+ * 
+ * @@apiSampleRequest /api/test
  */
 router.get('/test', function (req, res) {
     res.status(200).send("OK!");
