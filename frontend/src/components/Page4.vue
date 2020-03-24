@@ -5,23 +5,23 @@
       <NavBar></NavBar>
     </div>
     <div>
-      <h1>page4</h1>
+      <TimelineHeatMap></TimelineHeatMap>
     </div>
   </div>
 </template>
 
 <script>
-  import NavBar from './NavBar'
-
-  export default {
-    name: 'pag4',
-    components: {NavBar},
-    data () {
-      return {
-        count: 0
-      }
+import NavBar from './NavBar'
+import TimelineHeatMap from './TimelineHeatMap'
+export default {
+  name: 'pag4',
+  components: {NavBar, TimelineHeatMap},
+  data () {
+    return {
+      count: 0
     }
   }
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

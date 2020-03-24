@@ -11,17 +11,17 @@
 </template>
 
 <script>
-  import NavBar from './NavBar'
+import NavBar from './NavBar'
 
-  export default {
-    name: 'pag2',
-    components: {NavBar},
-    data () {
-      return {
-        count: 0
-      }
+export default {
+  name: 'pag2',
+  components: {NavBar},
+  data () {
+    return {
+      count: 0
     }
   }
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

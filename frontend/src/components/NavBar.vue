@@ -30,17 +30,17 @@
 </template>
 
 <script>
-  // import Vue from 'vue'
-  // import VueRouter from 'vue-router'
-  // Vue.use(VueRouter)
-  export default {
-    name: 'navbar',
-    data () {
-      return {
-        count: 0
-      }
+// import Vue from 'vue'
+// import VueRouter from 'vue-router'
+// Vue.use(VueRouter)
+export default {
+  name: 'navbar',
+  data () {
+    return {
+      count: 0
     }
   }
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

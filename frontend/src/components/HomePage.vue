@@ -5,25 +5,26 @@
       <NavBar></NavBar>
     </div>
     <div>
-      <HeatMap></HeatMap>
+      <WordCloud></WordCloud>
     </div>
   </div>
 </template>
 
 <script>
-  // import Vue from 'vue'
-  import NavBar from './NavBar'
-  import HeatMap from './HeatMap'
+// import Vue from 'vue'
+import NavBar from './NavBar'
+import HeatMap from './HeatMap'
+import WordCloud from './WordCloud'
 
-  export default {
-    name: 'homepage',
-    components: {NavBar, HeatMap},
-    data () {
-      return {
-        count: 0
-      }
+export default {
+  name: 'homepage',
+  components: {NavBar, HeatMap,WordCloud},
+  data () {
+    return {
+      count: 0
     }
   }
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

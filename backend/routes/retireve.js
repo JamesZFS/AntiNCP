@@ -487,17 +487,17 @@ router.get('/epidemic/timeline/province', async function (req, res) {
  *   "dataKind": "confirmedCount",
  *   "inferiorPlaces": [
  *   	{
- *   		"place": "成都",
+ *   		"name": "成都",
  *   		"values": [1, 2, 10, 100, 120],
  *   		"times": [1100, 1101, 1102, 1103]
  *   	},
  *   	{
- *   		"place": "乐山",
+ *   		"name": "乐山",
  *   		"values": [3, 5, 10, 100, 120],
  *   		"times": [1100, 1101, 1102, 1105]
  *   	},
  *   	{
- *   		"place": "眉山",
+ *   		"name": "眉山",
  *   		"values": [3, 5, 10, 100, 120],
  *   		"times": [1100, 1101, 1102, 1105]
  *   	}
@@ -561,7 +561,7 @@ router.get('/epidemic', async function (req, res) {
     for (let place of inferiorPlaces) {
         place = place[inferiorLevel];
         let item = {
-            place: place,
+            name: place,
             values: [],
             times: [],
         };
@@ -579,6 +579,14 @@ router.get('/epidemic', async function (req, res) {
         dataKind: dataKind,
         inferiorPlaces: inferiorPlaceBuffer,
     });
+});
+
+
+router.get('/test', function (req, res) {
+    res.status(200)
+        .send({
+            result: "ok!"
+        });
 });
 
 module.exports = router;
