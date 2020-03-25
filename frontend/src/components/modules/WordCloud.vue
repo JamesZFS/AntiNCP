@@ -21,7 +21,7 @@
     methods: {
       drawwordcloud(id) {
         var maskImage = new Image()
-        maskImage.src = require('../assets/newslogo.png')
+        maskImage.src = require('../../assets/newslogo.png')
         // maskImage.width = maskImage.width*0.3
         // maskImage.height = maskImage.height*0.3
         console.log(maskImage.src)

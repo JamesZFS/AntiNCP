@@ -8,7 +8,7 @@
   import $ from 'jquery'
   import china from 'echarts/map/js/china'
   // import china from 'echarts/map/json/china.json'
-  import USA from '../assets/worldcountryjson/USA.json'
+  import USA from '../../assets/worldcountryjson/USA.json'
   // import China from '../assets/worldcountryjson/China.json'
   import world from 'echarts/map/js/world'
   import sichuan from 'echarts/map/json/province/sichuan'

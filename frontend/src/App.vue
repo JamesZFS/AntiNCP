@@ -1,21 +1,27 @@
 <template>
   <div id="app">
-    <router-view/>
+    <el-container>
+
+      <el-aside style="width: 13vw">
+          <NavBar></NavBar>
+      </el-aside>
+
+      <el-main>
+        <router-view/>
+      </el-main>
+
+    </el-container>
   </div>
 </template>
 
 <script>
-  import fetcher from './fetch/fetcher';
+  import NavBar from "./components/NavBar";
+
   export default {
     name: 'App',
     mounted() {
-      // fetcher.backendCommunicationTest();
-      // // for testing
-      // fetcher.getEpidemicDataAtTime('2020-2-20 1:00:00', 'confirmedCount', 'province', '湖南省')
-      //   .then((result) => {
-      //     console.log(result);
-      //   });
-    }
+    },
+    components: {NavBar}
   }
 </script>
 

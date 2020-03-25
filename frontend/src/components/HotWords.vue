@@ -1,9 +1,6 @@
 <!-- Page3 -->
 <template>
   <div class="page3">
-    <div class="sidebar-boxlist">
-      <NavBar></NavBar>
-    </div>
     <div>
       <TimelineWordCloud></TimelineWordCloud>
     </div>
@@ -12,9 +9,9 @@
 
 <script>
 import NavBar from './NavBar'
-import TimelineWordCloud from './TimelineWordCloud'
+import TimelineWordCloud from './modules/TimelineWordCloud'
 export default {
-  name: 'pag3',
+  name: 'HotWords',
   components: {NavBar,TimelineWordCloud},
   data () {
     return {

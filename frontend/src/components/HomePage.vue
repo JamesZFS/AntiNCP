@@ -13,8 +13,8 @@
 <script>
 // import Vue from 'vue'
 import NavBar from './NavBar'
-import HeatMap from './HeatMap'
-import TimelineHeatMap from './TimelineHeatMap'
+import HeatMap from './modules/HeatMap'
+import TimelineHeatMap from './modules/TimelineHeatMap'
 
 export default {
   name: 'homepage',

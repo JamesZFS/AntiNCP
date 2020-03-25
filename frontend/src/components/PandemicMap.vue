@@ -1,9 +1,6 @@
 <!-- Page1 -->
 <template>
   <div class="page1">
-    <div class="sidebar-boxlist">
-      <NavBar></NavBar>
-    </div>
     <div class="mypic">
       <div>
         <el-button @click="returnworldmap()">全球疫情地图</el-button>
@@ -21,10 +18,10 @@
 
 <script>
 import NavBar from './NavBar'
-import TimelineHeatMap from './TimelineHeatMap'
-import PredictionMap from './PredictionMap'
+import TimelineHeatMap from './modules/TimelineHeatMap'
+import PredictionMap from './modules/PredictionMap'
 export default {
-  name: 'pag1',
+  name: 'PandemicMap',
   components: {NavBar, TimelineHeatMap,PredictionMap},
   data () {
     return {

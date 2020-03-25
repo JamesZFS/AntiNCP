@@ -1,9 +1,6 @@
 <!-- Page2 -->
 <template>
   <div class="page2">
-    <div class="sidebar-boxlist">
-      <NavBar></NavBar>
-    </div>
     <div>
       <h1>疫情相关报道时间轴，等待开发</h1>
     </div>
@@ -14,7 +11,7 @@
 import NavBar from './NavBar'
 
 export default {
-  name: 'pag2',
+  name: 'PandemicReports',
   components: {NavBar},
   data () {
     return {

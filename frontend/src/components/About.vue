@@ -1,20 +1,19 @@
 <!-- Page4 -->
 <template>
   <div class="page4">
-    <div class="sidebar-boxlist">
-      <NavBar></NavBar>
-    </div>
     <div>
-      <TimelineHeatMap></TimelineHeatMap>
+      <p>码到退疫制作团队</p>
+      <p>清华大学计算机系</p>
+      <p>版本0.1.0</p>
     </div>
   </div>
 </template>
 
 <script>
 import NavBar from './NavBar'
-import TimelineHeatMap from './TimelineHeatMap'
+import TimelineHeatMap from './modules/TimelineHeatMap'
 export default {
-  name: 'pag4',
+  name: 'About',
   components: {NavBar, TimelineHeatMap},
   data () {
     return {

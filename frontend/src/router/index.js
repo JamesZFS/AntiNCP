@@ -1,11 +1,10 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import HomePage from '@/components/HomePage'
-import Page1 from '@/components/Page1'
-import Page2 from '@/components/Page2'
-import Page3 from '@/components/Page3'
-import Page4 from '@/components/Page4'
-// import HeatMap from '@/components/Heatmap'
+import HomePage from '../components/HomePage'
+import PandemicMap from '../components/PandemicMap'
+import PandemicReports from "../components/PandemicReports";
+import HotWords from "../components/HotWords";
+import About from "../components/About";
 
 Vue.use(Router);
 
@@ -13,33 +12,28 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'Page1',
-      component: Page1
+      name: 'HomePage',
+      component: PandemicMap
     },
     {
-      path: '/1',
-      name: 'Page1',
-      component: Page1
+      path: '/map',
+      name: 'PandemicMap',
+      component: PandemicMap
     },
     {
-      path: '/2',
-      name: 'Page2',
-      component: Page2
+      path: '/report',
+      name: 'PandemicReports',
+      component: PandemicReports
     },
     {
-      path: '/3',
-      name: 'Page3',
-      component: Page3
+      path: '/hot',
+      name: 'HotWords',
+      component: HotWords
     },
     {
-      path: '/4',
-      name: 'Page4',
-      component: Page4
+      path: '/about',
+      name: 'About',
+      component: About
     }
-    // {
-    //   path: '/heatmap',
-    //   name: 'HeatMap',
-    //   component: HeatMap
-    // }
   ]
 })

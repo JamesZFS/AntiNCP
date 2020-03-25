@@ -8,7 +8,7 @@
   import vue from "vue";
   import ecStat from 'echarts-stat'
   import china from "echarts/map/js/china";
-  import USA from "../assets/worldcountryjson/USA";
+  import USA from "../../assets/worldcountryjson/USA";
 
   //用于在发请求之前进行name转换
   var request_filter = {

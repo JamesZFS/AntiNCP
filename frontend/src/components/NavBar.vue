@@ -1,72 +1,55 @@
 <!--导航栏组件-->
 <template>
   <div>
-    <el-radio-group v-model="isCollapse"  @change="toggleName" backgroundcolor="#303133" >
-      <img src="../assets/logo.png" class="logo" @click="isCollapse=!isCollapse">
-<!--      <div>-->
-<!--        <el-radio-button v-if="display"   :label="false" class="menubutton">{{open}}</el-radio-button>-->
-<!--        <el-radio-button v-else    :label="true" class="menubutton">{{close}}</el-radio-button>-->
-<!--      </div>-->
-    </el-radio-group>
+    <img src="../assets/logo.png" class="logo" alt="AntiNCP"/>
     <el-menu :default-active="$route.path" class="navbar" :collapse="isCollapse" router>
-      <el-menu-item index="1">
+      <el-menu-item index="map">
         <i class="el-icon-picture"></i>
-        <span class="item_title" index="/1">疫情地图</span>
+        <span class="item_title">疫情地图</span>
       </el-menu-item>
-      <el-menu-item index="2">
+      <el-menu-item index="report">
         <i class="el-icon-s-order"></i>
-        <span class="item_title" index="/2">疫情报道</span>
+        <span class="item_title">疫情报道</span>
       </el-menu-item>
-      <el-menu-item index="3">
+      <el-menu-item index="hot">
         <i class="el-icon-view"></i>
-        <span class="item_title" index="/2">热点关注</span>
+        <span class="item_title">热点关注</span>
       </el-menu-item>
-      <el-menu-item index="4">
+      <el-menu-item index="about">
         <i class="el-icon-user-solid"></i>
-        <span class="item_title" index="/2">关于我们</span>
+        <span class="item_title">关于我们</span>
+      </el-menu-item>
+
+      <el-menu-item v-model="isCollapse" @click="isCollapse=!isCollapse">
+        <i v-if="isCollapse" class="el-icon-d-arrow-right"/>
+        <i v-else class="el-icon-d-arrow-left"/>
+        <span v-if="isCollapse" class="item_title">展开</span>
+        <span v-else class="item_title">收起</span>
       </el-menu-item>
     </el-menu>
   </div>
 </template>
 
 <script>
-  // import Vue from 'vue'
-  // import VueRouter from 'vue-router'
-  // Vue.use(VueRouter)
   export default {
     name: 'navbar',
     data() {
       return {
-        count: 0,
-        isCollapse: true,
-        display: true,
-        open: "展开",
-        close: "收缩",
-      }
-    },
-    methods: {
-      toggleName: function() {
-
-        if (this.display === true) {
-          this.display = false;
-        } else {
-          this.display = true;
-        }
+        isCollapse: false
       }
     }
-
   }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style>
+<style scoped>
 
   .navbar:not(.el-menu--collapse) {
     display: flex;
     text-align: left;
     flex-direction: column;
-    width: 15vw;
-    min-width: 250px;
+    width: 12vw;
+    min-width: 10vw;
     height: 100vh;
     min-height: 500px;
     background-color: #ebeff3;
@@ -78,13 +61,15 @@
     align-items: center;
     justify-content: center;
     width: 9vw;
-    min-width: 150px;
+    min-width: 100px;
     height: 5vh;
     min-height: 50px;
   }
-  .menubutton{
-    float:left;
+
+  .menubutton {
+    float: left;
   }
+
   .item_title {
     font-size: 20px;
   }
