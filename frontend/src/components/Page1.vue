@@ -4,24 +4,59 @@
     <div class="sidebar-boxlist">
       <NavBar></NavBar>
     </div>
-    <div>
-      <h1>中国新冠肺炎疫情热度图</h1>
-      <HeatMap></HeatMap>
+    <div class="mypic">
+      <div>
+        <el-button @click="returnworldmap()">全球疫情地图</el-button>
+        <el-button @click="returnchinamap()">中国疫情地图</el-button>
+      </div>
+      <div margin="100px 0">
+        <TimelineHeatMap ref="myheatmap"></TimelineHeatMap>
+      </div>
+      <div margin="100px 0">
+        <PredictionMap ref="mypredictionmap"></PredictionMap>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import NavBar from './NavBar'
-import HeatMap from './HeatMap'
-
+import TimelineHeatMap from './TimelineHeatMap'
+import PredictionMap from './PredictionMap'
 export default {
   name: 'pag1',
-  components: {NavBar, HeatMap},
+  components: {NavBar, TimelineHeatMap,PredictionMap},
   data () {
     return {
       count: 0
     }
+  },
+  methods:{
+    returnworldmap() {
+      this.$refs.myheatmap.returnworldmap()
+      this.$refs.mypredictionmap.returnworldmap()
+      // console.log('asdf')
+    },
+    returnchinamap() {
+      this.$refs.myheatmap.returnchinamap()
+      this.$refs.mypredictionmap.returnchinamap()
+      // console.log('qwer')
+    }
+  },
+  mounted() {
+    this.$refs.myheatmap.charts.on('click',(params) => {
+      console.log('1111')
+      if (params.componentType == 'timeline') {
+        this.$refs.myheatmap.timelineclick(params.dataIndex)
+      } else {
+        //热度图切换
+        this.$refs.myheatmap.placechange(params.name)
+        console.log('2222')
+        //以及折线图的切换
+        this.$refs.mypredictionmap.placechange(params.name)
+        console.log('3333')
+      }
+    })
   }
 }
 </script>
@@ -49,5 +84,9 @@ export default {
   .page1 {
     display: flex;
     flex-direction: row;
+  }
+  .mypic{
+    display: flex;
+    flex-direction: column;
   }
 </style>
