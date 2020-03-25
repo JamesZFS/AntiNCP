@@ -5,7 +5,7 @@
       <NavBar></NavBar>
     </div>
     <div>
-      <h1>疫情相关报道时间轴</h1>
+      <h1>疫情相关报道时间轴，等待开发</h1>
     </div>
   </div>
 </template>

@@ -5,7 +5,7 @@
       <NavBar></NavBar>
     </div>
     <div>
-      <WordCloud></WordCloud>
+      <TimelineHeatMap></TimelineHeatMap>
     </div>
   </div>
 </template>
@@ -14,15 +14,20 @@
 // import Vue from 'vue'
 import NavBar from './NavBar'
 import HeatMap from './HeatMap'
-import WordCloud from './WordCloud'
+import TimelineHeatMap from './TimelineHeatMap'
 
 export default {
   name: 'homepage',
-  components: {NavBar, HeatMap,WordCloud},
+  components: {NavBar, HeatMap,TimelineHeatMap},
   data () {
     return {
       count: 0
     }
+  },
+  mounted() {
+    this.on('click', (params) => {
+      console.log(params)
+    })
   }
 }
 </script>

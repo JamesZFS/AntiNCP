@@ -1,12 +1,6 @@
 <!-- 含有时间轴的热度图组件 -->
 <template>
-  <div class="hello">
-    <div>
-      <el-button @click="returnworldmap()">全球疫情地图</el-button>
-      <el-button @click="returnchinamap()">中国疫情地图</el-button>
-    </div>
-    <div id="TimelineHeatMap" style="width: 80vw;height: 80vh;"></div>
-  </div>
+  <div id="TimelineHeatMap" style="width: 80vw;height: 80vh;"></div>
 </template>
 
 <script>
@@ -101,24 +95,7 @@
     '黑龙江': heilongjiang
   }
 
-  function dataFormatter(obj) {
-    var pList = ['北京', '天津', '河北', '山西', '内蒙古自治区', '辽宁', '吉林', '黑龙江', '上海', '江苏', '浙江', '安徽', '福建', '江西', '山东', '河南', '湖北', '湖南', '广东', '广西', '海南', '重庆', '四川', '贵州', '云南', '西藏', '陕西', '甘肃', '青海', '宁夏', '新疆'];
-    var temp;
-    for (var day = 0; day <= 10; day++) {
-      temp = obj[day];
-      var l = 0
-      for (var data in temp) {
-        l++
-      }
-      for (var i = 0; i < l; i++) {
-        obj[day][i] = {
-          name: pList[i],
-          value: temp[i]
-        }
-      }
-    }
-    return obj;
-  }
+  var cur_datakind = '确诊'
 
 
   export default {
@@ -222,9 +199,9 @@
               axisType: 'category',
               realtime: true,
               // loop: false,
-              autoPlay: true,
+              autoPlay: false,
               // currentIndex: 2,
-              playInterval: 100,
+              playInterval: 1000,
               data: [],
               symbolSize: '8',
               linestyle: {
@@ -246,6 +223,9 @@
               },
               data: ['疑似', '确诊', '治愈', '死亡'],
               selectedMode: 'single',
+              selected: {
+                '疑似': false, '确诊': true, '治愈': false, '死亡': false
+              }
             },
             grid: {
               top: 80,
@@ -264,15 +244,17 @@
     },
     methods: {
       drawTimeAxis() {
-        console.time('测试渲染的时间：')
+        for (var tmp_datakind in this.myoption.baseOption.legend.selected) {
+          this.myoption.baseOption.legend.selected[tmp_datakind] = false
+        }
+        this.myoption.baseOption.legend.selected[cur_datakind] = true
         this.charts.setOption(this.myoption, true)
         this.charts.resize()
-        console.timeEnd('测试渲染的时间：')
       },
       dataImport(res) {
         //清空this.myoption.options和时间标签
         this.myoption.options.splice(0, this.myoption.options.length)
-        this.myoption.baseOption.timeline.data.splice(0,this.myoption.baseOption.timeline.data.length)
+        this.myoption.baseOption.timeline.data.splice(0, this.myoption.baseOption.timeline.data.length)
         //疑似、确诊、治愈、死亡数据依次导入，由于时间戳的个数相同，所以只需要一个循环
         //首先从疑似顺便导入时间戳，初始化option的个数
         for (var time_index in res.data.timeline['suspectedCount']) {
@@ -289,18 +271,17 @@
           tmp_suboption.series[3].data = res.data.timeline['deadCount'][time_index]
           //name修正
           for (var i = 0; i < tmp_suboption.series[3].data.length; i++) {
-            for(var j = 0; j < 4; j++)
-            {
-              if(this.cur_superiorPlace == 'world')
+            for (var j = 0; j < 4; j++) {
+              if (this.cur_superiorPlace == 'world')
                 tmp_suboption.series[j].label.normal.show = false
               else
                 tmp_suboption.series[j].label.normal.show = true
-              if(name_filter[tmp_suboption.series[j].data[i].name]!= undefined)
-              {
+              if (name_filter[tmp_suboption.series[j].data[i].name] != undefined) {
                 tmp_suboption.series[j].data[i].name = name_filter[tmp_suboption.series[j].data[i].name]
               }
             }
           }
+          // console.log(this.myoption.options)
           this.myoption.options.push(tmp_suboption)
         }
       },
@@ -337,12 +318,11 @@
             })
             this.dataImport(res)
             this.drawTimeAxis()
-            console.log(res)
+            // console.log(res)
           } catch (err) {
             vue.$log.error(`backend communication test failed with ${err}`);
           }
-        }
-        else if(this.cur_superiorLevel == 'world'){
+        } else if (this.cur_superiorLevel == 'world') {
           try {
             let res = await vue.axios.get('/api/retrieve/epidemic/timeline/world', {
               params: {
@@ -352,7 +332,7 @@
             })
             this.dataImport(res)
             this.drawTimeAxis()
-            console.log(res)
+            // console.log(res)
           } catch (err) {
             vue.$log.error(`backend communication test failed with ${err}`);
           }
@@ -369,6 +349,31 @@
         this.cur_superiorLevel = 'country'
         this.get_epidemic_data()
         // console.log(this.myoption)
+      },
+      timelineclick(tmp_index){
+        this.myoption.baseOption.timeline.currentIndex = tmp_index
+        this.drawTimeAxis()
+      },
+      placechange(tmp_place){
+        console.log(tmp_place)
+        if (this.cur_superiorLevel == 'world') {
+          if (tmp_place == 'China') {
+            echarts.registerMap('china', china)
+            this.cur_superiorPlace = 'china'
+            this.cur_superiorLevel = 'country'
+          } else if (tmp_place == 'United States') {
+            echarts.registerMap('USA', USA)
+            this.cur_superiorPlace = 'USA'
+            this.cur_superiorLevel = 'country'
+          }
+          this.get_epidemic_data()
+        } else if (this.cur_superiorLevel == 'country' && this.cur_superiorPlace == 'china') {
+          this.cur_superiorLevel = 'province'
+          this.cur_superiorPlace = tmp_place
+          echarts.registerMap(tmp_place, nametojson[tmp_place])
+          console.log(tmp_place)
+          this.get_epidemic_data()
+        }
       }
     },
     // 调用
@@ -379,45 +384,15 @@
         // console.log(this.myoption)
         // this.drawTimeAxis()
       })
-      this.charts.on('click', (params) => {
-        //如果点击事件发生在时间轴上
-        // console.log(params)
-        if (params.componentType == 'timeline') {
-          this.myoption.baseOption.timeline.currentIndex = params.dataIndex
-          this.charts.setOption(this.myoption, true)
-          this.charts.resize()
-        } else {
-          if (this.cur_superiorLevel == 'world') {
-            if (params.name == 'China') {
-              echarts.registerMap('china', china)
-              this.cur_superiorPlace = 'china'
-              this.cur_superiorLevel = 'country'
-            } else if (params.name == 'United States') {
-              echarts.registerMap('USA', USA)
-              this.cur_superiorPlace = 'USA'
-              this.cur_superiorLevel = 'country'
-            }
-            this.get_epidemic_data()
-          } else if (this.cur_superiorLevel == 'country' && this.cur_superiorPlace == 'china') {
-            this.cur_superiorLevel = 'province'
-            this.cur_superiorPlace = params.name
-            echarts.registerMap(params.name, nametojson[params.name])
-            console.log(params.name)
-            this.get_epidemic_data()
-          }
-        }
-
-      })
       var tmp_maxdic = this.maxdic
       this.charts.on('legendselectchanged', (obj) => {
-        console.log(obj)
+        cur_datakind = obj.name
         var tmp_max = tmp_maxdic[obj.name]
         for (var i = 0; i < this.myoption.options.length; i++) {
           this.myoption.options[i].visualMap.max = tmp_max
         }
         this.myoption.baseOption.legend.selected = obj.selected
-        this.charts.setOption(this.myoption, true)
-        this.charts.resize()
+        this.drawTimeAxis()
       })
     }
   }

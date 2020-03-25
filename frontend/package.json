@@ -17,6 +17,7 @@
     "axios": "0.19.2",
     "binarysearch": "^1.0.0",
     "echarts": "^4.6.0",
+    "echarts-stat": "^1.1.1",
     "echarts-wordcloud": "^1.1.3",
     "element-ui": "^2.13.0",
     "jquery": "^3.4.1",
