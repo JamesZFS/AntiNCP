@@ -273,11 +273,11 @@
       },
       async get_epidemic_data() {
         //国家
-        if (this.cur_superiorLevel == 'country') {
+        if (this.cur_superiorLevel === 'country') {
           var request_country = ''
-          if (this.cur_superiorPlace == 'china')
+          if (this.cur_superiorPlace === 'china')
             request_country = '中国'
-          else if (this.cur_superiorPlace == 'USA')
+          else if (this.cur_superiorPlace === 'USA')
             request_country = '美国'
           try {
             let res = await vue.axios.get('/api/retrieve/epidemic/timeline/country', {
@@ -294,7 +294,7 @@
           } catch (err) {
             vue.$log.error(`backend communication test failed with ${err}`);
           }
-        } else if (this.cur_superiorLevel == 'province') {
+        } else if (this.cur_superiorLevel === 'province') {
           try {
             let res = await vue.axios.get('/api/retrieve/epidemic/timeline/province', {
               params: {
@@ -326,16 +326,16 @@
 
       },
       placechange(tmp_place){
-        if (this.cur_superiorLevel == 'world') {
-          if (tmp_place == 'China') {
+        if (this.cur_superiorLevel === 'world') {
+          if (tmp_place === 'China') {
             this.cur_superiorPlace = 'china'
             this.cur_superiorLevel = 'country'
-          } else if (tmp_place == 'United States') {
+          } else if (tmp_place === 'United States') {
             this.cur_superiorPlace = 'USA'
             this.cur_superiorLevel = 'country'
           }
           this.get_epidemic_data()
-        } else if (this.cur_superiorLevel == 'country' && this.cur_superiorPlace == 'china') {
+        } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
           this.cur_superiorLevel = 'province'
           this.cur_superiorPlace = tmp_place
           this.get_epidemic_data()

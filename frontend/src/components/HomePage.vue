@@ -13,12 +13,11 @@
 <script>
 // import Vue from 'vue'
 import NavBar from './NavBar'
-import HeatMap from './modules/HeatMap'
 import TimelineHeatMap from './modules/TimelineHeatMap'
 
 export default {
   name: 'homepage',
-  components: {NavBar, HeatMap,TimelineHeatMap},
+  components: {NavBar,TimelineHeatMap},
   data () {
     return {
       count: 0

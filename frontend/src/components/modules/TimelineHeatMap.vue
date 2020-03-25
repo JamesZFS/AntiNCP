@@ -1,6 +1,6 @@
 <!-- 含有时间轴的热度图组件 -->
 <template>
-  <div id="TimelineHeatMap" style="width: 80vw;height: 80vh;"></div>
+  <div id="TimelineHeatMap" v-loading="loading" style="width: 80vw;height: 80vh;"></div>
 </template>
 
 <script>
@@ -102,6 +102,7 @@
     name: 'HelloWorld',
     data() {
       return {
+        loading: false,
         cur_superiorPlace: 'china',
         cur_superiorLevel: 'country',
         cur_dataMap: {},
@@ -276,7 +277,7 @@
                 tmp_suboption.series[j].label.normal.show = false
               else
                 tmp_suboption.series[j].label.normal.show = true
-              if (name_filter[tmp_suboption.series[j].data[i].name] != undefined) {
+              if (name_filter[tmp_suboption.series[j].data[i].name] !== undefined) {
                 tmp_suboption.series[j].data[i].name = name_filter[tmp_suboption.series[j].data[i].name]
               }
             }
@@ -286,12 +287,13 @@
         }
       },
       async get_epidemic_data() {
+        this.loading = true;
         //国家
-        if (this.cur_superiorLevel == 'country') {
+        if (this.cur_superiorLevel === 'country') {
           var request_country = ''
-          if (this.cur_superiorPlace == 'china')
+          if (this.cur_superiorPlace === 'china')
             request_country = '中国'
-          else if (this.cur_superiorPlace == 'USA')
+          else if (this.cur_superiorPlace === 'USA')
             request_country = '美国'
           try {
             let res = await vue.axios.get('/api/retrieve/epidemic/timeline/country', {
@@ -306,7 +308,7 @@
           } catch (err) {
             vue.$log.error(`backend communication test failed with ${err}`);
           }
-        } else if (this.cur_superiorLevel == 'province') {
+        } else if (this.cur_superiorLevel === 'province') {
           try {
             let res = await vue.axios.get('/api/retrieve/epidemic/timeline/province', {
               params: {
@@ -322,7 +324,7 @@
           } catch (err) {
             vue.$log.error(`backend communication test failed with ${err}`);
           }
-        } else if (this.cur_superiorLevel == 'world') {
+        } else if (this.cur_superiorLevel === 'world') {
           try {
             let res = await vue.axios.get('/api/retrieve/epidemic/timeline/world', {
               params: {
@@ -337,7 +339,7 @@
             vue.$log.error(`backend communication test failed with ${err}`);
           }
         }
-
+        this.loading = false;
       },
       returnworldmap() {
         this.cur_superiorPlace = 'world'
@@ -350,24 +352,24 @@
         this.get_epidemic_data()
         // console.log(this.myoption)
       },
-      timelineclick(tmp_index){
+      timelineclick(tmp_index) {
         this.myoption.baseOption.timeline.currentIndex = tmp_index
         this.drawTimeAxis()
       },
-      placechange(tmp_place){
+      placechange(tmp_place) {
         console.log(tmp_place)
-        if (this.cur_superiorLevel == 'world') {
-          if (tmp_place == 'China') {
+        if (this.cur_superiorLevel === 'world') {
+          if (tmp_place === 'China') {
             echarts.registerMap('china', china)
             this.cur_superiorPlace = 'china'
             this.cur_superiorLevel = 'country'
-          } else if (tmp_place == 'United States') {
+          } else if (tmp_place === 'United States') {
             echarts.registerMap('USA', USA)
             this.cur_superiorPlace = 'USA'
             this.cur_superiorLevel = 'country'
           }
           this.get_epidemic_data()
-        } else if (this.cur_superiorLevel == 'country' && this.cur_superiorPlace == 'china') {
+        } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
           this.cur_superiorLevel = 'province'
           this.cur_superiorPlace = tmp_place
           echarts.registerMap(tmp_place, nametojson[tmp_place])
@@ -379,8 +381,8 @@
     // 调用
     mounted() {
       this.charts = echarts.init(document.getElementById('TimelineHeatMap'))
-      this.$nextTick(() => {
-        this.get_epidemic_data()
+      this.$nextTick(async () => {
+        await this.get_epidemic_data()
         // console.log(this.myoption)
         // this.drawTimeAxis()
       })
