@@ -18,8 +18,10 @@ function normalizePort(val) {
     return false;
 }
 
-
 /**
  * Get port from environment and store in Express.
  */
-module.exports = {HOST_PORT: normalizePort(process.env.PORT || 3000)};
+module.exports = {
+    REMOTE_HOST_DOMAIN: '129.204.207.38',
+    LOCAL_HOST_PORT: normalizePort(process.env.PORT || 3000)
+};

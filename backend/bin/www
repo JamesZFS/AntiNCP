@@ -9,7 +9,7 @@ const app = require('../app');
 const http = require('http');
 const dbManager = require('../database/db-manager');
 const fetcher = require('../fetch/fetcher');
-const port = require('../config/consts').HOST_PORT;
+const port = require('../config/consts').LOCAL_HOST_PORT;
 
 app.set('port', port);
 

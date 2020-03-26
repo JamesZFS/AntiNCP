@@ -47,6 +47,7 @@
   import zhejiang from 'echarts/map/json/province/zhejiang'
   import 'echarts/lib/component/visualMap'
   import vue from "vue";
+  import apis from "../../../config/apis";
 
   //用于对获取的数据name进行转换
   var name_filter = {
@@ -296,7 +297,7 @@
           else if (this.cur_superiorPlace === 'USA')
             request_country = '美国'
           try {
-            let res = await vue.axios.get('/api/retrieve/epidemic/timeline/country', {
+            let res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_COUNTRY, {
               params: {
                 dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
                 country: request_country,
@@ -310,7 +311,7 @@
           }
         } else if (this.cur_superiorLevel === 'province') {
           try {
-            let res = await vue.axios.get('/api/retrieve/epidemic/timeline/province', {
+            let res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_PROVINCE, {
               params: {
                 dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
                 country: '中国',
@@ -326,7 +327,7 @@
           }
         } else if (this.cur_superiorLevel === 'world') {
           try {
-            let res = await vue.axios.get('/api/retrieve/epidemic/timeline/world', {
+            let res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_WORLD, {
               params: {
                 dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
                 verbose: ''

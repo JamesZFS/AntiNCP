@@ -1,11 +1,11 @@
 import vue from 'vue';
-import {COMMUNICATION_TEST, GET_EPIDEMIC_DATA} from './apis';
+import api from '../../config/apis';
 
 const bs = require('binarysearch');
 
 async function backendCommunicationTest() {
   try {
-    let res = await vue.axios.get(COMMUNICATION_TEST);
+    let res = await vue.axios.get(api.COMMUNICATION_TEST);
     console.assert(res.data === 'OK!', `backend communication test failed with wrong response ${res}`);
   } catch (err) {
     vue.$log.error(`backend communication test failed with ${err}`);
@@ -21,7 +21,7 @@ async function backendCommunicationTest() {
  */
 async function loadEpidemicData(dataKind, superiorLevel, superiorPlace) {
   try {
-    let res = await vue.axios.get(GET_EPIDEMIC_DATA, {params: {dataKind, superiorLevel, superiorPlace}});
+    let res = await vue.axios.get(api.GET_EPIDEMIC_DATA, {params: {dataKind, superiorLevel, superiorPlace}});
     return res.data;
   } catch (err) {
     vue.$log.error('Cannot load epidemic data.', err);
