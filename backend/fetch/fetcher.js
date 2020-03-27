@@ -4,6 +4,7 @@ const csv = require('fast-csv');
 const fs = require('fs');
 const path = require('path');
 const download = require('download-file');
+const chalk = require('chalk');
 const db = require('../database/db-manager');
 const scheduler = require('./scheduler');
 const dataSource = require('../config/third-party').CHL; // may select other data sources
@@ -101,19 +102,31 @@ async function reloadEpidemicData() {
  * Download epidemic data from source api, save it to downloadDir
  */
 async function downloadEpidemicData() {
-    debug('Downloading Epidemic Data... (Be patient, this may take a while)');
-    let filePath = path.join(dataSource.downloadDir, Date.now() + '.csv');
+    const url = dataSource.areaAPI;
+    const filePath = path.join(dataSource.downloadDir, Date.now() + '.csv');
+    debug(`Downloading Epidemic Data from ${url} into ${filePath} ... (Be patient, this may take a while)`);
     try {
-        await new Promise((resolve, reject) => download(dataSource.areaAPI, {
+        await new Promise((resolve, reject) => download(url, {
             directory: dataSource.downloadDir,
             filename: Date.now() + '.csv',
-        }, err => {
-            if (err) reject(err);
-            else resolve();
+        }, err => { // this promise tries to (re)download the target
+            if (err) {
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (e) {
+                }
+                console.error(`Download error: when trying to download from ${url},`, chalk.red(err.code));
+                debug('Try re-downloading in 30 minutes...');
+                setTimeout(() => downloadEpidemicData()
+                    .then(() => resolve())
+                    .catch(err => reject(err)), 1800000); // 30 mins
+            } else {
+                debug('Downloaded successfully.');
+                resolve();
+            }
         }));
     } catch (err) {
         debug('Fail to download epidemic data.', err);
-        fs.unlinkSync(filePath);
         throw err;
     }
 }

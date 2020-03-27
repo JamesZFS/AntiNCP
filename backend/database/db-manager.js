@@ -13,7 +13,7 @@ async function insistConnecting() {
     connection = mysql.createConnection(dbCfg); // Recreate the connection, since the old one cannot be reused.
     return new Promise((resolve, reject) => connection.connect(err => {
         if (err) { // The server is either down or restarting (takes a while sometimes).
-            console.error('Database error: when try to connect to db,', chalk.red(err.message));
+            console.error('Database error: when trying to connect to db,', chalk.red(err.message));
             debug("Attempting to reconnect in 2 sec...");
             // We introduce a delay before attempting to reconnect,
             // to avoid a hot loop, and to allow our node script to process asynchronous requests in the meantime.
