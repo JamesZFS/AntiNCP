@@ -102,7 +102,7 @@ async function initialize() {
         console.error("Database error: initializing failed.");
         throw err;
     }
-    debug('Database initialized successfully.');
+    debug('Initialized successfully.');
 }
 
 /**

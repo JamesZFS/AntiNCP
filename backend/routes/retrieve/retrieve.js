@@ -1,9 +1,11 @@
+'use strict';
+// Data retrieving system
 const express = require('express');
 const createError = require('http-errors');
 const router = express.Router();
 const debug = require('debug')('backend:retrieve');
-const db = require('../database/db-manager');
-const EPIDEMIC_DATA_KINDS = require('../config/db-cfg').EPIDEMIC_DATA_KINDS;
+const db = require('../../database/db-manager');
+const EPIDEMIC_DATA_KINDS = require('../../config/db-cfg').EPIDEMIC_DATA_KINDS;
 
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api

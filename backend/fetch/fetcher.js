@@ -1,3 +1,4 @@
+'use strict';
 // Auto data fetching system
 const debug = require('debug')('backend:fetcher');
 const csv = require('fast-csv');
