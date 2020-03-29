@@ -26,3 +26,11 @@ CREATE TABLE IF NOT EXISTS `Places` (
   PRIMARY KEY (`id`),
   INDEX `index` (`country` ASC, `province` ASC, `city` ASC))
 COMMENT = 'Available countries, provinces and cities';
+-- client ip statistics
+CREATE TABLE IF NOT EXISTS `Clients` (
+  `ip` CHAR(64) NOT NULL,
+  `reqCount` INT UNSIGNED NULL DEFAULT 0,
+  `prevReqTime` TIMESTAMP NULL,
+  PRIMARY KEY (`ip`),
+  UNIQUE INDEX `index` (`ip` ASC))
+COMMENT = 'Statistical info of any visited clients';

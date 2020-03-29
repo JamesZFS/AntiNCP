@@ -148,8 +148,8 @@ router.get('/epidemic/timeline/world', async function (req, res) {
         res.status(200).send(reply);
         cache.set(url, reply);
     } catch (err) {
-        debug('Unconfirmed error:', err);
         res.status(500).end();
+        debug('Unconfirmed error:', err);
     }
 });
 
@@ -297,8 +297,8 @@ router.get('/epidemic/timeline/country', async function (req, res) {
         res.status(200).send(reply);
         cache.set(url, reply);
     } catch (err) {
-        debug('Unconfirmed error:', err);
         res.status(500).end();
+        debug('Unconfirmed error:', err);
     }
 });
 
@@ -480,8 +480,8 @@ router.get('/epidemic/timeline/province', async function (req, res) {
         res.status(200).send(reply);
         cache.set(url, reply);
     } catch (err) {
-        debug('Unconfirmed error:', err);
         res.status(500).end();
+        debug('Unconfirmed error:', err);
     }
 });
 

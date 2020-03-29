@@ -6,6 +6,7 @@ const logger = require('morgan');
 
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
+const db = require('./database/db-manager');
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
+app.use(clientMonitor); // monitor client's behavior
 app.use('/', express.static(path.resolve(__dirname, '../frontend/dist'))); // host frontend as static pages
 app.use('/doc', express.static(path.join(__dirname, 'doc'))); 		   // show api document
 app.use('/public', express.static(path.join(__dirname, 'public')));
@@ -35,5 +37,10 @@ app.use(function (err, req, res, next) {
     res.status(err.status || 404);
     res.render('error', {message: err.message, status: err.status});
 });
+
+function clientMonitor (req, res, next) {
+    db.updateClientInfo(db.escape(req.ip)); // not waiting for db
+    next();
+}
 
 module.exports = app;
