@@ -65,6 +65,7 @@ async function flush() {
                 debug('Flush error:', err.message);
                 reject(err);
             } else {
+                debug('Flushed.');
                 resolve(reply);
             }
         });

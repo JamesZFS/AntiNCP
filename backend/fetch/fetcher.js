@@ -8,6 +8,7 @@ const download = require('download-file');
 const chalk = require('chalk');
 const db = require('../database/db-manager');
 const scheduler = require('./scheduler');
+const cache = require('../routes/retrieve/cache');
 const dataSource = require('../config/third-party').CHL; // may select other data sources
 
 /**
@@ -90,6 +91,7 @@ async function reloadEpidemicData() {
             await downloadEpidemicData(); // download data from source and then reload
             return reloadEpidemicData();
         }
+        await cache.flush();
         await db.clearTable('Epidemic');
         await insertEpidemicDataFromCSVAreaData(csvPath, dataSource.header2DBField, 10000, true);
         await db.refreshAvailablePlaces('Epidemic');
@@ -118,10 +120,10 @@ async function downloadEpidemicData() {
                 } catch (e) {
                 }
                 console.error(`Download error: when trying to download from ${url},`, chalk.red(err.code));
-                debug('Try re-downloading in 30 minutes...');
+                debug('Try re-downloading in 10 minutes...');
                 setTimeout(() => downloadEpidemicData()
                     .then(() => resolve())
-                    .catch(err => reject(err)), 1800000); // 30 mins
+                    .catch(err => reject(err)), 600000); // 10 mins
             } else {
                 debug('Downloaded successfully.');
                 resolve();
@@ -151,7 +153,7 @@ function selectNewestFile(dir, suffix = 'csv') {
     return path.join(dir, files[0]);
 }
 
-// download newest csv and update db twice a day
+// Scheduler: download newest csv and update db once a day
 function initialize() {
     scheduler.scheduleJob(scheduler.onceADay, async function (time) {
         debug(`Auto update begins at ${time}`);
