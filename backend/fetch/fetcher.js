@@ -91,6 +91,7 @@ async function reloadEpidemicData() {
         }
         await db.clearTable('Epidemic');
         await insertEpidemicDataFromCSVAreaData(csvPath, dataSource.header2DBField, 10000, true);
+        await db.refreshAvailablePlaces('Epidemic');
         await db.countTableRows('Epidemic');
     } catch (err) {
         debug('Fail to reload epidemic data.');

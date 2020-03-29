@@ -74,7 +74,7 @@ function doSql(sql) {
  * @returns {Promise<Object>}
  */
 function doSqls(sqls) {
-    sql = sqls.join(' ');
+    sql = sqls.join(';') + ';';
     return doSql(sql);
 }
 
@@ -254,7 +254,7 @@ function selectInTable(table, fields, conditions, distinct = false, extra = '') 
 }
 
 /**
- * Select given fields from the table
+ * Select given fields from the table, **be aware of injection attack!**
  * @param fields{string|string[]}
  * @param conditions{undefined|string|string[]}
  * @param distinct{undefined|boolean} whether to de-duplicate
@@ -265,17 +265,28 @@ function selectEpidemicData(fields, conditions, distinct, extra) {
     return selectInTable('Epidemic', fields, conditions, distinct, extra);
 }
 
-// todo need faster implementation, eg: cache table
 function selectAvailableCities(country, province) {
-    return selectInTable('Epidemic', 'city', `country='${country}' AND province='${province}' AND city<>''`, true, 'ORDER BY city ASC');
+    return selectInTable('Places', 'city', `country=${country} AND province=${province} AND city<>''`, true, 'ORDER BY city ASC');
 }
 
 function selectAvailableProvinces(country) {
-    return selectInTable('Epidemic', 'province', `country='${country}' AND province<>'' AND city=''`, true, 'ORDER BY province ASC');
+    return selectInTable('Places', 'province', `country=${country} AND province<>'' AND city=''`, true, 'ORDER BY province ASC');
 }
 
 function selectAvailableCountries() {
-    return selectInTable('Epidemic', 'country', null, true, 'ORDER BY country ASC');
+    return selectInTable('Places', 'country', null, true, 'ORDER BY country ASC');
+}
+
+/**
+ * Clear and reload available places from source table (should contain field `country`, `province`, and `city`)
+ * @param sourceTable{string}
+ * @return {Promise<Object>}
+ */
+function refreshAvailablePlaces(sourceTable = 'Epidemic') {
+    return doSqls([
+        'TRUNCATE TABLE Places', // clear
+        `INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM ${sourceTable}`
+    ]);
 }
 
 /**
@@ -301,6 +312,6 @@ module.exports = {
     initialize, finalize, escapeId, escape,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, showTable, countTableRows,
-    selectInTable, selectEpidemicData,
-    selectAvailableCities, selectAvailableProvinces, selectAvailableCountries
+    selectInTable, selectEpidemicData, selectAvailableCities, selectAvailableProvinces, selectAvailableCountries,
+    refreshAvailablePlaces,
 };

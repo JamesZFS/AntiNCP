@@ -5,16 +5,10 @@ const debug = require('debug')('backend:retrieve');
 const db = require('../database/db-manager');
 const EPIDEMIC_DATA_KINDS = require('../config/db-cfg').EPIDEMIC_DATA_KINDS;
 
-const TO_INFERIOR = {
-    'world': 'country',
-    'country': 'province',
-    'province': 'city'
-};
-
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.2.1
+ * @apiVersion 0.2.2
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -147,7 +141,7 @@ router.get('/epidemic/timeline/world', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.2.1
+ * @apiVersion 0.2.2
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -210,7 +204,7 @@ router.get('/epidemic/timeline/country', async function (req, res) {
                 countryTimeline[dataKind] = [];
             }
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
-            let condition = `country='${country}' AND province=''`; // for where clause
+            let condition = `country=${db.escape(country)} AND province=''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
                 for (let dataKind of dataKinds) {
@@ -219,11 +213,11 @@ router.get('/epidemic/timeline/country', async function (req, res) {
             }
         }
         { // Get epidemic province data
-            var provinces = await db.selectAvailableProvinces(country);
+            var provinces = await db.selectAvailableProvinces(db.escape(country));
             provinces = provinces.map(value => value.province);
             // columns to select:
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `province`].concat(dataKinds);
-            let condition = `country='${country}' AND province<>'' AND city=''`; // city == '' means province entry
+            let condition = `country=${db.escape(country)} AND province<>'' AND city=''`; // city == '' means province entry
             let result = await db.selectEpidemicData(fields, condition, false,
                 'GROUP BY province, date ORDER BY date ASC, province ASC');
             var series = {};
@@ -285,7 +279,7 @@ router.get('/epidemic/timeline/country', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.2.1
+ * @apiVersion 0.2.2
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -381,7 +375,7 @@ router.get('/epidemic/timeline/province', async function (req, res) {
                 provinceTimeline[dataKind] = [];
             }
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
-            let condition = `country='${country}' AND province='${province}' AND city=''`; // for where clause
+            let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city=''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
                 for (let dataKind of dataKinds) {
@@ -390,11 +384,11 @@ router.get('/epidemic/timeline/province', async function (req, res) {
             }
         }
         { // Get epidemic city data
-            var cities = await db.selectAvailableCities(country, province);
+            var cities = await db.selectAvailableCities(db.escape(country), db.escape(province));
             cities = cities.map(value => value.city);
             // columns to select:
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `city`].concat(dataKinds);
-            let condition = `country='${country}' AND province='${province}' AND city<>''`; // for where clause
+            let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city<>''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false,
                 'GROUP BY city, date ORDER BY date ASC, city ASC');
             var series = {};
