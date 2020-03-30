@@ -123,7 +123,7 @@
           visualMap: {
             show: true,
             min: 0,
-            max: 300,
+            max: 1500,
             text: ['High', 'Low'],
             realtime: false,
             calculable: true,
@@ -306,6 +306,7 @@
             })
             this.dataImport(res)
             this.drawTimeAxis()
+            console.log(res)
           } catch (err) {
             vue.$log.error(`backend communication test failed with ${err}`);
           }
@@ -335,7 +336,7 @@
             })
             this.dataImport(res)
             this.drawTimeAxis()
-            // console.log(res)
+            console.log(res)
           } catch (err) {
             vue.$log.error(`backend communication test failed with ${err}`);
           }
@@ -359,19 +360,20 @@
         this.drawTimeAxis()
       },
       placechange(tmp_place) {
-        console.log(tmp_place)
-        console.log(this.cur_superiorLevel)
+        // console.log(tmp_place)
+        // console.log(this.cur_superiorLevel)
         if (this.cur_superiorLevel === 'world') {
-          if (tmp_place === 'China') {
+          if (tmp_place === '中国') {
             this.cur_superiorPlace = 'china'
             this.cur_superiorLevel = 'country'
-          } else if (tmp_place === 'United States') {
+          } else if (tmp_place === '美国') {
             echarts.registerMap('USA', USA)
             this.cur_superiorPlace = 'USA'
             this.cur_superiorLevel = 'country'
           }
-          console.log(this.cur_superiorPlace)
-          console.log(this.cur_superiorLevel)
+          else{
+            alert('当前仅支持中国、美国国内热度图')
+          }
           this.get_epidemic_data()
         } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
           this.cur_superiorLevel = 'province'
