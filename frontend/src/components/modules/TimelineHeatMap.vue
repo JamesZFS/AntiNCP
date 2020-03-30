@@ -10,7 +10,7 @@
   // import china from 'echarts/map/json/china.json'
   import USA from '../../assets/worldcountryjson/USA.json'
   // import China from '../assets/worldcountryjson/China.json'
-  import world from 'echarts/map/js/world'
+  import world from '../../assets/world.json'
   import sichuan from 'echarts/map/json/province/sichuan'
   import shanxi1 from 'echarts/map/json/province/shanxi1'
   import xinjiang from 'echarts/map/json/province/xinjiang'
@@ -345,6 +345,7 @@
       returnworldmap() {
         this.cur_superiorPlace = 'world'
         this.cur_superiorLevel = 'world'
+        echarts.registerMap('world', world)
         this.get_epidemic_data()
       },
       returnchinamap() {
@@ -359,9 +360,9 @@
       },
       placechange(tmp_place) {
         console.log(tmp_place)
+        console.log(this.cur_superiorLevel)
         if (this.cur_superiorLevel === 'world') {
           if (tmp_place === 'China') {
-            echarts.registerMap('china', china)
             this.cur_superiorPlace = 'china'
             this.cur_superiorLevel = 'country'
           } else if (tmp_place === 'United States') {
@@ -369,6 +370,8 @@
             this.cur_superiorPlace = 'USA'
             this.cur_superiorLevel = 'country'
           }
+          console.log(this.cur_superiorPlace)
+          console.log(this.cur_superiorLevel)
           this.get_epidemic_data()
         } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
           this.cur_superiorLevel = 'province'
