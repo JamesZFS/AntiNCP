@@ -65,21 +65,6 @@
     '黑龙江省': '黑龙江',
     '那曲': '那曲地区'
   }
-  //用于在发请求之前进行name转换
-  var request_filter = {
-    '北京': '北京市', '天津': '天津市', '上海': '上海市',
-    '云南': '云南省', '内蒙古': '内蒙古自治区', '台湾': '台湾省',
-    '吉林': '吉林省', '四川': '四川省', '宁夏': '宁夏回族自治区',
-    '安徽': '安徽省', '山东': '山东省', '山西': '山西省',
-    '广东': '广东省', '广西': '广西壮族自治区', '新疆': '新疆维吾尔自治区',
-    '江苏': '江苏省', '江西': '江西省', '河北': '河北省',
-    '河南': '河南省', '浙江': '浙江省', '海南': '海南省',
-    '湖北': '湖北省', '湖南': '湖南省', '澳门': '澳门特别行政区',
-    '甘肃': '甘肃省', '福建': '福建省', '西藏': '西藏自治区',
-    '贵州': '贵州省', '辽宁': '辽宁省', '重庆': '重庆市',
-    '陕西': '陕西省', '青海': '青海省', '香港': '香港特别行政区',
-    '黑龙江': '黑龙江省'
-  }
   //用于用城市名找出对应的json文件
   var nametojson = {
     '北京': beijing, '天津': tianjin, '上海': shanghai,
@@ -287,119 +272,40 @@
           this.myoption.options.push(tmp_suboption)
         }
       },
-      async get_epidemic_data() {
-        this.loading = true;
-        //国家
-        if (this.cur_superiorLevel === 'country') {
-          var request_country = ''
-          if (this.cur_superiorPlace === 'china')
-            request_country = '中国'
-          else if (this.cur_superiorPlace === 'USA')
-            request_country = '美国'
-          try {
-            let res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_COUNTRY, {
-              params: {
-                dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
-                country: request_country,
-                verbose: ''
-              }
-            })
-            this.dataImport(res)
-            this.drawTimeAxis()
-            console.log(res)
-          } catch (err) {
-            vue.$log.error(`backend communication test failed with ${err}`);
-          }
-        } else if (this.cur_superiorLevel === 'province') {
-          try {
-            let res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_PROVINCE, {
-              params: {
-                dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
-                country: '中国',
-                province: request_filter[this.cur_superiorPlace],
-                verbose: ''
-              }
-            })
-            this.dataImport(res)
-            this.drawTimeAxis()
-            // console.log(res)
-          } catch (err) {
-            vue.$log.error(`backend communication test failed with ${err}`);
-          }
-        } else if (this.cur_superiorLevel === 'world') {
-          try {
-            let res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_WORLD, {
-              params: {
-                dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
-                verbose: ''
-              }
-            })
-            this.dataImport(res)
-            this.drawTimeAxis()
-            console.log(res)
-          } catch (err) {
-            vue.$log.error(`backend communication test failed with ${err}`);
-          }
-        }
-        this.loading = false;
-      },
-      returnworldmap() {
-        this.cur_superiorPlace = 'world'
-        this.cur_superiorLevel = 'world'
-        echarts.registerMap('world', world)
-        this.get_epidemic_data()
-      },
-      returnchinamap() {
-        this.cur_superiorPlace = 'china'
-        this.cur_superiorLevel = 'country'
-        this.get_epidemic_data()
-        // console.log(this.myoption)
-      },
       timelineclick(tmp_index) {
-        this.myoption.baseOption.timeline.currentIndex = tmp_index
-        this.drawTimeAxis()
+        this.myoption.baseOption.timeline.currentIndex = tmp_index;
+        this.drawTimeAxis();
       },
-      placechange(tmp_place) {
-        // console.log(tmp_place)
-        // console.log(this.cur_superiorLevel)
-        if (this.cur_superiorLevel === 'world') {
-          if (tmp_place === '中国') {
-            this.cur_superiorPlace = 'china'
-            this.cur_superiorLevel = 'country'
-          } else if (tmp_place === '美国') {
-            echarts.registerMap('USA', USA)
-            this.cur_superiorPlace = 'USA'
-            this.cur_superiorLevel = 'country'
-          }
-          else{
-            alert('当前仅支持中国、美国国内热度图')
-          }
-          this.get_epidemic_data()
-        } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
-          this.cur_superiorLevel = 'province'
-          this.cur_superiorPlace = tmp_place
-          echarts.registerMap(tmp_place, nametojson[tmp_place])
-          console.log(tmp_place)
-          this.get_epidemic_data()
+      placechange(tmp_superiorPlace,tmp_superiorLevel) {
+        if(tmp_superiorPlace === 'world'){
+          echarts.registerMap('world', world);
         }
+        else if (this.cur_superiorLevel === 'world') {
+          if (tmp_superiorPlace === 'china') {
+          } else if (tmp_superiorPlace === 'USA') {
+            echarts.registerMap('USA', USA);
+          }
+        } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
+
+          echarts.registerMap(tmp_superiorPlace, nametojson[tmp_superiorPlace]);
+        }
+        this.cur_superiorLevel = tmp_superiorLevel;
+        this.cur_superiorPlace = tmp_superiorPlace;
+      },
+      initechart(){
+        this.charts = echarts.init(document.getElementById('TimelineHeatMap'));
       }
     },
     // 调用
     mounted() {
-      this.charts = echarts.init(document.getElementById('TimelineHeatMap'))
-      this.$nextTick(async () => {
-        await this.get_epidemic_data()
-        // console.log(this.myoption)
-        // this.drawTimeAxis()
-      })
-      var tmp_maxdic = this.maxdic
+      var tmp_maxdic = this.maxdic;
       this.charts.on('legendselectchanged', (obj) => {
-        cur_datakind = obj.name
-        var tmp_max = tmp_maxdic[obj.name]
+        cur_datakind = obj.name;
+        var tmp_max = tmp_maxdic[obj.name];
         for (var i = 0; i < this.myoption.options.length; i++) {
           this.myoption.options[i].visualMap.max = tmp_max
         }
-        this.myoption.baseOption.legend.selected = obj.selected
+        this.myoption.baseOption.legend.selected = obj.selected;
         this.drawTimeAxis()
       })
     }

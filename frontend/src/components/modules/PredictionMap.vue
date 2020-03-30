@@ -272,93 +272,15 @@
 
         }
       },
-      async getEpidemicData() {
-        //国家
-        if (this.cur_superiorLevel === 'country') {
-          var request_country = ''
-          if (this.cur_superiorPlace === 'china')
-            request_country = '中国'
-          else if (this.cur_superiorPlace === 'USA')
-            request_country = '美国'
-          try {
-            let res = await vue.axios.get(api.GET_EPIDEMIC_TIMELINE_COUNTRY, {
-              params: {
-                dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
-                country: request_country,
-                verbose: ''
-              }
-            })
-            // console.log(res)
-            this.dataImport(res)
-            // console.log('GG')
-            this.drawTimeAxis()
-          } catch (err) {
-            vue.$log.error(`backend communication test failed with ${err}`);
-          }
-        } else if (this.cur_superiorLevel === 'province') {
-          try {
-            let res = await vue.axios.get(api.GET_EPIDEMIC_TIMELINE_PROVINCE, {
-              params: {
-                dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
-                country: '中国',
-                province: request_filter[this.cur_superiorPlace],
-                verbose: ''
-              }
-            })
-            this.dataImport(res)
-            this.drawTimeAxis()
-          } catch (err) {
-            vue.$log.error(`backend communication test failed with ${err}`);
-          }
-        } else if (this.cur_superiorLevel === 'world') {
-          try {
-            let res = await vue.axios.get(api.GET_EPIDEMIC_TIMELINE_WORLD, {
-              params: {
-                dataKind: 'suspectedCount,confirmedCount,curedCount,deadCount',
-                verbose: ''
-              }
-            })
-            this.dataImport(res)
-            this.drawTimeAxis()
-          } catch (err) {
-            vue.$log.error(`backend communication test failed with ${err}`);
-          }
-        }
-
+      placechange(tmp_superiorPlace,tmp_superiorLevel){
+        this.cur_superiorPlace = tmp_superiorPlace;
+        this.cur_superiorLevel = tmp_superiorLevel;
       },
-      placechange(tmp_place){
-        if (this.cur_superiorLevel === 'world') {
-          if (tmp_place === 'China') {
-            this.cur_superiorPlace = 'china'
-            this.cur_superiorLevel = 'country'
-          } else if (tmp_place === 'United States') {
-            this.cur_superiorPlace = 'USA'
-            this.cur_superiorLevel = 'country'
-          }
-          this.getEpidemicData()
-        } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
-          this.cur_superiorLevel = 'province'
-          this.cur_superiorPlace = tmp_place
-          this.getEpidemicData()
-        }
-      },
-      returnworldmap() {
-        this.cur_superiorPlace = 'world'
-        this.cur_superiorLevel = 'world'
-        this.getEpidemicData()
-      },
-      returnchinamap() {
-        this.cur_superiorPlace = 'china'
-        this.cur_superiorLevel = 'country'
-        this.getEpidemicData()
-        // console.log(this.myoption)
+      initechart(){
+        this.charts = echarts.init(document.getElementById('PredictionMap'));
       }
     },
     mounted() {
-      this.charts = echarts.init(document.getElementById('PredictionMap'))
-      this.$nextTick(() => {
-        this.getEpidemicData()
-      })
     }
   }
 </script>
