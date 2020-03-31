@@ -14,6 +14,8 @@ Vue.config.productionTip = false;
 Vue.use(ElementUI);
 Vue.use(VueAxios, axios);
 Vue.use(VueLogger, loggerCfg);
+Vue.use(require('vue-cookies'));
+Vue.$cookies.config('7d'); // default cookie config
 /* eslint-disable no-new */
 new Vue({
   el: '#app',
