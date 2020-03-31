@@ -1,6 +1,6 @@
 <!-- 预测图组件 -->
 <template>
-  <div id="PredictionMap" style="width: 80vw;height: 80vh;"></div>
+  <div id="PredictionChart" style="width: 80vw;height: 80vh;"></div>
 </template>
 
 <script>
@@ -27,7 +27,7 @@
     '黑龙江': '黑龙江省'
   }
   export default {
-    name: 'PredictionMap',
+    name: 'PredictionChart',
     data() {
       return {
         cur_superiorPlace: 'world',
@@ -277,7 +277,7 @@
         this.cur_superiorLevel = tmp_superiorLevel;
       },
       initechart(){
-        this.charts = echarts.init(document.getElementById('PredictionMap'));
+        this.charts = echarts.init(document.getElementById('PredictionChart'));
       }
     },
     mounted() {

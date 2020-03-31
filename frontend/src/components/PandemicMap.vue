@@ -1,4 +1,5 @@
 <!-- Page1 -->
+<!--suppress ALL -->
 <template>
   <div class="page1">
     <div class="mypic">
@@ -10,7 +11,7 @@
         <TimelineHeatMap ref="myheatmap"></TimelineHeatMap>
       </div>
       <div margin="100px 0" v-loading="loading">
-        <PredictionMap ref="mypredictionmap"></PredictionMap>
+        <PredictionChart ref="mypredictionchart"></PredictionChart>
       </div>
     </div>
   </div>
@@ -19,7 +20,7 @@
 <script>
 import NavBar from './NavBar'
 import TimelineHeatMap from './modules/TimelineHeatMap'
-import PredictionMap from './modules/PredictionMap'
+import PredictionChart from './modules/PredictionChart'
 import vue from "vue";
 import apis from "../../config/apis";
 import echarts from "echarts";
@@ -38,10 +39,10 @@ var request_filter = {
   '贵州': '贵州省', '辽宁': '辽宁省', '重庆': '重庆市',
   '陕西': '陕西省', '青海': '青海省', '香港': '香港特别行政区',
   '黑龙江': '黑龙江省'
-}
+};
 export default {
   name: 'PandemicMap',
-  components: {NavBar, TimelineHeatMap,PredictionMap},
+  components: {NavBar, TimelineHeatMap,PredictionChart},
   data () {
     return {
       count: 0,
@@ -65,20 +66,20 @@ export default {
     },
     passPlaceandLevel(){//传递this.cur_superiorPlace,this.cur_superiorLevel给子组件
       //热度图切换
-      this.$refs.myheatmap.placechange(this.cur_superiorPlace,this.cur_superiorLevel)
+      this.$refs.myheatmap.placechange(this.cur_superiorPlace,this.cur_superiorLevel);
       //以及折线图的切换
-      this.$refs.mypredictionmap.placechange(this.cur_superiorPlace,this.cur_superiorLevel)
+      this.$refs.mypredictionchart.placechange(this.cur_superiorPlace,this.cur_superiorLevel)
     },
     async get_epidemic_data() {//只在这个父页面获取一次数据即可
       this.loading = true;
       let res = '';
       //国家
       if (this.cur_superiorLevel === 'country') {
-        var request_country = ''
+        var request_country = '';
         if (this.cur_superiorPlace === 'china')
-          request_country = '中国'
+          request_country = '中国';
         else if (this.cur_superiorPlace === 'USA')
-          request_country = '美国'
+          request_country = '美国';
         try {
           res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_COUNTRY, {
             params: {
@@ -89,7 +90,7 @@ export default {
           })
           // console.log(res)
         } catch (err) {
-          vue.$log.error(`backend communication test failed with ${err}`);
+          vue.$log.error(` Cannot fetch country timeline data from backend with ${err}`);
         }
       } else if (this.cur_superiorLevel === 'province') {
         try {
@@ -102,7 +103,7 @@ export default {
             }
           })
         } catch (err) {
-          vue.$log.error(`backend communication test failed with ${err}`);
+          vue.$log.error(` Cannot fetch province timeline data from backend with ${err}`);
         }
       } else if (this.cur_superiorLevel === 'world') {
         try {
@@ -114,7 +115,7 @@ export default {
           })
           // console.log(res)
         } catch (err) {
-          vue.$log.error(`backend communication test failed with ${err}`);
+          vue.$log.error(` Cannot fetch world timeline data from backend with ${err}`);
         }
       }
       this.dataImport(res);
@@ -123,11 +124,11 @@ export default {
     },
     dataImport(res){//统一调用两个子组件的数据导入
       this.$refs.myheatmap.dataImport(res);
-      this.$refs.mypredictionmap.dataImport(res);
+      this.$refs.mypredictionchart.dataImport(res);
     },
     drawTimeAxis(){//统一调用两个子组件的绘图
       this.$refs.myheatmap.drawTimeAxis();
-      this.$refs.mypredictionmap.drawTimeAxis();
+      this.$refs.mypredictionchart.drawTimeAxis();
     },
     placechange(tmp_place){//将修改cur_superiorPlace和cur_superiorLevel的工作集中到当前父页面中，子组件只需根据所传参数修改子组件当中的数据即可
       if (this.cur_superiorLevel === 'world') {
@@ -139,7 +140,8 @@ export default {
           this.cur_superiorLevel = 'country';
         }
         else{
-          alert('当前仅支持中国、美国国内热度图')
+          alert('当前仅支持中国、美国国内热度图');
+          return;
         }
       } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
         this.cur_superiorLevel = 'province';
@@ -150,7 +152,7 @@ export default {
     initechart(){//用于初始化echart
       this.passPlaceandLevel();
       this.$refs.myheatmap.initechart();
-      this.$refs.mypredictionmap.initechart();
+      this.$refs.mypredictionchart.initechart();
     }
   },
   mounted() {
