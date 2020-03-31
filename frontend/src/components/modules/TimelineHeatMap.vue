@@ -64,7 +64,7 @@
     '陕西省': '陕西', '青海省': '青海', '香港特别行政区': '香港',
     '黑龙江省': '黑龙江',
     '那曲': '那曲地区'
-  }
+  };
   //用于用城市名找出对应的json文件
   var nametojson = {
     '北京': beijing, '天津': tianjin, '上海': shanghai,
@@ -79,9 +79,9 @@
     '贵州': guizhou, '辽宁': liaoning, '重庆': chongqing,
     '陕西': shanxi1, '青海': qinghai, '香港': xianggang,
     '黑龙江': heilongjiang
-  }
+  };
 
-  var cur_datakind = '确诊'
+  var cur_datakind = '确诊';
 
 
   export default {
@@ -249,7 +249,7 @@
         for (var time_index in res.data.timeline['suspectedCount']) {
           time_cnt += 1;
           this.myoption.baseOption.timeline.data.push(time_index);
-          var tmp_suboption = $.extend(true, {}, this.empty_option)//不引用赋值
+          var tmp_suboption = $.extend(true, {}, this.empty_option);//不引用赋值
           tmp_suboption.title.text = time_index + this.cur_superiorPlace + '疫情状况';
           //疑似数据导入
           tmp_suboption.series[0].data = res.data.timeline['suspectedCount'][time_index];
@@ -262,10 +262,7 @@
           //name修正
           for (var i = 0; i < tmp_suboption.series[3].data.length; i++) {
             for (var j = 0; j < 4; j++) {
-              if (this.cur_superiorPlace == 'world')
-                tmp_suboption.series[j].label.normal.show = false
-              else
-                tmp_suboption.series[j].label.normal.show = true
+              tmp_suboption.series[j].label.normal.show = this.cur_superiorPlace !== 'world';
               if (name_filter[tmp_suboption.series[j].data[i].name] !== undefined) {
                 tmp_suboption.series[j].data[i].name = name_filter[tmp_suboption.series[j].data[i].name]
               }
