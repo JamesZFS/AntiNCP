@@ -1,55 +1,56 @@
+'use strict';
 // Auto data fetching system
 const debug = require('debug')('backend:fetcher');
 const csv = require('fast-csv');
 const fs = require('fs');
 const path = require('path');
 const download = require('download-file');
+const chalk = require('chalk');
 const db = require('../database/db-manager');
 const scheduler = require('./scheduler');
+const cache = require('../routes/retrieve/cache');
 const dataSource = require('../config/third-party').CHL; // may select other data sources
 
 /**
  * Inserting epidemic data from area data csv into database, asynchronously
  * This takes countable seconds to finish
  * @param csvPath{string}
- * @param header2DBField{Object} a dict indicates a map from csv header to db field
+ * @param expColumns{string[]} expected columns in the csv, throw if not meet
+ * @param row2Entry{callback} a function that converts a map from csv header to db field
  * @param batchSize{int}
  * @param strict{bool} if true, stop parsing when encounter an error row
  * @return {Promise<int>}
  */
-function insertEpidemicDataFromCSVAreaData(csvPath, header2DBField, batchSize = 10000, strict = true) {
+function insertEpidemicDataFromCSVAreaData(csvPath, expColumns, row2Entry, batchSize = 10000, strict = true) {
     return new Promise((resolve, reject) => {
         let firstLine = true;
-        let field2Index = {};
+        let columns = []; // column names
         let count = 0;
         let entryBatch = [];
-        let specifyCountry = Object.values(header2DBField).indexOf('country') >= 0;
         debug(`inserting epidemic data from source area data csv ${csvPath}`);
         let parser = csv.parseFile(csvPath)
             .on('error', error => {
-                debug(`error when parsing csv file ${csvPath}`);
+                parser.end();
+                console.error(chalk.red(`insertEpidemicData: Error when parsing csv file ${csvPath}`));
                 reject(error);
             })
-            .on('data', async row => {
+            .on('data', async newRow => {
                 if (firstLine) { // table head
                     firstLine = false;
-                    for (let [header, dbField] of Object.entries(header2DBField)) {
-                        let idx = row.indexOf(header);
-                        if (idx < 0) {
-                            parser.end();
-                            reject(`expected field ${header} not found in csv.`);
-                            return;
-                        }
-                        field2Index[dbField] = idx;
+                    columns = newRow;
+                    // check if columns are expected
+                    let missingColumns = expColumns.filter(col => columns.indexOf(col) < 0);
+                    if (missingColumns.length > 0) {
+                        parser.end();
+                        console.error(chalk.red(`insertEpidemicData: Expected columns ${missingColumns} not found in the csv ${csvPath}`));
+                        reject(new Error);
                     }
                     return;
                 }
                 // table data
-                let entry = {};
-                if (!specifyCountry) entry['country'] = '中国'; // default
-                for (let field in field2Index) {
-                    entry[field] = db.escape(row[field2Index[field]]);
-                }
+                let rowObj = {};
+                columns.forEach((col, idx) => rowObj[col] = newRow[idx]);
+                let entry = row2Entry(rowObj);  // convert into db acceptable form
                 entryBatch.push(entry);
                 if (++count % batchSize === 0) {   // insert batch into db
                     debug(`parsed ${count} rows.`);
@@ -88,9 +89,12 @@ async function reloadEpidemicData() {
             await downloadEpidemicData(); // download data from source and then reload
             return reloadEpidemicData();
         }
+        await cache.flush();
         await db.clearTable('Epidemic');
-        await insertEpidemicDataFromCSVAreaData(csvPath, dataSource.header2DBField, 10000, true);
-        await db.countTableRows('Epidemic');
+        await insertEpidemicDataFromCSVAreaData(csvPath, dataSource.expColumns, dataSource.parseRow, 10000, true);
+        await db.refreshAvailablePlaces('Epidemic');
+        let rows = await db.countTableRows('Epidemic');
+        debug(`Loaded ${rows} rows of data in total.`);
     } catch (err) {
         debug('Fail to reload epidemic data.');
         throw err;
@@ -101,19 +105,31 @@ async function reloadEpidemicData() {
  * Download epidemic data from source api, save it to downloadDir
  */
 async function downloadEpidemicData() {
-    debug('Downloading Epidemic Data... (Be patient, this may take a while)');
-    let filePath = path.join(dataSource.downloadDir, Date.now() + '.csv');
+    const url = dataSource.areaAPI;
+    const filePath = path.join(dataSource.downloadDir, Date.now() + '.csv');
+    debug(`Downloading Epidemic Data from ${url} into ${filePath} ... (Be patient, this may take a while)`);
     try {
-        await new Promise((resolve, reject) => download(dataSource.areaAPI, {
+        await new Promise((resolve, reject) => download(url, {
             directory: dataSource.downloadDir,
             filename: Date.now() + '.csv',
-        }, err => {
-            if (err) reject(err);
-            else resolve();
+        }, err => { // this promise tries to (re)download the target
+            if (err) {
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (e) {
+                }
+                console.error(`Download error: when trying to download from ${url},`, chalk.red(err.code));
+                debug('Try re-downloading in 10 minutes...');
+                setTimeout(() => downloadEpidemicData()
+                    .then(() => resolve())
+                    .catch(err => reject(err)), 600000); // 10 mins
+            } else {
+                debug('Downloaded successfully.');
+                resolve();
+            }
         }));
     } catch (err) {
         debug('Fail to download epidemic data.', err);
-        fs.unlinkSync(filePath);
         throw err;
     }
 }
@@ -136,7 +152,7 @@ function selectNewestFile(dir, suffix = 'csv') {
     return path.join(dir, files[0]);
 }
 
-// download newest csv and update db twice a day
+// Scheduler: download newest csv and update db once a day
 function initialize() {
     scheduler.scheduleJob(scheduler.onceADay, async function (time) {
         debug(`Auto update begins at ${time}`);
@@ -147,5 +163,5 @@ function initialize() {
 }
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData, initialize
+    reloadEpidemicData, downloadEpidemicData, initialize, dataSource: dataSource.areaAPI
 };

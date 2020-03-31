@@ -7,8 +7,10 @@
 const debug = require('debug')('backend:server');
 const app = require('../app');
 const http = require('http');
-const dbManager = require('../database/db-manager');
+const chalk = require('chalk');
+const db = require('../database/db-manager');
 const fetcher = require('../fetch/fetcher');
+const cache = require('../routes/retrieve/cache');
 const port = require('../config/consts').LOCAL_HOST_PORT;
 
 app.set('port', port);
@@ -26,15 +28,17 @@ const server = http.createServer(app);
 async function launch() {
     debug('Initializing...');
     try { // initialize db and reload data
-        await dbManager.initialize();
+        await db.initialize();
+        await cache.initialize();
         if (process.argv.indexOf('--download') >= 0) await fetcher.downloadEpidemicData();
         if (process.argv.indexOf('--reload') >= 0) await fetcher.reloadEpidemicData();
+        await fetcher.initialize();
     } catch (err) {
-        debug('Caught error in server');
-        await dbManager.finalize();
-        throw err;
+        console.error(chalk.red('Caught fatal error in server!'));
+        console.error(err);
+        await db.finalize();
+        process.exit(1);
     }
-    fetcher.initialize();
     debug('Initialize Finished.');
     server.listen(port);
     server.on('error', onError);

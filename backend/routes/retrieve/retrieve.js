@@ -1,20 +1,18 @@
+'use strict';
+// Data retrieving system
 const express = require('express');
 const createError = require('http-errors');
 const router = express.Router();
 const debug = require('debug')('backend:retrieve');
-const db = require('../database/db-manager');
-const EPIDEMIC_DATA_KINDS = require('../config/db-cfg').EPIDEMIC_DATA_KINDS;
-
-const TO_INFERIOR = {
-    'world': 'country',
-    'country': 'province',
-    'province': 'city'
-};
+const db = require('../../database/db-manager');
+const cache = require('./cache');
+const {EPIDEMIC_DATA_KINDS} = require('../../config/db-cfg');
+const {URL} = require('url');
 
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.2.1
+ * @apiVersion 0.2.3
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -67,6 +65,15 @@ router.get('/epidemic/timeline/world', async function (req, res) {
         return;
     }
     try {
+        { // Look up in the cache
+            var url = getNormalizeUrl(req);
+            let val = await cache.get(url);
+            if (val !== null) { // hit
+                res.status(200).send(val);
+                return;
+            }
+            // not hit:
+        }
         { // Get epidemic world data, todo need faster impl
             var worldTimeline = {};
             for (let dataKind of dataKinds) {
@@ -133,21 +140,23 @@ router.get('/epidemic/timeline/world', async function (req, res) {
                 ++expCountryIdx;
             }
         }
-        res.status(200).send({
+        let reply = JSON.stringify({
             worldTimeline: worldTimeline,
             country: countries,
             timeline: series
         });
+        res.status(200).send(reply);
+        cache.set(url, reply);
     } catch (err) {
-        debug('Unconfirmed error:', err);
         res.status(500).end();
+        debug('Unconfirmed error:', err);
     }
 });
 
 /**
  * @api {get} /api/retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.2.1
+ * @apiVersion 0.2.3
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -204,13 +213,22 @@ router.get('/epidemic/timeline/country', async function (req, res) {
         return;
     }
     try {
+        { // Look up in the cache
+            var url = getNormalizeUrl(req);
+            let val = await cache.get(url);
+            if (val !== null) { // hit
+                res.status(200).send(val);
+                return;
+            }
+            // not hit:
+        }
         { // Get epidemic country data
             var countryTimeline = {};
             for (let dataKind of dataKinds) {
                 countryTimeline[dataKind] = [];
             }
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
-            let condition = `country='${country}' AND province=''`; // for where clause
+            let condition = `country=${db.escape(country)} AND province=''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
                 for (let dataKind of dataKinds) {
@@ -219,11 +237,11 @@ router.get('/epidemic/timeline/country', async function (req, res) {
             }
         }
         { // Get epidemic province data
-            var provinces = await db.selectAvailableProvinces(country);
+            var provinces = await db.selectAvailableProvinces(db.escape(country));
             provinces = provinces.map(value => value.province);
             // columns to select:
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `province`].concat(dataKinds);
-            let condition = `country='${country}' AND province<>'' AND city=''`; // city == '' means province entry
+            let condition = `country=${db.escape(country)} AND province<>'' AND city=''`; // city == '' means province entry
             let result = await db.selectEpidemicData(fields, condition, false,
                 'GROUP BY province, date ORDER BY date ASC, province ASC');
             var series = {};
@@ -270,22 +288,24 @@ router.get('/epidemic/timeline/country', async function (req, res) {
                 ++expProvinceIdx;
             }
         }
-        res.status(200).send({
+        let reply = JSON.stringify({
             country: country,
             countryTimeline: countryTimeline,
             province: provinces,
             timeline: series
         });
+        res.status(200).send(reply);
+        cache.set(url, reply);
     } catch (err) {
-        debug('Unconfirmed error:', err);
         res.status(500).end();
+        debug('Unconfirmed error:', err);
     }
 });
 
 /**
  * @api {get} /api/retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.2.1
+ * @apiVersion 0.2.3
  * @apiGroup Timeline
  * @apiPermission everyone
  *
@@ -375,13 +395,22 @@ router.get('/epidemic/timeline/province', async function (req, res) {
         return;
     }
     try {
+        { // Look up in the cache
+            var url = getNormalizeUrl(req);
+            let val = await cache.get(url);
+            if (val !== null) { // hit
+                res.status(200).send(val);
+                return;
+            }
+            // not hit:
+        }
         { // Get epidemic provincial data
             var provinceTimeline = {};
             for (let dataKind of dataKinds) {
                 provinceTimeline[dataKind] = [];
             }
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
-            let condition = `country='${country}' AND province='${province}' AND city=''`; // for where clause
+            let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city=''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
                 for (let dataKind of dataKinds) {
@@ -390,11 +419,11 @@ router.get('/epidemic/timeline/province', async function (req, res) {
             }
         }
         { // Get epidemic city data
-            var cities = await db.selectAvailableCities(country, province);
+            var cities = await db.selectAvailableCities(db.escape(country), db.escape(province));
             cities = cities.map(value => value.city);
             // columns to select:
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `city`].concat(dataKinds);
-            let condition = `country='${country}' AND province='${province}' AND city<>''`; // for where clause
+            let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city<>''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false,
                 'GROUP BY city, date ORDER BY date ASC, city ASC');
             var series = {};
@@ -441,18 +470,31 @@ router.get('/epidemic/timeline/province', async function (req, res) {
                 ++expCityIdx;
             }
         }
-        res.status(200).send({
+        let reply = JSON.stringify({
             country: country,
             province: province,
             provinceTimeline: provinceTimeline,
             city: cities,
             timeline: series
         });
+        res.status(200).send(reply);
+        cache.set(url, reply);
     } catch (err) {
-        debug('Unconfirmed error:', err);
         res.status(500).end();
+        debug('Unconfirmed error:', err);
     }
 });
 
+
+/**
+ * Sort url params
+ * @param req{Object}
+ * @return {string}
+ */
+function getNormalizeUrl(req) {
+    let me = new URL(`http://host${req.originalUrl}`);
+    me.searchParams.sort();
+    return me.toString();
+}
 
 module.exports = router;

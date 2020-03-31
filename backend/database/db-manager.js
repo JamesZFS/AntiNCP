@@ -3,7 +3,7 @@ const debug = require('debug')('backend:db-manager');
 const mysql = require('mysql');
 const chalk = require('chalk');
 const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
-const initializingScriptPath = 'database/db-initialize.sql';
+const initializingScriptPath = 'database/initialize.sql';
 
 /**
  * Insist reconnecting until connection is make, throw unrecoverable error if fails
@@ -13,7 +13,7 @@ async function insistConnecting() {
     connection = mysql.createConnection(dbCfg); // Recreate the connection, since the old one cannot be reused.
     return new Promise((resolve, reject) => connection.connect(err => {
         if (err) { // The server is either down or restarting (takes a while sometimes).
-            console.error('Database error: when try to connect to db,', chalk.red(err.message));
+            console.error('Database error: when trying to connect to db,', chalk.red(err.message));
             debug("Attempting to reconnect in 2 sec...");
             // We introduce a delay before attempting to reconnect,
             // to avoid a hot loop, and to allow our node script to process asynchronous requests in the meantime.
@@ -102,7 +102,7 @@ async function initialize() {
         console.error("Database error: initializing failed.");
         throw err;
     }
-    debug('Database initialized successfully.');
+    debug('Initialized successfully.');
 }
 
 /**
@@ -207,29 +207,11 @@ function fetchTable(table) {
 /**
  * Count table rows
  * @param table{string}
+ * @return {Promise<int>}
  */
-function countTableRows(table) {
-    let sql = `SELECT COUNT(*) FROM ${table};`;
-    return doSql(sql).then(res => {
-        debug('table fetched:');
-        console.log('Row count:', res);
-    }).catch(err => {
-        debug('cannot fetch table.');
-        throw err;
-    })
-}
-
-/**
- * @param table{string}
- */
-function showTable(table) {
-    return fetchTable(table).then(res => {
-        debug('table fetched:');
-        console.log(res);
-    }).catch(err => {
-        debug('cannot fetch table.');
-        throw err;
-    })
+async function countTableRows(table) {
+    let res = await doSql(`SELECT COUNT(*) AS count FROM ${table};`);
+    return res[0].count;
 }
 
 /**
@@ -249,12 +231,11 @@ function selectInTable(table, fields, conditions, distinct = false, extra = '') 
         sql += `WHERE (${conditions.join(') AND (')}) `;
     }
     sql += extra;
-    // debug(sql);
     return doSql(sql);
 }
 
 /**
- * Select given fields from the table
+ * Select given fields from the table, **be aware of injection attack!**
  * @param fields{string|string[]}
  * @param conditions{undefined|string|string[]}
  * @param distinct{undefined|boolean} whether to de-duplicate
@@ -265,17 +246,49 @@ function selectEpidemicData(fields, conditions, distinct, extra) {
     return selectInTable('Epidemic', fields, conditions, distinct, extra);
 }
 
-// todo need faster implementation, eg: cache table
 function selectAvailableCities(country, province) {
-    return selectInTable('Epidemic', 'city', `country='${country}' AND province='${province}' AND city<>''`, true, 'ORDER BY city ASC');
+    return selectInTable('Places', 'city', `country=${country} AND province=${province} AND city<>''`, true, 'ORDER BY city ASC');
 }
 
 function selectAvailableProvinces(country) {
-    return selectInTable('Epidemic', 'province', `country='${country}' AND province<>'' AND city=''`, true, 'ORDER BY province ASC');
+    return selectInTable('Places', 'province', `country=${country} AND province<>'' AND city=''`, true, 'ORDER BY province ASC');
 }
 
 function selectAvailableCountries() {
-    return selectInTable('Epidemic', 'country', null, true, 'ORDER BY country ASC');
+    return selectInTable('Places', 'country', null, true, 'ORDER BY country ASC');
+}
+
+/**
+ * Clear and reload available places from source table (should contain field `country`, `province`, and `city`)
+ * @param sourceTable{string}
+ * @return {Promise<Object>}
+ */
+function refreshAvailablePlaces(sourceTable = 'Epidemic') {
+    return doSqls([
+        'TRUNCATE TABLE Places;', // clear
+        `INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM ${sourceTable};`
+    ]);
+}
+
+/**
+ * Insert if not exist and update client info
+ * @param ip{string}
+ * @return {Promise<Object>}
+ */
+async function updateClientInfo(ip) {
+    return doSqls([
+        `INSERT INTO Clients (ip) SELECT * FROM (SELECT ${ip}) AS tmp WHERE NOT EXISTS (SELECT ip FROM Clients WHERE ip=${ip}) LIMIT 1;`,
+        `UPDATE Clients SET reqCount=reqCount+1, prevReqTime=NOW() WHERE ip=${ip} LIMIT 1;`
+    ]);
+}
+
+/**
+ * Get client info
+ * @param ip{string}
+ * @return {Promise<Object>}
+ */
+async function getClientInfo(ip) {
+    return doSql(`SELECT * FROM Clients WHERE ip=${ip} LIMIT 1`);
 }
 
 /**
@@ -300,7 +313,7 @@ function escape(value) {
 module.exports = {
     initialize, finalize, escapeId, escape,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
-    clearTable, fetchTable, showTable, countTableRows,
-    selectInTable, selectEpidemicData,
-    selectAvailableCities, selectAvailableProvinces, selectAvailableCountries
+    clearTable, fetchTable, countTableRows, selectInTable, selectEpidemicData,
+    selectAvailableCities, selectAvailableProvinces, selectAvailableCountries, refreshAvailablePlaces,
+    updateClientInfo, getClientInfo
 };
