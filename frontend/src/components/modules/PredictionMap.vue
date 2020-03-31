@@ -30,8 +30,8 @@
     name: 'PredictionMap',
     data() {
       return {
-        cur_superiorPlace: 'china',
-        cur_superiorLevel: 'country',
+        cur_superiorPlace: 'world',
+        cur_superiorLevel: 'world',
         datamap: {
           'suspectedCount': [],
           'confirmedCount': [],

@@ -46,8 +46,8 @@ export default {
     return {
       count: 0,
       loading: false,
-      cur_superiorPlace: 'china',
-      cur_superiorLevel: 'country'
+      cur_superiorPlace: 'world',
+      cur_superiorLevel: 'world'
     }
   },
   methods:{
@@ -117,8 +117,8 @@ export default {
           vue.$log.error(`backend communication test failed with ${err}`);
         }
       }
-      this.dataImport(res)
-      this.drawTimeAxis()
+      this.dataImport(res);
+      this.drawTimeAxis();
       this.loading = false;
     },
     dataImport(res){//统一调用两个子组件的数据导入
@@ -148,6 +148,7 @@ export default {
       this.passPlaceandLevel();
     },
     initechart(){//用于初始化echart
+      this.passPlaceandLevel();
       this.$refs.myheatmap.initechart();
       this.$refs.mypredictionmap.initechart();
     }
@@ -158,7 +159,6 @@ export default {
       await this.get_epidemic_data()
     });
     this.$refs.myheatmap.charts.on('click',(params) => {
-      // console.log('1111')
       if (params.componentType == 'timeline') {
         this.$refs.myheatmap.timelineclick(params.dataIndex)
       } else {

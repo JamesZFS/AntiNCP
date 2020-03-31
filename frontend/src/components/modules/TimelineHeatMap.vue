@@ -88,9 +88,10 @@
     name: 'HelloWorld',
     data() {
       return {
+        charts:'',
         loading: false,
-        cur_superiorPlace: 'china',
-        cur_superiorLevel: 'country',
+        cur_superiorPlace: 'world',
+        cur_superiorLevel: 'world',
         cur_dataMap: {},
         max: 2000,
         maxdic: {
@@ -106,7 +107,7 @@
             },
           },
           visualMap: {
-            show: true,
+            show: false,
             min: 0,
             max: 1500,
             text: ['High', 'Low'],
@@ -187,7 +188,7 @@
               realtime: true,
               // loop: false,
               autoPlay: false,
-              // currentIndex: 2,
+              currentIndex: 0,
               playInterval: 1000,
               data: [],
               symbolSize: '8',
@@ -234,28 +235,30 @@
         for (var tmp_datakind in this.myoption.baseOption.legend.selected) {
           this.myoption.baseOption.legend.selected[tmp_datakind] = false
         }
-        this.myoption.baseOption.legend.selected[cur_datakind] = true
-        this.charts.setOption(this.myoption, true)
-        this.charts.resize()
+        this.myoption.baseOption.legend.selected[cur_datakind] = true;
+        this.charts.setOption(this.myoption, true);
+        this.charts.resize();
       },
       dataImport(res) {
         //清空this.myoption.options和时间标签
-        this.myoption.options.splice(0, this.myoption.options.length)
-        this.myoption.baseOption.timeline.data.splice(0, this.myoption.baseOption.timeline.data.length)
+        this.myoption.options.splice(0, this.myoption.options.length);
+        this.myoption.baseOption.timeline.data.splice(0, this.myoption.baseOption.timeline.data.length);
         //疑似、确诊、治愈、死亡数据依次导入，由于时间戳的个数相同，所以只需要一个循环
         //首先从疑似顺便导入时间戳，初始化option的个数
+        var time_cnt = 0;
         for (var time_index in res.data.timeline['suspectedCount']) {
-          this.myoption.baseOption.timeline.data.push(time_index)
+          time_cnt += 1;
+          this.myoption.baseOption.timeline.data.push(time_index);
           var tmp_suboption = $.extend(true, {}, this.empty_option)//不引用赋值
-          tmp_suboption.title.text = time_index + this.cur_superiorPlace + '疫情状况'
+          tmp_suboption.title.text = time_index + this.cur_superiorPlace + '疫情状况';
           //疑似数据导入
-          tmp_suboption.series[0].data = res.data.timeline['suspectedCount'][time_index]
+          tmp_suboption.series[0].data = res.data.timeline['suspectedCount'][time_index];
           //确诊数据导入
-          tmp_suboption.series[1].data = res.data.timeline['confirmedCount'][time_index]
+          tmp_suboption.series[1].data = res.data.timeline['confirmedCount'][time_index];
           //治愈数据导入
-          tmp_suboption.series[2].data = res.data.timeline['curedCount'][time_index]
+          tmp_suboption.series[2].data = res.data.timeline['curedCount'][time_index];
           //死亡数据导入
-          tmp_suboption.series[3].data = res.data.timeline['deadCount'][time_index]
+          tmp_suboption.series[3].data = res.data.timeline['deadCount'][time_index];
           //name修正
           for (var i = 0; i < tmp_suboption.series[3].data.length; i++) {
             for (var j = 0; j < 4; j++) {
@@ -271,12 +274,17 @@
           // console.log(this.myoption.options)
           this.myoption.options.push(tmp_suboption)
         }
+        //时间轴处在最新的时间点
+        this.myoption.baseOption.timeline.currentIndex = time_cnt- 1;
+        // console.log(this.myoption.baseOption.timeline.currentIndex);
       },
       timelineclick(tmp_index) {
         this.myoption.baseOption.timeline.currentIndex = tmp_index;
+        // console.log(tmp_index);
         this.drawTimeAxis();
       },
       placechange(tmp_superiorPlace,tmp_superiorLevel) {
+        // console.log(tmp_superiorPlace);
         if(tmp_superiorPlace === 'world'){
           echarts.registerMap('world', world);
         }
@@ -299,6 +307,7 @@
     // 调用
     mounted() {
       var tmp_maxdic = this.maxdic;
+      this.charts = echarts.init(document.getElementById('TimelineHeatMap'));
       this.charts.on('legendselectchanged', (obj) => {
         cur_datakind = obj.name;
         var tmp_max = tmp_maxdic[obj.name];
