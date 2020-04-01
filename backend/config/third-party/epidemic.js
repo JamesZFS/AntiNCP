@@ -1,6 +1,6 @@
 'use strict';
 const dateFormat = require('dateformat');
-const {escape} = require('../database/db-manager');
+const {escape} = require('../../database');
 const AMINER_EPIDEMIC_API = 'https://innovaapi.aminer.cn/predictor/api/v1/valhalla/hotevents/pneumonia/dxy';
 
 const DXY = {

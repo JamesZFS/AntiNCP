@@ -9,7 +9,7 @@ const db = require('../database');
 const scheduler = require('./scheduler');
 const cache = require('../routes/retrieve/cache');
 const csv = require('./csv');
-const dataSource = require('../config/third-party').CHL; // may select other data sources
+const dataSource = require('../config/third-party/epidemic').CHL; // may select other data sources
 
 /**
  * Reload epidemic data in the db, auto-selecting the newest csv file
