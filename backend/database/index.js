@@ -1,5 +1,5 @@
 const fs = require('fs');
-const debug = require('debug')('backend:db-manager');
+const debug = require('debug')('backend:database');
 const mysql = require('mysql');
 const chalk = require('chalk');
 const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server

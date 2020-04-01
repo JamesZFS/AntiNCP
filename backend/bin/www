@@ -8,8 +8,8 @@ const debug = require('debug')('backend:server');
 const app = require('../app');
 const http = require('http');
 const chalk = require('chalk');
-const db = require('../database/db-manager');
-const fetcher = require('../fetch/fetcher');
+const db = require('../database');
+const fetcher = require('../fetch');
 const cache = require('../routes/retrieve/cache');
 const port = require('../config/consts').LOCAL_HOST_PORT;
 

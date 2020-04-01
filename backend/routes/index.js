@@ -1,8 +1,8 @@
 const express = require('express');
 const debug = require('debug')('backend:index');
 const router = express.Router();
-const retrieveRouter = require('./retrieve/retrieve');
-const db = require('../database/db-manager');
+const retrieveRouter = require('./retrieve');
+const db = require('../database');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
