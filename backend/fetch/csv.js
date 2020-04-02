@@ -2,6 +2,8 @@
 const debug = require('debug')('backend:fetcher:csv');
 const csv = require('fast-csv');
 const chalk = require('chalk');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Read csv and map each entry w.r.t `row2Entry` callback, call `onBatch` callback when a batch of entries is ready, asynchronously
@@ -47,25 +49,59 @@ function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10
                 if (++count % batchSize === 0) {   // insert batch into db
                     debug(`parsed ${count} rows.`);
                     parser.pause(); // wait for db to finish insertion
-                    await onBatch(entryBatch).catch(err => {
+                    try {
+                        await onBatch(entryBatch);
+                    } catch (err) {
                         debug('parsing error row:', err);
                         parser.end();
                         reject(err);
-                    });
+                        return;
+                    }
                     entryBatch = [];
                     parser.resume();
                 }
             })
             .on('end', async rowCount => {
                 // insert remaining rows
-                await onBatch(entryBatch).catch(err => {
+                try {
+                    await onBatch(entryBatch);
+                } catch (err) {
                     debug('parsing error row:', err);
-                    if (strict) reject(err)
-                });
+                    reject(err);
+                    return;
+                }
                 debug(`Successfully parsed ${rowCount} rows`);
                 resolve(rowCount);
             });
     });
 }
 
-module.exports = {batchReadAndMap};
+function selectNewestFile(dir, suffix = 'csv') {
+    if (!suffix.startsWith('.')) suffix = '.' + suffix;
+    try {
+        var files = fs.readdirSync(dir);
+    } catch (err) {
+        fs.mkdirSync(dir);
+        return null;
+    }
+    files = files.filter(val => val.endsWith(suffix)); // neglect stuffs like .DS_STORE
+    if (files.length === 0) return null;
+    files.sort(function (a, b) {
+        let pb = parseInt(b);
+        return isNaN(pb) ? -1 : pb - parseInt(a);
+    });
+    return path.join(dir, files[0]);
+}
+
+function cleanDirectoryExceptNewest(dir) {
+    let files = fs.readdirSync(dir);
+    let newest = path.basename(selectNewestFile(dir));
+    for (let file of files) {
+        if (file !== newest) {
+            fs.unlinkSync(path.join(dir, file));
+        }
+    }
+}
+
+
+module.exports = {batchReadAndMap, selectNewestFile, cleanDirectoryExceptNewest};

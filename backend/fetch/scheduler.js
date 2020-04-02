@@ -6,4 +6,10 @@ Object.assign(twiceADay, {hour: [0, 12], minute: [0], second: [0]});  // trigger
 const onceADay = new schedule.RecurrenceRule();
 Object.assign(onceADay, {hour: [12], minute: [0], second: [0]});  // trigger at 12'o clock every day
 
-module.exports = {scheduleJob: schedule.scheduleJob, twiceADay, onceADay};
+const every = {
+    Hour: '* */1 * * *',
+    thirtyMins: '*/30 * * * *',
+    tenMins: '*/10 * * * *',
+};
+
+module.exports = {scheduleJob: schedule.scheduleJob, twiceADay, onceADay, every};

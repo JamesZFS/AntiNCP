@@ -9,7 +9,9 @@ const db = require('../database');
 const scheduler = require('./scheduler');
 const cache = require('../routes/retrieve/cache');
 const csv = require('./csv');
-const dataSource = require('../config/third-party/epidemic').CHL; // may select other data sources
+const rss = require('./rss');
+const epidemicSource = require('../config/third-party/epidemic').CHL; // may select other data sources
+const articleSources = require('../config/third-party/articles').ALL; // may select other article sources
 
 /**
  * Reload epidemic data in the db, auto-selecting the newest csv file
@@ -17,14 +19,14 @@ const dataSource = require('../config/third-party/epidemic').CHL; // may select 
  */
 async function reloadEpidemicData() {
     try {
-        let csvPath = selectNewestFile(dataSource.downloadDir, '.csv');
+        let csvPath = csv.selectNewestFile(epidemicSource.downloadDir);
         if (csvPath === null) { // if no csv found
             await downloadEpidemicData(); // download data from source and then reload
             return reloadEpidemicData();
         }
         await cache.flush();
         await db.clearTable('Epidemic');
-        await csv.batchReadAndMap(csvPath, dataSource.expColumns, dataSource.parseRow, db.insertEpidemicEntries, 10000);
+        await csv.batchReadAndMap(csvPath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
         await db.refreshAvailablePlaces('Epidemic');
         let rows = await db.countTableRows('Epidemic');
         debug(`Loaded ${rows} rows of data in total.`);
@@ -38,12 +40,12 @@ async function reloadEpidemicData() {
  * Download epidemic data from source api, save it to downloadDir
  */
 async function downloadEpidemicData() {
-    const url = dataSource.areaAPI;
-    const filePath = path.join(dataSource.downloadDir, Date.now() + '.csv');
+    const url = epidemicSource.areaAPI;
+    const filePath = path.join(epidemicSource.downloadDir, Date.now() + '.csv');
     debug(`Downloading Epidemic Data from ${url} into ${filePath} ... (Be patient, this may take a while)`);
     try {
-        await new Promise((resolve, reject) => download(url, {
-            directory: dataSource.downloadDir,
+        await new Promise((resolve, reject) => download(url, { // insist downloading
+            directory: epidemicSource.downloadDir,
             filename: Date.now() + '.csv',
         }, err => { // this promise tries to (re)download the target
             if (err) {
@@ -62,39 +64,47 @@ async function downloadEpidemicData() {
             }
         }));
     } catch (err) {
-        debug('Fail to download epidemic data.', err);
+        console.error(chalk.red('Fail to download epidemic data:'), err.message);
         throw err;
     }
 }
 
-function selectNewestFile(dir, suffix = 'csv') {
-    if (!suffix.startsWith('.')) suffix = '.' + suffix;
-    let files;
+/**
+ * Fetch articles related to virus
+ * @return {Promise<void>}
+ */
+async function fetchVirusArticles() {
+    debug('Fetching virus articles...');
     try {
-        files = fs.readdirSync(dir);
+        let entries = await rss.getArticlesFromRss(articleSources, rss.isAboutVirus, rss.article2Entry);
+        await db.insertArticleEntries(entries);
+        let rows = await db.countTableRows('Articles');
+        debug('Virus article fetching success.', chalk.green(`In total ${rows} rows in db.`));
     } catch (err) {
-        fs.mkdirSync(dir);
-        return null;
+        console.error(chalk.red('Fail to fetch articles:'), err.message);
+        throw err;
     }
-    files = files.filter(val => val.endsWith(suffix)); // neglect stuffs like .DS_STORE
-    if (files.length === 0) return null;
-    files.sort(function (a, b) {
-        let pb = parseInt(b);
-        return isNaN(pb) ? -1 : pb - parseInt(a);
-    });
-    return path.join(dir, files[0]);
 }
 
 // Scheduler: download newest csv and update db once a day
 function initialize() {
+    // Update epidemic data daily:
     scheduler.scheduleJob(scheduler.onceADay, async function (time) {
         debug(`Auto update begins at ${time}`);
         await downloadEpidemicData();
         await reloadEpidemicData();
+        csv.cleanDirectoryExceptNewest(epidemicSource.downloadDir);
+        debug('Auto update finished.');
+    });
+    // Update virus articles incrementally
+    scheduler.scheduleJob(scheduler.every.thirtyMins, async function (time) {
+        debug(`Auto update begins at ${time}`);
+        await fetchVirusArticles();
+        // todo analyze data
         debug('Auto update finished.');
     });
 }
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData, initialize, dataSource: dataSource.areaAPI
+    reloadEpidemicData, downloadEpidemicData, initialize, dataSource: epidemicSource.areaAPI
 };

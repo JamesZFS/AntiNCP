@@ -1,26 +1,55 @@
 # AntiNCP Backend
 
-版本 0.1.3
+版本 0.2.0
+
+## 后端概要
+
+后端分为两个系统：WEB服务系统 和 数据管理系统。
+
+**WEB服务系统**：
+- 负责暴露80端口，响应用户的http请求；
+- 提供检索服务API；
+- 托管前端、文档页面。
+
+**数据管理系统**：
+- 负责管理MySQL数据库和Redis缓存系统；
+- 定期从GitHub下载疫情数据并刷新数据库；
+- 定期从外网获取疫情相关的报道、文章、推特等内容增量更新数据库，同时分析、提取文章热词信息，建立倒排索引；
+
 
 ## 启动方法
 
-### 快速启动
+### 启动WEB服务系统
 
-`npm run start`
+快速启动：（当数据库中已有内容，不需要刷新时）
 
-适用于数据库中已有内容，不需要刷新时。
+`npm start`
 
-### 启动并重新加载数据库
+若要指定端口和输出调试信息：
+
+`DEBUG=backend:* PORT=80 npm start`
+
+### 启动数据管理系统
+
+数据管理系统需要从外网获取信息，因此需要用到代理工具 [proxychains的安装与配置](https://www.hi-linux.com/posts/48321.html)
+
+安装后，请确保环境中存在 `proxychains4`
+
+快速启动：
+
+`npm run feeder`
+
+若要输出调试信息：
+
+`DEBUG=backend:* npm run feeder`
+
+启动并重新加载疫情数据库：（适用于需要刷新数据库内容或发布时）
 
 `npm run reload` 
 
-适用于需要刷新数据库内容或发布时。
-
-### 启动、下载并加载最新数据
+启动、下载并加载最新疫情数据：（适用于需要更新数据源时，注意下载会比较耗时）
 
 `npm run download`
-
-适用于需要更新数据源时，注意下载会比较耗时。
 
 ## 生成文档
 
@@ -42,8 +71,6 @@
 - 在本地测试环境，`backend/database/db-manager` 头部的 `LOCAL_MYSQL_CFG` 需改为 `TENCENT_MYSQL_CFG`
 - **测试完建议立即解除服务器上的端口绑定**，置 `bind-access` 为 `127.0.0.1`
 
-### ONLY_FULL_GROUP_BY 问题的解决
+## 缓存管理
 
-目前已支持 backend server 自动检测和修复本问题，运维者无需担心~
-
-详见[CSDN](https://blog.csdn.net/ieayoio/article/details/79543899)
+运行整个后端前，请安装 Redis，并先在后台启动 redis-server

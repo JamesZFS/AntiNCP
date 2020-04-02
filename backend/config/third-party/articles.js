@@ -102,4 +102,7 @@ const TWITTER_RSS = {
     }
 };
 
-module.exports = {NEWS_RSS, REDDIT_RSS, TWITTER_RSS};
+const ALL = {};
+Object.assign(ALL, NEWS_RSS, REDDIT_RSS, TWITTER_RSS);
+
+module.exports = {NEWS_RSS, REDDIT_RSS, TWITTER_RSS, ALL};

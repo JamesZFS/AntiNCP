@@ -1,9 +1,10 @@
 const fs = require('fs');
+const path = require('path');
 const debug = require('debug')('backend:database');
 const mysql = require('mysql');
 const chalk = require('chalk');
 const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
-const initializingScriptPath = 'database/initialize.sql';
+const initializingScriptPath = path.resolve(__dirname, './initialize.sql');
 
 /**
  * Insist reconnecting until connection is make, throw unrecoverable error if fails
@@ -137,10 +138,11 @@ function insertEntry(table, entry) {
  * Insert a data entry batch into a given table
  * @param table{string}
  * @param entries{Object[]} have to make sure they have **the same keys**
+ * @param skipWhenDuplicate{boolean} if true, will ignore duplication
  * @return {Promise<Object>}
  */
-function insertEntries(table, entries) {
-    let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
+function insertEntries(table, entries, skipWhenDuplicate = false) {
+    let sql = `INSERT${skipWhenDuplicate === true ? ' IGNORE ' : ' '}INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {
         vals.push(`(${Object.values(entry).join(',')})`);
@@ -277,7 +279,7 @@ function refreshAvailablePlaces(sourceTable = 'Epidemic') {
  */
 async function updateClientInfo(ip) {
     return doSqls([
-        `INSERT INTO Clients (ip) SELECT * FROM (SELECT ${ip}) AS tmp WHERE NOT EXISTS (SELECT ip FROM Clients WHERE ip=${ip}) LIMIT 1;`,
+        `INSERT IGNORE INTO Clients (ip) VALUES (${ip});`,
         `UPDATE Clients SET reqCount=reqCount+1, prevReqTime=NOW() WHERE ip=${ip} LIMIT 1;`
     ]);
 }
@@ -289,6 +291,24 @@ async function updateClientInfo(ip) {
  */
 async function getClientInfo(ip) {
     return doSql(`SELECT * FROM Clients WHERE ip=${ip} LIMIT 1`);
+}
+
+/**
+ * Insert a new article data entry into 'Articles' table
+ * @param entry{Object}
+ * @return {Promise<Object>}
+ */
+function insertArticleEntry(entry) {
+    return insertEntry('Articles', entry);
+}
+
+/**
+ * Insert multiple article data entries into 'Articles' table
+ * @param entries{Object[]}
+ * @return {Promise<Object>}
+ */
+function insertArticleEntries(entries) {
+    return insertEntries('Articles', entries, true);
 }
 
 /**
@@ -315,5 +335,6 @@ module.exports = {
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, countTableRows, selectInTable, selectEpidemicData,
     selectAvailableCities, selectAvailableProvinces, selectAvailableCountries, refreshAvailablePlaces,
+    insertArticleEntry, insertArticleEntries,
     updateClientInfo, getClientInfo
 };

@@ -5,8 +5,9 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "reload": "node ./bin/www --reload",
-    "download": "node ./bin/www --download --reload",
+    "feeder": "proxychains4 node ./bin/feeder.js",
+    "reload": "proxychains4 node ./bin/feeder.js --reload",
+    "download": "proxychains4 node ./bin/feeder.js --download --reload",
     "api": "apidoc -i . -e 'node_modules/*'"
   },
   "dependencies": {

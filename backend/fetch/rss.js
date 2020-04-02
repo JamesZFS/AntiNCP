@@ -2,25 +2,25 @@
 'use strict';
 const debug = require('debug')('backend:fetch:rss');
 const rssParser = require('rss-parser');
+const dateFormat = require('dateformat');
 const chalk = require('chalk');
-const fs = require('fs');
-const IS_ABOUT_VIRUS_REG = /wuhan|corona|virus|covid/ig.compile(); // i - ignore capitalization, g - global
+const escape = require('../database').escape;
+const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|covid/ig.compile(); // i - ignore capitalization, g - global
 
 /**
  * Get articles from rss sources
  * @param rssSources{object[]|Object} should look like stuffs in '../config/third-party/rss'
- * @param filter{callback|null}   if given, return only articles whose title or link match the filter
+ * @param filter{callback|undefined}   if given, return only articles whose title or link match the filter
+ * @param map{callback|undefined}   if given, will map an article object to another object, if throwing error, skip the article
  * @param tryHarder{boolean}      if true, will try filtering the content
  * @return {Promise<Object[]>}
  */
-async function getArticlesFromRss(rssSources, filter, tryHarder = false) {
+async function getArticlesFromRss(rssSources, filter, map, tryHarder = false) {
     const articles = [];
     // rss parser
     const parser = new rssParser();
-
-    for (let index in rssSources) {
-        let source = rssSources[index];
-        debug(`Fetching articles from ${source.name}`);
+    for (let [_idx, source] of Object.entries(rssSources)) {
+        debug(`Fetching articles from '${source.name}'`);
         try {
             let feeds = await parser.parseURL(source.url);
             feeds.items.forEach(item => {
@@ -29,10 +29,17 @@ async function getArticlesFromRss(rssSources, filter, tryHarder = false) {
                         short: source.short,
                         name: source.name
                     };
-                    articles.push(item);
+                    if (map) {
+                        try {
+                            articles.push(map(item));
+                        } catch (err) {
+                            debug(`Error when parsing article '${item.link}' from source '${source.short}': ${err.message}`);
+                        }
+                    } else {
+                        articles.push(item);
+                    }
                 }
             });
-            debug(chalk.green('Done.'));
         } catch (err) {
             console.error(chalk.red('Get rss feeds failed:'), err.message);
         }
@@ -40,17 +47,34 @@ async function getArticlesFromRss(rssSources, filter, tryHarder = false) {
     return articles;
 }
 
+/**
+ * Check if the text is about wuhan/corona virus
+ * @param text{string}
+ * @return {boolean}
+ */
 function isAboutVirus(text) {
-    // to check if the text is about wuhan/corona virus
     return IS_ABOUT_VIRUS_REG.test(text);
 }
 
-const sources = require('../config/third-party/rss').TWITTER_RSS;
-getArticlesFromRss(sources, isAboutVirus).then(articles => {
-    debug('All done.');
-    fs.writeFileSync('../public/data/rss/Twitter-4-1.txt', JSON.stringify(articles, null, 4));
-}).catch(err => {
-    console.error('Failed.', chalk.red(err.message));
-});
+/**
+ * Convert an rss article into an escaped db entry
+ * @param article{Object}
+ * @return {{date: *, creator: *, articleSource: string, link: *, title: *, content: *}}
+ */
+function article2Entry(article) {
+    let result = {
+        date: dateFormat(article['date'] || article['pubDate'] || article['dc:date'] || new Date(), 'yyyy-mm-dd HH:MM:ss'),
+        title: article['title'],
+        link: article['link'] || article['guid'],
+        creator: article['creator'] || article['author'] || article['dc:creator'] || article.articleSource.name,
+        content: article['content'] || article['contentSnippet'] || article['title'],
+        sourceName: article.articleSource.name,
+        sourceShort: article.articleSource.short
+    };
+    let missingColumns = Object.entries(result).filter(([_k, val]) => !val);
+    if (missingColumns.length > 0) throw new Error(`Columns ${chalk.red(missingColumns.toString())} missing.`);
+    for (let key in result) result[key] = escape(result[key]);
+    return result;
+}
 
-module.exports = {rssParser};
+module.exports = {getArticlesFromRss, isAboutVirus, article2Entry};
