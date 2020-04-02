@@ -63,17 +63,17 @@ const NEWS_RSS = {
 const REDDIT_RSS = {
     china: {
         short: 'r/china',
-        name: 'China',
+        name: 'Reddit China',
         url: 'https://www.reddit.com/r/China/.rss',
     },
     china_flu: {
         short: 'r/china_flu',
-        name: 'China Flu',
+        name: 'Reddit China Flu',
         url: 'https://www.reddit.com/r/china_flu/.rss',
     },
     coronavirus: {
         short: 'r/coronavirus',
-        name: 'Coronavirus',
+        name: 'Reddit Coronavirus',
         url: 'https://www.reddit.com/r/coronavirus/.rss',
     },
     news: {
@@ -83,7 +83,7 @@ const REDDIT_RSS = {
     },
     singapore: {
         short: 'r/singapore',
-        name: 'Singapore',
+        name: 'Reddit Singapore',
         url: 'https://www.reddit.com/r/singapore/.rss',
     },
 };
@@ -92,12 +92,12 @@ const REDDIT_RSS = {
 const TWITTER_RSS = {
     wuhanvirus: {
         short: '@thewuhanvirus',
-        name: 'The Wuhan Virus',
+        name: 'Twitter The Wuhan Virus',
         url: 'https://twitrss.me/twitter_user_to_rss/?user=thewuhanvirus',
     },
     trump: {
         short: '@realDonaldTrump',
-        name: 'Donald Trump',
+        name: 'Twitter Donald Trump',
         url: 'https://twitrss.me/twitter_user_to_rss/?user=realDonaldTrump'
     }
 };
