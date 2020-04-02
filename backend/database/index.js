@@ -3,7 +3,9 @@ const path = require('path');
 const debug = require('debug')('backend:database');
 const mysql = require('mysql');
 const chalk = require('chalk');
-const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
+const dbCfg = process.env.REMOTE_DB
+    ? require('../config/db-cfg').TENCENT_MYSQL_CFG
+    : require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
 const initializingScriptPath = path.resolve(__dirname, './initialize.sql');
 
 /**
@@ -11,6 +13,7 @@ const initializingScriptPath = path.resolve(__dirname, './initialize.sql');
  * @return {Promise<void>}
  */
 async function insistConnecting() {
+    debug(`Connecting to ${dbCfg.host}:${dbCfg.port}`);
     connection = mysql.createConnection(dbCfg); // Recreate the connection, since the old one cannot be reused.
     return new Promise((resolve, reject) => connection.connect(err => {
         if (err) { // The server is either down or restarting (takes a while sometimes).
@@ -138,11 +141,10 @@ function insertEntry(table, entry) {
  * Insert a data entry batch into a given table
  * @param table{string}
  * @param entries{Object[]} have to make sure they have **the same keys**
- * @param skipWhenDuplicate{boolean} if true, will ignore duplication
  * @return {Promise<Object>}
  */
-function insertEntries(table, entries, skipWhenDuplicate = false) {
-    let sql = `INSERT${skipWhenDuplicate === true ? ' IGNORE ' : ' '}INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
+function insertEntries(table, entries) {
+    let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {
         vals.push(`(${Object.values(entry).join(',')})`);
@@ -294,21 +296,33 @@ async function getClientInfo(ip) {
 }
 
 /**
- * Insert a new article data entry into 'Articles' table
+ * Insert a new article data entry into 'Articles' table, skip when link duplicates
+ * ref: https://blog.csdn.net/fly910905/article/details/79634483
  * @param entry{Object}
  * @return {Promise<Object>}
  */
 function insertArticleEntry(entry) {
-    return insertEntry('Articles', entry);
+    return doSql(
+        `INSERT INTO Articles (${Object.keys(entry).join(',')}) SELECT ${Object.values(entry).join(',')} ` +
+        `FROM DUAL WHERE NOT EXISTS (SELECT id FROM Articles WHERE link=${entry.link});`
+    );
 }
 
 /**
- * Insert multiple article data entries into 'Articles' table
+ * Insert multiple article data entries into 'Articles' table, skip when link duplicates
+ * ref: https://blog.csdn.net/fly910905/article/details/79634483
  * @param entries{Object[]}
  * @return {Promise<Object>}
  */
-function insertArticleEntries(entries) {
-    return insertEntries('Articles', entries, true);
+async function insertArticleEntries(entries) {
+    await doSqls(['DROP TABLE IF EXISTS Articles_tmp;', 'CREATE TABLE Articles_tmp LIKE Articles;']);
+    await insertEntries('Articles_tmp', entries);  // insert all into tmp table first
+    const cols = Object.keys(entries[0]).join(',');
+    await doSql(
+        `INSERT INTO Articles (${cols}) SELECT ${cols} FROM Articles_tmp ` +
+        `WHERE NOT EXISTS (SELECT id FROM Articles WHERE link=Articles_tmp.link);`
+    );
+    return doSql('DROP TABLE Articles_tmp;');
 }
 
 /**

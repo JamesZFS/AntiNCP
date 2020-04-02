@@ -25,14 +25,15 @@ async function reloadEpidemicData() {
             return reloadEpidemicData();
         }
         await cache.flush();
+        let oldRowCount = await db.countTableRows('Epidemic');
         await db.clearTable('Epidemic');
         await csv.batchReadAndMap(csvPath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
         await db.refreshAvailablePlaces('Epidemic');
-        let rows = await db.countTableRows('Epidemic');
-        debug(`Loaded ${rows} rows of data in total.`);
+        let newRowCount = await db.countTableRows('Epidemic');
+        debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
     } catch (err) {
-        debug('Fail to reload epidemic data.');
-        throw err;
+        console.error(chalk.red('Fail to reload epidemic data.'), err.message);
+        throw new Error('Fail to reload epidemic data.');
     }
 }
 
@@ -65,24 +66,29 @@ async function downloadEpidemicData() {
         }));
     } catch (err) {
         console.error(chalk.red('Fail to download epidemic data:'), err.message);
-        throw err;
+        throw new Error('Fail to download epidemic data.');
     }
 }
 
 /**
- * Fetch articles related to virus
+ * Fetch articles related to virus, insert into db (INCREMENTALLY)
  * @return {Promise<void>}
  */
 async function fetchVirusArticles() {
     debug('Fetching virus articles...');
     try {
+        let oldRowCount = await db.countTableRows('Articles');
         let entries = await rss.getArticlesFromRss(articleSources, rss.isAboutVirus, rss.article2Entry);
+        let file = path.resolve(__dirname, '../public/data/rss/RSS-backup.txt');
+        // let maxIdx = entries.reduce((iMax, x, i, arr) => x.content.length > arr[iMax].content.length ? i : iMax, 0);
+        // console.log(maxIdx, entries[maxIdx].content.length);
+        fs.writeFileSync(file, JSON.stringify(entries, null, 4)); // backup
         await db.insertArticleEntries(entries);
-        let rows = await db.countTableRows('Articles');
-        debug('Virus article fetching success.', chalk.green(`In total ${rows} rows in db.`));
+        let newRowCount = await db.countTableRows('Articles');
+        debug('Virus article fetching success.', chalk.green(`[+] ${newRowCount - oldRowCount} rows.`), `In total ${newRowCount} rows in db.`);
     } catch (err) {
         console.error(chalk.red('Fail to fetch articles:'), err.message);
-        throw err;
+        throw new Error('Fail to fetch articles.');
     }
 }
 
@@ -97,7 +103,7 @@ function initialize() {
         debug('Auto update finished.');
     });
     // Update virus articles incrementally
-    scheduler.scheduleJob(scheduler.every.thirtyMins, async function (time) {
+    scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
         debug(`Auto update begins at ${time}`);
         await fetchVirusArticles();
         // todo analyze data
@@ -106,5 +112,5 @@ function initialize() {
 }
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData, initialize, dataSource: epidemicSource.areaAPI
+    reloadEpidemicData, downloadEpidemicData, fetchVirusArticles, initialize, dataSource: epidemicSource.areaAPI
 };

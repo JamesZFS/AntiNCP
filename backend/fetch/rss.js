@@ -6,6 +6,7 @@ const dateFormat = require('dateformat');
 const chalk = require('chalk');
 const escape = require('../database').escape;
 const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|covid/ig.compile(); // i - ignore capitalization, g - global
+const MAX_FIELD_LEN = 5000; // greater than any column limit in db
 
 /**
  * Get articles from rss sources
@@ -67,7 +68,7 @@ function article2Entry(article) {
         title: article['title'],
         link: article['link'] || article['guid'],
         creator: article['creator'] || article['author'] || article['dc:creator'] || article.articleSource.name,
-        content: article['content'] || article['contentSnippet'] || article['title'],
+        content: article['content'] || article['contentSnippet'] || article['description'] || article['title'],
         sourceName: article.articleSource.name,
         sourceShort: article.articleSource.short
     };

@@ -37,15 +37,15 @@ COMMENT = 'Statistical info of any visited clients';
 -- news & tweets & reddit articles
 CREATE TABLE IF NOT EXISTS `Articles` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `hash` CHAR(32) GENERATED ALWAYS AS (MD5(`link`)) STORED UNIQUE,
   `date` DATETIME NOT NULL, -- or pubDate or isoDate or dc:date
   `title` VARCHAR(1024) NOT NULL,
   `link` VARCHAR(2083) NOT NULL, -- or guid
   `creator` VARCHAR(512) NOT NULL, -- or author or dc:creator
-  `content` VARCHAR(4096) NOT NULL, -- or contentSnippet
+  `content` LONGTEXT NOT NULL, -- or contentSnippet or description
   `sourceName` VARCHAR(512) NOT NULL,
   `sourceShort` VARCHAR(512) NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `date_idx` (`date` ASC),
-  INDEX `source_idx` (`sourceShort`(8) ASC))
+  INDEX `source_idx` (`sourceShort`(8) ASC),
+  INDEX `url_idx` (`link`(32) ASC))
 COMMENT = 'Articles related to COVID-19.';
