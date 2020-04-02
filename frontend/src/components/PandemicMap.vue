@@ -48,7 +48,8 @@
         count: 0,
         loading: false,
         cur_superiorPlace: 'world',
-        cur_superiorLevel: 'world'
+        cur_superiorLevel: 'world',
+        place_changed: false //标记当前鼠标点击事件发生之后，地图是否改变，如果发生了改变则该变量为true，响应事件结束之后此变量变回false
       }
     },
     methods: {
@@ -120,6 +121,7 @@
         }
         this.dataImport(res);
         this.drawTimeAxis();
+        this.place_changed = false;
         this.loading = false;
       },
       dataImport(res) {//统一调用两个子组件的数据导入
@@ -131,6 +133,7 @@
         this.$refs.mypredictionchart.drawTimeAxis();
       },
       placechange(tmp_place) {//将修改cur_superiorPlace和cur_superiorLevel的工作集中到当前父页面中，子组件只需根据所传参数修改子组件当中的数据即可
+        // console.log(tmp_place);
         if (this.cur_superiorLevel === 'world') {
           if (tmp_place === '中国') {
             this.cur_superiorPlace = 'china';
@@ -151,7 +154,10 @@
         } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
           this.cur_superiorLevel = 'province';
           this.cur_superiorPlace = tmp_place;
+        } else if (this.cur_superiorLevel === 'province') {
+          return;
         }
+        this.place_changed = true;
         this.passPlaceandLevel();
       },
       initechart() {//用于初始化echart
@@ -166,12 +172,24 @@
         await this.get_epidemic_data()
       });
       this.$refs.myheatmap.charts.on('click', (params) => {
+        // console.log(params);
         if (params.componentType === 'timeline') {
           this.$refs.myheatmap.timelineclick(params.dataIndex)
-        } else {
+        } else if (params.componentType === 'series') {
           this.placechange(params.name);
-          this.get_epidemic_data();
+          if (this.place_changed) {
+            this.get_epidemic_data();
+          }
         }
+        // else {
+        //   this.$refs.myheatmap.isloading = true;
+        // }
+      });
+      this.$refs.myheatmap.charts.on('legendselectchanged', (obj) => {
+        // this.loading = true;
+        this.$refs.myheatmap.legend_change(obj);
+        // this.loading = false;
+        // console.log(obj);
       })
     }
   }
