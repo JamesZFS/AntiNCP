@@ -99,6 +99,21 @@ const TWITTER_RSS = {
         short: '@realDonaldTrump',
         name: 'Twitter Donald Trump',
         url: 'https://twitrss.me/twitter_user_to_rss/?user=realDonaldTrump'
+    },
+    boris: {
+        short: '@BorisJohnson',
+        name: 'Twitter Boris Johnson',
+        url: 'https://twitrss.me/twitter_user_to_rss/?user=BorisJohnson'
+    },
+    covid19app: {
+        short: '@COVID2019app',
+        name: 'Twitter COVID2019app.live',
+        url: 'https://twitrss.me/twitter_user_to_rss/?user=COVID2019app'
+    },
+    afp: {
+        short: '@AFP',
+        name: 'Twitter AFP news agency',
+        url: 'https://twitrss.me/twitter_user_to_rss/?user=AFP'
     }
 };
 

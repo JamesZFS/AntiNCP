@@ -1,5 +1,5 @@
 const LOCAL_MYSQL_CFG = {
-    host: '127.0.0.1',
+    host: 'localhost',
     user: 'root',
     password: 'mdty2020',
     port: '3306',

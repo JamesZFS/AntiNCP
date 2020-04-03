@@ -44,52 +44,70 @@ async function downloadEpidemicData() {
     const url = epidemicSource.areaAPI;
     const filePath = path.join(epidemicSource.downloadDir, Date.now() + '.csv');
     debug(`Downloading Epidemic Data from ${url} into ${filePath} ... (Be patient, this may take a while)`);
-    try {
-        await new Promise((resolve, reject) => download(url, { // insist downloading
-            directory: epidemicSource.downloadDir,
-            filename: Date.now() + '.csv',
-        }, err => { // this promise tries to (re)download the target
-            if (err) {
-                try {
-                    fs.unlinkSync(filePath);
-                } catch (e) {
-                }
-                console.error(`Download error: when trying to download from ${url},`, chalk.red(err.code));
-                debug('Try re-downloading in 10 minutes...');
-                setTimeout(() => downloadEpidemicData()
-                    .then(() => resolve())
-                    .catch(err => reject(err)), 600000); // 10 mins
-            } else {
-                debug('Downloaded successfully.');
-                resolve();
-            }
-        }));
-    } catch (err) {
-        console.error(chalk.red('Fail to download epidemic data:'), err.message);
-        throw new Error('Fail to download epidemic data.');
+    let trial = scheduler.fetchingPolicy.maxTrials;
+    while (true) {
+        try {
+            await new Promise((resolve, reject) => download(url, { // try downloading
+                directory: epidemicSource.downloadDir,
+                filename: Date.now() + '.csv',
+            }, err => {
+                if (err) reject(err);
+                else resolve();
+            }));
+        } catch (err) {
+            debug(`Fail to downlaod, retry in ${scheduler.fetchingPolicy.interval / 60000} mins.`);
+            if (--trial > 0) {
+                await scheduler.sleep(scheduler.fetchingPolicy.interval);
+                continue;
+            } else {  // give up
+                console.error(chalk.red('Fail to download from csv epidemic source. Skip this download.'), err.message);
+                throw err;
+            };
+        }
+        break; // success
     }
+    debug('Download success.');
 }
 
 /**
  * Fetch articles related to virus, insert into db (INCREMENTALLY)
- * @return {Promise<void>}
+ * @return {Promise<Object>}  {startId: int, endId: int} range of newly inserted db entry (startId <= endId, specially, s == e means no update)
  */
 async function fetchVirusArticles() {
     debug('Fetching virus articles...');
     try {
-        let oldRowCount = await db.countTableRows('Articles');
-        let entries = await rss.getArticlesFromRss(articleSources, rss.isAboutVirus, rss.article2Entry);
+        var startId = (await db.selectInTable('Articles', 'MAX(id) AS res'))[0].res + 1;
+        let entries;
+        let trial = scheduler.fetchingPolicy.maxTrials;
+        while (true) {
+            try {
+                entries = await rss.getArticlesFromRss(articleSources, rss.isAboutVirus, rss.article2Entry);
+                if (!entries || entries.length === 0) throw new Error();
+            } catch (err) { // retry
+                debug(`Fail to fetch, retry in ${scheduler.fetchingPolicy.interval / 60000} mins.`);
+                if (--trial > 0) {
+                    await scheduler.sleep(scheduler.fetchingPolicy.interval);
+                    continue;
+                } else {  // give up
+                    console.error(chalk.red('Fail to fetch from rss article source. Skip this update.'), err.message);
+                    return {startId, endId: startId};
+                };
+            }
+            break; // success
+        }
+        debug('Fetching success.');
         let backupFile = path.resolve(__dirname, '../public/data/rss/RSS-backup.txt');
         // let entries = JSON.parse(fs.readFileSync(backupFile));
         fs.writeFileSync(backupFile, JSON.stringify(entries, null, 4)); // backup
         debug(`Articles backed up into ${backupFile}`);
         await db.insertArticleEntries(entries);
-        let newRowCount = await db.countTableRows('Articles');
-        debug('Virus article fetching success.', chalk.green(`[+] ${newRowCount - oldRowCount} rows.`), `In total ${newRowCount} rows in db.`);
+        var endId = (await db.selectInTable('Articles', 'MAX(id) AS res'))[0].res + 1;
+        debug('Virus article fetching success.', chalk.green(`[+] ${endId - startId} rows.`), `In total ${endId - 1} rows in db.`);
     } catch (err) {
-        console.error(chalk.red('Fail to fetch articles:'), err.message);
-        throw new Error('Fail to fetch articles.');
+        console.error(chalk.red('Fatal failure when fetching articles:'), err.message);
+        throw err;
     }
+    return {startId, endId};
 }
 
 // Scheduler: download newest csv and update db once a day
@@ -97,17 +115,25 @@ function initialize() {
     // Update epidemic data daily:
     scheduler.scheduleJob(scheduler.onceADay, async function (time) {
         debug(`Auto update begins at ${time}`);
-        await downloadEpidemicData();
-        await reloadEpidemicData();
-        csv.cleanDirectoryExceptNewest(epidemicSource.downloadDir);
-        debug('Auto update finished.');
+        try {
+            await downloadEpidemicData();
+            await reloadEpidemicData();
+            csv.cleanDirectoryExceptNewest(epidemicSource.downloadDir);
+            debug('Auto update finished.');
+        } catch (err) {
+            debug(`Auto update aborted.`);
+        }
     });
     // Update virus articles incrementally
     scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
         debug(`Auto update begins at ${time}`);
-        await fetchVirusArticles();
-        // todo analyze data
-        debug('Auto update finished.');
+        try {
+            await fetchVirusArticles();
+            // todo analyze data
+            debug('Auto update finished.');
+        } catch (err) {
+            debug(`Auto update aborted.`);
+        }
     });
 }
 

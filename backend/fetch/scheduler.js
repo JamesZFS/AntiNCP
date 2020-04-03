@@ -12,4 +12,14 @@ const every = {
     tenMins: '*/10 * * * *',
 };
 
-module.exports = {scheduleJob: schedule.scheduleJob, twiceADay, onceADay, every};
+const fetchingPolicy = {
+    maxTrials: 4, // maximum times of fetching if download fails
+    interval: 5 * 60 * 1000, // interval between each trial in ms, 5mins
+}
+
+async function sleep(miliseconds) {
+    return new Promise(resolve => setTimeout(resolve, miliseconds));
+}
+
+
+module.exports = {scheduleJob: schedule.scheduleJob, twiceADay, onceADay, every, fetchingPolicy, sleep};
