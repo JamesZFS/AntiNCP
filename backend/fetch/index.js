@@ -79,10 +79,10 @@ async function fetchVirusArticles() {
     try {
         let oldRowCount = await db.countTableRows('Articles');
         let entries = await rss.getArticlesFromRss(articleSources, rss.isAboutVirus, rss.article2Entry);
-        let file = path.resolve(__dirname, '../public/data/rss/RSS-backup.txt');
-        // let maxIdx = entries.reduce((iMax, x, i, arr) => x.content.length > arr[iMax].content.length ? i : iMax, 0);
-        // console.log(maxIdx, entries[maxIdx].content.length);
-        fs.writeFileSync(file, JSON.stringify(entries, null, 4)); // backup
+        let backupFile = path.resolve(__dirname, '../public/data/rss/RSS-backup.txt');
+        // let entries = JSON.parse(fs.readFileSync(backupFile));
+        fs.writeFileSync(backupFile, JSON.stringify(entries, null, 4)); // backup
+        debug(`Articles backed up into ${backupFile}`);
         await db.insertArticleEntries(entries);
         let newRowCount = await db.countTableRows('Articles');
         debug('Virus article fetching success.', chalk.green(`[+] ${newRowCount - oldRowCount} rows.`), `In total ${newRowCount} rows in db.`);

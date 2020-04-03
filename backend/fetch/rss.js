@@ -4,6 +4,7 @@ const debug = require('debug')('backend:fetch:rss');
 const rssParser = require('rss-parser');
 const dateFormat = require('dateformat');
 const chalk = require('chalk');
+const utf8 = require('utf8');
 const escape = require('../database').escape;
 const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|covid/ig.compile(); // i - ignore capitalization, g - global
 const MAX_FIELD_LEN = 5000; // greater than any column limit in db
@@ -65,16 +66,16 @@ function isAboutVirus(text) {
 function article2Entry(article) {
     let result = {
         date: dateFormat(article['date'] || article['pubDate'] || article['dc:date'] || new Date(), 'yyyy-mm-dd HH:MM:ss'),
-        title: article['title'],
-        link: article['link'] || article['guid'],
-        creator: article['creator'] || article['author'] || article['dc:creator'] || article.articleSource.name,
+        title: article['title'].slice(0, 1010), // slice to avoid length overflow
+        link: (article['link'] || article['guid']).slice(0, 2070),
+        creator: (article['creator'] || article['author'] || article['dc:creator'] || article.articleSource.name).slice(0, 500),
         content: article['content'] || article['contentSnippet'] || article['description'] || article['title'],
-        sourceName: article.articleSource.name,
-        sourceShort: article.articleSource.short
+        sourceName: article.articleSource.name.slice(0, 500),
+        sourceShort: article.articleSource.short.slice(0, 500)
     };
     let missingColumns = Object.entries(result).filter(([_k, val]) => !val);
     if (missingColumns.length > 0) throw new Error(`Columns ${chalk.red(missingColumns.toString())} missing.`);
-    for (let key in result) result[key] = escape(result[key]);
+    for (let key in result) result[key] = escape(utf8.encode(result[key])); // re-encode & escape
     return result;
 }
 

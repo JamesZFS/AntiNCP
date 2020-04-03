@@ -1,15 +1,17 @@
 'use strict';
 const redis = require('redis');
-var client;
 const red = require('chalk').red;
 const debug = require('debug')('backend:retrieve:cache');
+const host = process.env.REMOTE_DB ? require('../../config/db-cfg').TENCENT_MYSQL_CFG.host : 'localhost';
+var client;
 
 /**
  * @return {Promise<void>}
  */
 async function initialize() {
     return new Promise(async resolve => {
-        client = redis.createClient();
+        debug(`Connecting to ${host}:6379`);
+        client = redis.createClient({host: host});
         client.on('connect', () => {
             debug('Redis initialized.');
             resolve();
