@@ -5,16 +5,6 @@ const AMINER_EPIDEMIC_API = 'https://innovaapi.aminer.cn/predictor/api/v1/valhal
 
 const DXY = {
     areaAPI: 'https://raw.githubusercontent.com/BlankerL/DXY-COVID-19-Data/master/csv/DXYArea.csv', // Ding XiangYuan
-    header2DBField: {
-        'updateTime': 'date',
-        'countryName': 'country',
-        'provinceName': 'province',
-        'cityName': 'city',
-        'city_confirmedCount': 'confirmedCount',
-        'city_suspectedCount': 'suspectedCount',
-        'city_curedCount': 'curedCount',
-        'city_deadCount': 'deadCount'
-    },
     downloadDir: 'public/data/dxy-area/',
     expColumns: [
         'updateTime',
@@ -26,7 +16,6 @@ const DXY = {
         'province_deadCount',
         'cityName',
         'city_confirmedCount',
-        'city_suspectedCount',
         'city_curedCount',
         'city_deadCount'
     ],
@@ -44,14 +33,12 @@ const DXY = {
         if (row.city_confirmedCount) { // a city row
             Object.assign(result, {
                 confirmedCount: escape(row.city_confirmedCount || '0'),
-                suspectedCount: escape(row.city_suspectedCount || '0'),
                 curedCount: escape(row.city_curedCount || '0'),
                 deadCount: escape(row.city_deadCount || '0'),
             })
         } else { // a province / country row
             Object.assign(result, {
                 confirmedCount: escape(row.province_confirmedCount || '0'),
-                suspectedCount: escape(row.province_suspectedCount || '0'),
                 curedCount: escape(row.province_curedCount || '0'),
                 deadCount: escape(row.province_deadCount || '0'),
             })
@@ -63,7 +50,7 @@ const DXY = {
 const CHL = {
     areaAPI: 'https://raw.githubusercontent.com/canghailan/Wuhan-2019-nCoV/master/Wuhan-2019-nCoV.csv',
     downloadDir: 'public/data/chl-area/',
-    expColumns: ['date', 'country', 'province', 'city', 'confirmed', 'suspected', 'cured', 'dead'],
+    expColumns: ['date', 'country', 'province', 'city', 'confirmed', 'cured', 'dead'],
     /**
      * @param row{Object}  row in the csv file, repr in json
      * @return {Object}    entry to insert into db, repr in json
@@ -74,10 +61,10 @@ const CHL = {
             country: escape(row.country),
             province: escape(row.province),
             city: escape(row.city),
-            confirmedCount: escape(row.confirmed),
-            suspectedCount: escape(row.suspected),
-            curedCount: escape(row.cured),
-            deadCount: escape(row.dead),
+            // active count computed by database
+            confirmedCount: escape(row.confirmed || '0'),
+            curedCount: escape(row.cured || '0'),
+            deadCount: escape(row.dead || '0'),
         }
     }
 };

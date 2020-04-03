@@ -164,7 +164,7 @@ function insertEntries(table, entries) {
      province: '四川省',
      city: '成都',
      confirmedCount: 10,
-     suspectedCount: 12,
+     activeCount: 12,
      curedCount: 13,
      deadCount: 5,
  }).then((res) => {

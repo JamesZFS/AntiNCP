@@ -14,6 +14,6 @@ const TENCENT_MYSQL_CFG = { // only for testing purpose
     multipleStatements: true,
 };
 
-const EPIDEMIC_DATA_KINDS = ['confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'];
+const EPIDEMIC_DATA_KINDS = ['confirmedCount', 'activeCount', 'curedCount', 'deadCount'];
 
 module.exports = {LOCAL_MYSQL_CFG, TENCENT_MYSQL_CFG, EPIDEMIC_DATA_KINDS};

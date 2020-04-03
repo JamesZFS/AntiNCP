@@ -80,9 +80,12 @@ async function fetchVirusArticles() {
         let entries;
         let trial = scheduler.fetchingPolicy.maxTrials;
         while (true) {
+            // debug(`trials left: ${trial}`);
             try {
                 entries = await rss.getArticlesFromRss(articleSources, rss.isAboutVirus, rss.article2Entry);
-                if (!entries || entries.length === 0) throw new Error();
+                if (!entries || entries.length === 0) { // noinspection ExceptionCaughtLocallyJS
+                    throw new Error();
+                }
             } catch (err) { // retry
                 debug(`Fail to fetch, retry in ${scheduler.fetchingPolicy.interval / 60000} mins.`);
                 if (--trial > 0) {
@@ -91,7 +94,7 @@ async function fetchVirusArticles() {
                 } else {  // give up
                     console.error(chalk.red('Fail to fetch from rss article source. Skip this update.'), err.message);
                     return {startId, endId: startId};
-                };
+                }
             }
             break; // success
         }

@@ -12,11 +12,11 @@ const {URL} = require('url');
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.2.3
+ * @apiVersion 0.3.0
  * @apiGroup Timeline
  * @apiPermission everyone
  *
- * @apiParam (Query Param) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}, can be multiple
+ * @apiParam (Query Param) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query Param) {none} verbose       return {name:..., value:...} or just the value buffer.
  *
  * @apiExample {curl} Example usage:
@@ -156,12 +156,12 @@ router.get('/epidemic/timeline/world', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.2.3
+ * @apiVersion 0.3.0
  * @apiGroup Timeline
  * @apiPermission everyone
  *
  * @apiParam (Query Param) {string}  country
- * @apiParam (Query Param) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}, can be multiple
+ * @apiParam (Query Param) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query Param) {none} verbose       return {name:..., value:...} or just the value buffer
  *
  * @apiExample {curl} Example usage:
@@ -305,13 +305,13 @@ router.get('/epidemic/timeline/country', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.2.3
+ * @apiVersion 0.3.0
  * @apiGroup Timeline
  * @apiPermission everyone
  *
  * @apiParam (Query Param) {string}  country
  * @apiParam (Query Param) {string}  province
- * @apiParam (Query Param) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}, can be multiple
+ * @apiParam (Query Param) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query Param) {none} verbose        return {name:..., value:...} or just the value buffer. see the example 2 for details
  *
  * @apiExample {curl} Example usage 1:
