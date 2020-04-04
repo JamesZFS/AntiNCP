@@ -6,7 +6,7 @@ const dateFormat = require('dateformat');
 const chalk = require('chalk');
 const utf8 = require('utf8');
 const escape = require('../database').escape;
-const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|covid/ig.compile(); // i - ignore capitalization, g - global
+const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|covid|quarantine/ig; // i - ignore capitalization, g - global
 const MAX_FIELD_LEN = 5000; // greater than any column limit in db
 
 /**
@@ -14,10 +14,9 @@ const MAX_FIELD_LEN = 5000; // greater than any column limit in db
  * @param rssSources{object[]|Object} should look like stuffs in '../config/third-party/rss'
  * @param filter{callback|undefined}   if given, return only articles whose title or link match the filter
  * @param map{callback|undefined}   if given, will map an article object to another object, if throwing error, skip the article
- * @param tryHarder{boolean}      if true, will try filtering the content
  * @return {Promise<Object[]>}
  */
-async function getArticlesFromRss(rssSources, filter, map, tryHarder = false) {
+async function getArticlesFromRss(rssSources, filter, map) {
     const articles = [];
     // rss parser
     const parser = new rssParser();
@@ -26,7 +25,7 @@ async function getArticlesFromRss(rssSources, filter, map, tryHarder = false) {
         try {
             let feeds = await parser.parseURL(source.url);
             feeds.items.forEach(item => {
-                if (!filter || filter(item.title) || filter(item.link) || (tryHarder && filter(item.content))) {
+                if (!filter || filter(item.title) || filter(item.link) || filter(item.content)) {
                     item.articleSource = {
                         short: source.short,
                         name: source.name

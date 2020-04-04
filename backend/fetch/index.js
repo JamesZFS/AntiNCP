@@ -71,7 +71,7 @@ async function downloadEpidemicData() {
 
 /**
  * Fetch articles related to virus, insert into db (INCREMENTALLY)
- * @return {Promise<Object>}  {startId: int, endId: int} range of newly inserted db entry (startId <= endId, specially, s == e means no update)
+ * @return {Promise<{startId: int, endId: int}>}  range of newly inserted db entry (startId <= endId, specially, s == e means no update)
  */
 async function fetchVirusArticles() {
     debug('Fetching virus articles...');
@@ -107,7 +107,7 @@ async function fetchVirusArticles() {
         var endId = (await db.selectInTable('Articles', 'MAX(id) AS res'))[0].res + 1;
         debug('Virus article fetching success.', chalk.green(`[+] ${endId - startId} rows.`), `In total ${endId - 1} rows in db.`);
     } catch (err) {
-        console.error(chalk.red('Fatal failure when fetching articles:'), err.message);
+        console.error(chalk.red('Fatal error when fetching articles:'), err.message);
         throw err;
     }
     return {startId, endId};
@@ -131,11 +131,12 @@ function initialize() {
     scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
         debug(`Auto update begins at ${time}`);
         try {
-            await fetchVirusArticles();
+            let {startId, endId} = await fetchVirusArticles();
             // todo analyze data
             debug('Auto update finished.');
         } catch (err) {
-            debug(`Auto update aborted.`);
+            debug('Auto update aborted.');
+            console.error(err);
         }
     });
 }

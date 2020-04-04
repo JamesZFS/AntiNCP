@@ -74,7 +74,7 @@ router.get('/epidemic/timeline/world', async function (req, res) {
             }
             // not hit:
         }
-        { // Get epidemic world data, todo need faster impl
+        { // Get epidemic world data
             var worldTimeline = {};
             for (let dataKind of dataKinds) {
                 worldTimeline[dataKind] = [];

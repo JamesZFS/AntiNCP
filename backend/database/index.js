@@ -44,8 +44,8 @@ async function handleDisconnect() {
     }
     // If you're also serving http, display a 503 error.
     connection.on('error', function (err) {
-        if (err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
-            debug('Connection lost, attempting to reconnect...');
+        if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT') { // Connection to the MySQL server is usually
+            debug('Connection lost, attempting to reconnect...', err.code, err.message);
             initialize();                         // lost due to either server restart, or a
         } else {                                      // connnection idle timeout (the wait_timeout
             console.error('Unknown database connection error.');
@@ -69,6 +69,13 @@ function doSql(sql) {
             if (error) reject(error);
             else resolve(result);
         });
+    }).catch(err => {
+        if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT') { // try reconnect
+            debug('doSql:', err.code, err.message);
+            return handleDisconnect().then(() => doSql(sql));
+        } else {
+            return Promise.reject(err); // handled by caller
+        }
     })
 }
 
@@ -326,6 +333,18 @@ async function insertArticleEntries(entries) {
 }
 
 /**
+ * Select given fields from the table, **be aware of injection attack!**
+ * @param fields{string|string[]}
+ * @param conditions{undefined|string|string[]}
+ * @param distinct{undefined|boolean} whether to de-duplicate
+ * @param extra{undefined|string} as sql suffix
+ * @return Promise<Object>
+ */
+function selectArticles(fields, conditions, distinct, extra) {
+    return selectInTable('Articles', fields, conditions, distinct, extra);
+}
+
+/**
  * Call mysql escapeId
  * @param id{string}
  * @return {string}
@@ -349,6 +368,6 @@ module.exports = {
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, countTableRows, selectInTable, selectEpidemicData,
     selectAvailableCities, selectAvailableProvinces, selectAvailableCountries, refreshAvailablePlaces,
-    insertArticleEntry, insertArticleEntries,
+    insertArticleEntry, insertArticleEntries, selectArticles,
     updateClientInfo, getClientInfo
 };
