@@ -80,7 +80,6 @@ async function fetchVirusArticles() {
         let entries;
         let trial = scheduler.fetchingPolicy.maxTrials;
         while (true) {
-            // debug(`trials left: ${trial}`);
             try {
                 entries = await rss.getArticlesFromRss(articleSources, rss.isAboutVirus, rss.article2Entry);
                 if (!entries || entries.length === 0) { // noinspection ExceptionCaughtLocallyJS
