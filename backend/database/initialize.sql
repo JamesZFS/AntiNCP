@@ -54,15 +54,15 @@ COMMENT = 'Articles related to COVID-19.';
 CREATE TABLE IF NOT EXISTS `Trends` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `date` DATE NOT NULL,
-  `word` VARCHAR(128) NOT NULL,
-  `value` INT UNSIGNED NOT NULL,
+  `word` VARCHAR(32) NOT NULL,
+  `value` DOUBLE UNSIGNED NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `idx` (`date` ASC, `word` ASC))
 COMMENT = 'Trends table';
 -- Word-to-article index
 CREATE TABLE IF NOT EXISTS `WordIndex` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT, -- wordId
-  `word` VARCHAR(128) UNIQUE NOT NULL,  -- stemless
+  `word` VARCHAR(32) UNIQUE NOT NULL,  -- stemless
   `occurrences` LONGTEXT NOT NULL, -- stringified dict like {articleId: [this word's freq in this article],...}
   PRIMARY KEY (`id`))
 COMMENT = 'Word-to-article index';

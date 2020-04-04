@@ -151,6 +151,7 @@ function insertEntry(table, entry) {
  * @return {Promise<Object>}
  */
 function insertEntries(table, entries) {
+    if (entries.length === 0) return Promise.resolve();
     let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {

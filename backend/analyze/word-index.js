@@ -1,12 +1,23 @@
 'use strict';
-const chalk = require('chalk');
-const debug = require('debug')('backend:analyze:word-index');
 const ProgressBar = require('progress');
 const db = require('../database');
 const natural = require('natural');
 const getPageRank = require('../config/third-party/articles').getPageRank;
-require('./preprocess');
+require('./preprocess'); // register `tokenize`, `stem` & `tokenizeAndStem` method
 
+
+/**
+ * Preprocess articles into stemmed tokens **in place**
+ * @param articles{Object[]}
+ * @return {Object[]}
+ */
+function preprocessArticles(articles) {
+    articles.forEach(article => {
+        article.tokens = article.title.tokenizeAndStem().concat(article.content.tokenizeAndStem());
+        article.pagerank = getPageRank(article.sourceName);
+    });
+    return articles;
+}
 
 /**
  * Create wordIndex whose value is tfidf in all documents
@@ -69,24 +80,6 @@ function createWordIndex_pagerank(articles, warmStart) {
     return wordIndex;
 }
 
-async function main() {
-    await db.initialize();
-    let articles = await db.selectArticles('*');
-    console.log('length:', articles.length);
-    articles.forEach(article => {
-        article.tokens = article.title.tokenizeAndStem().concat(article.content.tokenizeAndStem());
-        article.pagerank = getPageRank(article.sourceName);
-    });
-    let wordIndex = createWordIndex_pagerank(articles);
-    // console.log(wordIndex);
-    await db.clearTable('WordIndex');
-    await storeWordIndex(wordIndex);
-    let rows = await db.countTableRows('WordIndex');
-    console.log(chalk.green(`[+] ${rows} rows`));
-
-    process.exit(0);
-}
-
 Map.prototype.serialize = function (...args) {
     return JSON.stringify([...this.entries()], ...args);
 };
@@ -122,7 +115,11 @@ async function loadWordIndex() {
 }
 
 
-main().catch(err => {
-    console.error(err);
-    process.exit(1);
-});
+module.exports = {
+    preprocessArticles,
+    createWordIndex_pagerank,
+    createWordIndex_tfidf,
+    storeWordIndex,
+    loadWordIndex,
+    deserialize
+};

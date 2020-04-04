@@ -6,8 +6,7 @@ const dateFormat = require('dateformat');
 const chalk = require('chalk');
 const utf8 = require('utf8');
 const escape = require('../database').escape;
-const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|covid|quarantine/ig; // i - ignore capitalization, g - global
-const MAX_FIELD_LEN = 5000; // greater than any column limit in db
+const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|flu|covid|quarantine/ig; // i - ignore capitalization, g - global
 
 /**
  * Get articles from rss sources
