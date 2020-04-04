@@ -45,7 +45,7 @@ async function handleDisconnect() {
     // If you're also serving http, display a 503 error.
     connection.on('error', function (err) {
         if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT') { // Connection to the MySQL server is usually
-            debug('Connection lost, attempting to reconnect...', err.code, err.message);
+            debug('Connection lost, attempting to reconnect...', err.message);
             initialize();                         // lost due to either server restart, or a
         } else {                                      // connnection idle timeout (the wait_timeout
             console.error('Unknown database connection error.');
@@ -71,8 +71,8 @@ function doSql(sql) {
         });
     }).catch(err => {
         if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT') { // try reconnect
-            debug('doSql:', err.code, err.message);
-            return handleDisconnect().then(() => doSql(sql));
+            debug('doSql:', err.message);
+            return initialize().then(() => doSql(sql));
         } else {
             return Promise.reject(err); // handled by caller
         }

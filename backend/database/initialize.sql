@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS `Trends` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `date` DATE NOT NULL,
   `word` VARCHAR(32) NOT NULL,
-  `value` DOUBLE UNSIGNED NOT NULL,
+  `value` DOUBLE NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `idx` (`date` ASC, `word` ASC))
 COMMENT = 'Trends table';

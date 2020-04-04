@@ -5,8 +5,10 @@ const rssParser = require('rss-parser');
 const dateFormat = require('dateformat');
 const chalk = require('chalk');
 const utf8 = require('utf8');
+const stripHtml = require("string-strip-html");
 const escape = require('../database').escape;
 const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|flu|covid|quarantine/ig; // i - ignore capitalization, g - global
+const URL_REG = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\\+.~#?&/=]*)/g;
 
 /**
  * Get articles from rss sources
@@ -64,10 +66,10 @@ function isAboutVirus(text) {
 function article2Entry(article) {
     let result = {
         date: dateFormat(article['date'] || article['pubDate'] || article['dc:date'] || new Date(), 'yyyy-mm-dd HH:MM:ss'),
-        title: article['title'].slice(0, 1010), // slice to avoid length overflow
+        title: stripHtml(article['title']).replace(URL_REG, '').slice(0, 1010), // slice to avoid length overflow
         link: (article['link'] || article['guid']).slice(0, 2070),
         creator: (article['creator'] || article['author'] || article['dc:creator'] || article.articleSource.name).slice(0, 500),
-        content: article['content'] || article['contentSnippet'] || article['description'] || article['title'],
+        content: stripHtml(article['content'] || article['contentSnippet'] || article['description'] || article['title']).replace(URL_REG, ''),
         sourceName: article.articleSource.name.slice(0, 500),
         sourceShort: article.articleSource.short.slice(0, 500)
     };

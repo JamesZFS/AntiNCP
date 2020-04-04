@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "AntiNCP Backend",
   "private": true,
   "scripts": {
@@ -30,6 +30,7 @@
     "pug": "^2.0.4",
     "redis": "^3.0.2",
     "rss-parser": "^3.7.6",
+    "string-strip-html": "^4.3.19",
     "utf8": "^3.0.0"
   }
 }
