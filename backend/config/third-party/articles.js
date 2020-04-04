@@ -130,6 +130,18 @@ const TWITTER_RSS = {
         name: 'Twitter AFP news agency',
         url: 'https://twitrss.me/twitter_user_to_rss/?user=AFP',
         pagerank: 10,
+    },
+    chinadaily: {
+        short: '@ChinaDaily',
+        name: 'Twitter China Daily',
+        url: 'https://twitrss.me/twitter_user_to_rss/?user=ChinaDaily',
+        pagerank: 10,
+    },
+    cctv: {
+        short: '@CCTV',
+        name: 'Twitter CCTV',
+        url: 'https://twitrss.me/twitter_user_to_rss/?user=CCTV',
+        pagerank: 10,
     }
 };
 

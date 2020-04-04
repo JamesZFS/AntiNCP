@@ -11,7 +11,6 @@ const DXY = {
         'countryName',
         'provinceName',
         'province_confirmedCount',
-        'province_suspectedCount',
         'province_curedCount',
         'province_deadCount',
         'cityName',
