@@ -35,6 +35,8 @@ async function refreshTrends() {
         await db.clearTable('Trends'); // todo use tmp table and alter name
         let res = await db.selectArticles(['MAX(date)', 'MIN(date)']);
         let dateMax = new Date(res[0]['MAX(date)']), dateMin = new Date(res[0]['MIN(date)']);
+        dateMin = new Date(dateMin.toLocaleDateString());
+        dateMax = new Date(dateMax.toLocaleDateString());
         // fetch articles within each day
         await trends.storeTrendsWithin(dateMin, dateMax);
         var newRows = await db.countTableRows('Trends');

@@ -84,6 +84,11 @@ Map.prototype.serialize = function (...args) {
     return JSON.stringify([...this.entries()], ...args);
 };
 
+/**
+ * Deserialize a map from string
+ * @param str{string}
+ * @return {Map}
+ */
 function deserialize(str) {
     return JSON.parse(str).reduce((m, [key, val]) => m.set(key, val), new Map());
 }

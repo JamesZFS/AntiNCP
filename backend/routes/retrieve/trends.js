@@ -1,8 +1,8 @@
 'use strict';
 const dateFormat = require('dateformat');
-const createError = require('http-errors');
 const router = require('express').Router();
 const debug = require('debug')('backend:retrieve:trends');
+const wi = require('../../analyze/word-index');
 const db = require('../../database');
 
 Date.prototype.addDay = function (days = 1) {
@@ -12,7 +12,7 @@ Date.prototype.addDay = function (days = 1) {
 };
 
 /**
- * @api {get} /api/retrieve/trends/timeline/:dateMin/:dateMax/  Get trends timeline api
+ * @api {get} /api/retrieve/trends/timeline/:dateMin/:dateMax  Get trends timeline api
  * @apiName GetTrendsTimeline
  * @apiVersion 0.1.0
  * @apiGroup Trends
@@ -27,24 +27,24 @@ Date.prototype.addDay = function (days = 1) {
  *
  * @apiExample Response (example):
  [
-    {
+ {
         "name": "coronaviru",
         "value": 25065.69000000006
     },
-    {
+ {
         "name": "new",
         "value": 6859.9599999999955
     },
-    {
+ {
         "name": "us",
         "value": 6742.839999999995
     }
  ]
- * @apiSampleRequest /api/retrieve/trends/timeline/:dateMin/:dateMax/
+ * @apiSampleRequest /api/retrieve/trends/timeline/:dateMin/:dateMax
  */
 router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
     let dateMin = new Date(req.params.dateMin), dateMax = new Date(req.params.dateMax);
-    let limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 1000);
+    // Validate date:
     if (isNaN(dateMin.valueOf()) || isNaN(dateMax.valueOf())) {
         res.status(400).render('error', {message: 'date invalid!', status: 400});
         return;
@@ -53,7 +53,7 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
         res.status(400).render('error', {message: 'dateMin should be no greater than dateMax!', status: 400});
         return;
     }
-    debug(`dateMin: ${dateMin}, dateMax: ${dateMax}`);
+    let limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 1000); // 1 ~ 1000
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
     try {
@@ -63,7 +63,129 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
         res.status(200).send(result);
     } catch (err) {
         res.status(500).end();
-        throw err;
+        debug('Unconfirmed error:', err);
+    }
+});
+
+
+/**
+ * @api {get} /api/retrieve/trends/articleId/:dateMin/:dateMax/:words  Get article id via words api
+ * @apiName GetTrendsArticleIds
+ * @apiVersion 0.1.0
+ * @apiGroup Trends
+ * @apiPermission everyone
+ *
+ * @apiParam (Param) {string}  dateMin    date string in host's timezone, lower query bound(included)
+ * @apiParam (Param) {string}  dateMax    date string in host's timezone, upper query bound(included), should be no lesser than `dateMin`
+ * @apiParam (Param) {string}  words      words to query for article ids,
+ *  better not be stop words, no more than 20 words each query, or **a 400 response** will be returned
+ * @apiParam (Query) {string}   mode      'or' | 'and', default 'and', to specify how the corresponding ids should be merged
+ *  (and - intersect, or - union)
+ *
+ * @apiExample {curl} Example usage:
+ *     curl "http://localhost/api/retrieve/trends/articleId/2020-4-1/2020-4-4/China&quarantine?mode=and"
+ *
+ * @apiExample Response (example):
+ {
+    "count": 10,
+    "articleIds": [
+        2395,
+        2398,
+        1959,
+        2519,
+        2634,
+        3165,
+        1652,
+        1554,
+        1956,
+        2472
+    ]
+ }
+ * @apiSampleRequest /api/retrieve/trends/articleId/:dateMin/:dateMax/:words
+ */
+router.get('/articleId/:dateMin/:dateMax/:words', async function (req, res) {
+    let dateMin = new Date(req.params.dateMin), dateMax = new Date(req.params.dateMax);
+    // Validate date:
+    if (isNaN(dateMin.valueOf()) || isNaN(dateMax.valueOf())) {
+        res.status(400).render('error', {message: '`dateMin` or `dateMax` invalid!', status: 400});
+        return;
+    }
+    if (dateMin > dateMax) {
+        res.status(400).render('error', {message: '`dateMin` should be no greater than `dateMax`!', status: 400});
+        return;
+    }
+    try {
+        var words = req.params.words.tokenizeAndStem();
+        if (words.length === 0 || words.length > 20) { // noinspection ExceptionCaughtLocallyJS
+            throw new Error();
+        }
+    } catch (err) {
+        res.status(400).render('error', {
+            message: 'Bad `words` param! (Don\'t use stop words, or too many words in a request)',
+            status: 400
+        });
+        return;
+    }
+    dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
+    dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
+    let mode = typeof req.query.mode === 'string' && req.query.mode.toLowerCase() === 'or' ? 'or' : 'and'; // default: 'and'
+    debug(`dateMin: ${dateMin}, dateMax: ${dateMax}, words: ${JSON.stringify(words)}, mode: ${mode}`);
+    try {
+        let acc; // Map: articleId => value
+        for (let word of words) {
+            let res = await db.selectInTable('WordIndex', 'occurrences', `word=${db.escape(word)}`, false, 'LIMIT 1');
+            let cur = res.length > 0 ? wi.deserialize(res[0].occurrences) : new Map();
+            if (acc === undefined) // first word
+                acc = cur;
+            else { // union or intersect keys based on `mode`
+                if (mode === 'or') {
+                    for (let [key, curVal] of cur) {
+                        let oldVal = acc.get(key) || 0;
+                        acc.set(key, oldVal + curVal);
+                    }
+                } else { // and
+                    let newMap = new Map();
+                    for (let [key, curVal] of cur) {
+                        let oldVal = acc.get(key);
+                        if (oldVal) {
+                            newMap.set(key, oldVal + curVal);
+                        }
+                    }
+                    acc = newMap;
+                    if (acc.size === 0) { // early stop
+                        acc = undefined;
+                        break;
+                    }
+                }
+            }
+        }
+        if (acc === undefined || acc.size === 0) { // not found
+            res.status(200).send({
+                count: 0,
+                articleIds: []
+            });
+            return;
+        }
+        // todo: possibly cache the map
+        let idsWithinDate;
+        let sortedIds = [];
+        await Promise.all([ // Run in parallel
+            new Promise(resolve => {
+                sortedIds = [...acc.entries()].sort((a, b) => a[1] > b[1]).map(x => x[0]); // fewer
+                resolve();
+            }),
+            db.selectArticles('id', `date BETWEEN ${dateMin} AND ${dateMax}`)
+                .then(res => idsWithinDate = new Set(res.map(x => x.id))) // more
+        ]);
+        let filteredIds = sortedIds.filter(id => idsWithinDate.has(id));
+        // debug(sortedIds.length - filteredIds.length);
+        res.status(200).send({
+            count: filteredIds.length,
+            articleIds: filteredIds
+        });
+    } catch (err) {
+        res.status(500).end();
+        debug('Unconfirmed error:', err);
     }
 });
 

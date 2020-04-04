@@ -7,6 +7,7 @@ const cache = require('./cache');
 const {EPIDEMIC_DATA_KINDS} = require('../../config/db-cfg');
 const {URL} = require('url');
 
+// TODO use param like way, /:dateMin/:dateMax/:dataKinds ...
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
