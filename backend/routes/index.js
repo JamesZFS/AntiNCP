@@ -1,3 +1,4 @@
+'use strict';
 const express = require('express');
 const debug = require('debug')('backend:index');
 const router = express.Router();
