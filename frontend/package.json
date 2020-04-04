@@ -25,9 +25,11 @@
     "vue-axios": "2.1.5",
     "vue-cookies": "^1.7.0",
     "vue-router": "^3.0.1",
-    "vuejs-logger": "1.5.4"
+    "vuejs-logger": "1.5.4",
+    "vuetify": "^2.2.20"
   },
   "devDependencies": {
+    "@mdi/font": "^5.0.45",
     "autoprefixer": "^7.1.2",
     "babel-core": "^6.22.1",
     "babel-eslint": "^8.2.1",

@@ -1,24 +1,24 @@
 <!-- Page2 -->
 <template>
-  <div class="page2">
-    <div>
+  <v-container>
+    <v-card class="mt-5">
       <h1>疫情相关报道时间轴，等待开发</h1>
-    </div>
-  </div>
+    </v-card>
+  </v-container>
 </template>
 
 <script>
-import NavBar from './NavBar'
+  import NavBar from './NavBar'
 
-export default {
-  name: 'PandemicReports',
-  components: {NavBar},
-  data () {
-    return {
-      count: 0
+  export default {
+    name: 'PandemicReports',
+    components: {NavBar},
+    data() {
+      return {
+        count: 0
+      }
     }
   }
-}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -43,6 +43,6 @@ export default {
 
   .page2 {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
   }
 </style>

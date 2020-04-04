@@ -1,6 +1,6 @@
 <!-- 含有时间轴的热度图组件 -->
 <template>
-  <div id="TimelineHeatMap" v-loading="isloading" style="width: 80vw;height: 80vh;"></div>
+  <div id="TimelineHeatMap" v-loading="isloading" style="width: 80vw;height: 80vh;" class="mx-auto"></div>
 </template>
 
 <script>
@@ -103,7 +103,7 @@
         empty_option: {
           title: {
             text: '2020-01-10' + this.cur_superiorPlace + '疫情状况', textStyle: {
-              fontSize: 25
+              fontSize: '25vw'
             },
           },
           visualMap: {
@@ -200,14 +200,15 @@
             title: {
               subtext: '数据来自***',
               subtextStyle: {
-                fontSize: 20
+                fontSize: '20vw'
               },
             },
             tooltip: {},
             legend: {
               left: 'right',
+              top:"10%",
               textStyle: {
-                fontSize: 25
+                fontSize: '25vw'
               },
               data: ['疑似', '确诊', '治愈', '死亡'],
               selectedMode: 'single',
@@ -218,6 +219,10 @@
             grid: {
               top: 80,
               bottom: 100
+              // left: '3%',
+              // right: '4%',
+              // bottom: '3%',
+              // containLabel: true
             },
             series: [
               {name: '疑似', type: 'map', map: this.cur_superiorPlace, showSymbol: false},

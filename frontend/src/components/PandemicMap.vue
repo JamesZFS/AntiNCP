@@ -1,19 +1,15 @@
 <!-- Page1 -->
 <!--suppress ALL -->
 <template>
-  <div class="page1">
-    <div class="mypic">
-      <div>
-        <el-button @click="returnworldmap()">全球疫情地图</el-button>
-        <el-button @click="returnchinamap()">中国疫情地图</el-button>
-      </div>
-      <div margin="100px 0" v-loading="loading">
-        <TimelineHeatMap ref="myheatmap"></TimelineHeatMap>
-      </div>
-      <div margin="100px 0" v-loading="loading">
-        <PredictionChart ref="mypredictionchart"></PredictionChart>
-      </div>
-    </div>
+  <div class="mypic">
+    <v-card v-loading="loading">
+      <v-btn @click="returnworldmap()">全球疫情地图</v-btn>
+      <v-btn @click="returnchinamap()">中国疫情地图</v-btn>
+      <TimelineHeatMap ref="myheatmap" class="ml-3 pl-1"></TimelineHeatMap>
+    </v-card>
+    <v-card v-loading="loading" class="pt-10">
+      <PredictionChart ref="mypredictionchart" class="ml-3 mr-3 pl-10 pt-10"></PredictionChart>
+    </v-card>
   </div>
 </template>
 
