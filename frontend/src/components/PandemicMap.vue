@@ -8,7 +8,7 @@
       <TimelineHeatMap ref="myheatmap" class="ml-3 pl-1"></TimelineHeatMap>
     </v-card>
     <v-card v-loading="loading" class="pt-10">
-      <PredictionChart ref="mypredictionchart" class="ml-3 mr-3 pl-10 pt-10"></PredictionChart>
+      <PredictionChart ref="mypredictionchart"></PredictionChart>
     </v-card>
   </div>
 </template>

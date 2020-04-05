@@ -1,9 +1,12 @@
 <!-- Page3 -->
 <template>
-  <div class="page3">
-    <div>
-      <TimelineWordCloud></TimelineWordCloud>
-    </div>
+  <div class="HotWords">
+    <v-card>
+
+    </v-card>
+<!--    <div>-->
+<!--      <TimelineWordCloud></TimelineWordCloud>-->
+<!--    </div>-->
   </div>
 </template>
 
@@ -41,7 +44,7 @@ export default {
     color: #42b983;
   }
 
-  .page3 {
+  .HotWords {
     display: flex;
     flex-direction: row;
   }

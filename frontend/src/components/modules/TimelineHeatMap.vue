@@ -1,6 +1,6 @@
 <!-- 含有时间轴的热度图组件 -->
 <template>
-  <div id="TimelineHeatMap" v-loading="isloading" style="width: 80vw;height: 80vh;" class="mx-auto"></div>
+  <div id="TimelineHeatMap" v-loading="isloading" style="width: 90%;height: 80vh;"></div>
 </template>
 
 <script>
@@ -187,6 +187,8 @@
               axisType: 'category',
               realtime: true,
               // loop: false,
+              right:'10%',
+              left:'10%',
               autoPlay: false,
               currentIndex: 0,
               playInterval: 1000,

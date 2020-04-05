@@ -1,6 +1,6 @@
 <!-- 预测图组件 -->
 <template>
-  <div id="PredictionChart" style="width: 80vw;height: 80vh;" class="mx-auto"></div>
+  <div id="PredictionChart" style="width: 85%;height: 80vh;" class="ml-5"></div>
 </template>
 
 <script>
@@ -57,8 +57,9 @@
         return {
           title: {
             text: this.cur_superiorPlace + '新冠疫情走势图',
-            subtext: 'Epidemic trend of new coronavirus in ' + this.cur_superiorPlace,
+            subtext: 'Epidemic trend of COVID-19 in ' + this.cur_superiorPlace,
             left: 'left',
+            top: 'top',
             textStyle: {
               fontSize: '25vw'
             },
@@ -79,6 +80,13 @@
           },
           yAxis: {
             type: 'value',
+            axisLabel: {
+              fontSize: '12',
+              inside: true
+            },
+            axisTick:{
+              inside: true
+            },
             splitLine: {
               lineStyle: {
                 type: 'dashed'
@@ -87,7 +95,7 @@
           },
           legend: {
             left: 'right',
-            top: "10%",
+            top: "8%",
             textStyle: {
               fontSize: '25vw'
             },
@@ -101,6 +109,7 @@
             {
               name: '疑似',
               type: 'scatter',
+              top: "20%",
               emphasis: {
                 label: {
                   show: true,
@@ -114,6 +123,7 @@
             {
               name: '疑似',
               type: 'line',
+              top: "20%",
               showSymbol: false,
               smooth: true,
               data: this.myRegression['suspectedCount'].points,
@@ -136,6 +146,7 @@
             {
               name: '确诊',
               type: 'scatter',
+              top: "20%",
               emphasis: {
                 label: {
                   show: true,
@@ -149,6 +160,7 @@
             {
               name: '确诊',
               type: 'line',
+              top: "20%",
               showSymbol: false,
               smooth: true,
               data: this.myRegression['confirmedCount'].points,
@@ -171,6 +183,7 @@
             {
               name: '治愈',
               type: 'scatter',
+              top: "20%",
               emphasis: {
                 label: {
                   show: true,
@@ -184,6 +197,7 @@
             {
               name: '治愈',
               type: 'line',
+              top: "20%",
               showSymbol: false,
               smooth: true,
               data: this.myRegression['curedCount'].points,
@@ -206,6 +220,7 @@
             {
               name: '死亡',
               type: 'scatter',
+              top: "20%",
               emphasis: {
                 label: {
                   show: true,
@@ -219,6 +234,7 @@
             {
               name: '死亡',
               type: 'line',
+              top: "20%",
               showSymbol: false,
               smooth: true,
               data: this.myRegression['deadCount'].points,

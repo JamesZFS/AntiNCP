@@ -2,7 +2,8 @@
   <v-app id="app">
     <v-container>
       <NavBar></NavBar>
-      <v-container class="pa-11">
+      <v-spacer></v-spacer>
+      <v-container class="pl-11">
         <router-view></router-view>
       </v-container>
     </v-container>
