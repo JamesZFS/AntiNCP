@@ -1,6 +1,7 @@
 'use strict';
 const router = require('express').Router();
 const debug = require('debug')('backend:retrieve:articles');
+const dateFormat = require('dateformat');
 const db = require('../../database');
 
 Date.prototype.addSec = function (secs = 1) {
@@ -116,8 +117,8 @@ router.get('/timeRange/:timeMin/:timeMax', async function (req, res) {
     }
     let limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 100); // 1 ~ 100
     let order = typeof req.query.order === 'string' && req.query.order.toLowerCase() === 'asc' ? 'ASC' : 'DESC'; // default: 'DESC'
-    timeMin = db.escape(timeMin.toLocaleString());
-    timeMax = db.escape(timeMax.addSec().toLocaleString());
+    timeMin = db.escape(dateFormat(timeMin, 'yyyy-mm-dd HH:MM:ss'));
+    timeMax = db.escape(dateFormat(timeMax.addSec(), 'yyyy-mm-dd HH:MM:ss'));
     // debug(timeMin, timeMax);
     try {
         let result = await db.selectArticles('*', `date BETWEEN ${timeMin} AND ${timeMax}`,

@@ -51,7 +51,7 @@ async function refreshTrends() {
 
 function initialize() {
     // Update WordIndex and Trends table periodically
-    scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
+    scheduler.scheduleJob(scheduler.twiceADay, async function (time) {
         debug('Auto update begins at', chalk.bgGreen(`${time}`));
         let cp = childProcess.fork(path.resolve(__dirname, './child-job'), null, {silent: true});
         cp.on('exit', code => {
