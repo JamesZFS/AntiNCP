@@ -1,8 +1,9 @@
+'use strict';
 const express = require('express');
 const debug = require('debug')('backend:index');
 const router = express.Router();
-const retrieveRouter = require('./retrieve/retrieve');
-const db = require('../database/db-manager');
+const retrieveRouter = require('./retrieve');
+const db = require('../database');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -21,7 +22,7 @@ router.use('/retrieve', retrieveRouter);
  * @apiDescription A test api
  *
  * @apiExample Example usage:
- * curl http://localhost:3000/api/test
+ * curl http://localhost/api/test
  *
  * @apiSuccess {String}   result    "ok!"
  *
@@ -42,7 +43,7 @@ router.get('/test', function (req, res) {
  * @apiDescription This api will return how many users has visited this website (recorded via ip)
  *
  * @apiExample Example usage:
- * curl http://localhost:3000/api/clientCount
+ * curl http://localhost/api/clientCount
  *
  * @apiSuccess {String}   Stringified number of client count
  *

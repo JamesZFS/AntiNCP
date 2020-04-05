@@ -1,23 +1,23 @@
 SET @@GLOBAL.sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
--- DROP DATABASE `AntiNCP`;
+SET SQL_SAFE_UPDATES=0;
 CREATE SCHEMA IF NOT EXISTS `AntiNCP` DEFAULT CHARACTER SET utf8 ;
 USE `AntiNCP`;
--- epidemic data table
+-- Epidemic data table
 CREATE TABLE IF NOT EXISTS `Epidemic` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `date` DATE NOT NULL,
   `country` CHAR(32) NOT NULL,
   `province` CHAR(32) NULL,
   `city` CHAR(32) NULL,
-  `confirmedCount` INT NULL DEFAULT -1,
-  `suspectedCount` INT NULL DEFAULT -1,
-  `curedCount` INT NULL DEFAULT -1,
-  `deadCount` INT NULL DEFAULT -1,
+  `activeCount` INT GENERATED ALWAYS AS (confirmedCount - curedCount - deadCount),
+  `confirmedCount` INT NOT NULL,
+  `curedCount` INT NOT NULL,
+  `deadCount` INT NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `date_idx` (`date` ASC),
   INDEX `timeline_query_index` (`country` ASC, `province` ASC, `city` ASC))
 COMMENT = 'Epidemic data across the world.';
--- available places table, this is a cache for epidemic data
+-- Available places table, this is a cache for epidemic data
 CREATE TABLE IF NOT EXISTS `Places` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `country` CHAR(32) NOT NULL,
@@ -26,11 +26,43 @@ CREATE TABLE IF NOT EXISTS `Places` (
   PRIMARY KEY (`id`),
   INDEX `index` (`country` ASC, `province` ASC, `city` ASC))
 COMMENT = 'Available countries, provinces and cities';
--- client ip statistics
+-- Client ip statistics
 CREATE TABLE IF NOT EXISTS `Clients` (
-  `ip` CHAR(64) NOT NULL,
+  `ip` CHAR(64) UNIQUE NOT NULL,
   `reqCount` INT UNSIGNED NULL DEFAULT 0,
   `prevReqTime` TIMESTAMP NULL,
   PRIMARY KEY (`ip`),
   UNIQUE INDEX `index` (`ip` ASC))
 COMMENT = 'Statistical info of any visited clients';
+-- News & tweets & reddit articles
+CREATE TABLE IF NOT EXISTS `Articles` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT, -- articleId
+  `date` DATETIME NOT NULL, -- or pubDate or isoDate or dc:date
+  `title` VARCHAR(1024) NOT NULL,
+  `link` VARCHAR(2083) NOT NULL, -- or guid
+  `creator` VARCHAR(512) NOT NULL, -- or author or dc:creator
+  `content` LONGTEXT NOT NULL, -- or contentSnippet or description
+  `sourceName` VARCHAR(512) NOT NULL,
+  `sourceShort` VARCHAR(512) NOT NULL,
+  -- TODO add interactive `likes` attribute
+  PRIMARY KEY (`id`),
+  INDEX `date_idx` (`date` ASC),
+  INDEX `source_idx` (`sourceShort`(8) ASC),
+  INDEX `url_idx` (`link`(32) ASC))
+COMMENT = 'Articles related to COVID-19.';
+-- Trend timeline: when - which word(id) - frequency
+CREATE TABLE IF NOT EXISTS `Trends` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `date` DATE NOT NULL,
+  `word` VARCHAR(32) NOT NULL,
+  `value` DOUBLE NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx` (`date` ASC, `word` ASC))
+COMMENT = 'Trends table';
+-- Word-to-article index
+CREATE TABLE IF NOT EXISTS `WordIndex` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT, -- wordId
+  `word` VARCHAR(32) UNIQUE NOT NULL,  -- stemless
+  `occurrences` LONGTEXT NOT NULL, -- stringified dict like {articleId: [this word's freq in this article],...}
+  PRIMARY KEY (`id`))
+COMMENT = 'Word-to-article index';

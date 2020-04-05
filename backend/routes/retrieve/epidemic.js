@@ -1,23 +1,22 @@
 'use strict';
-// Data retrieving system
-const express = require('express');
 const createError = require('http-errors');
-const router = express.Router();
-const debug = require('debug')('backend:retrieve');
-const db = require('../../database/db-manager');
+const router = require('express').Router();
+const debug = require('debug')('backend:retrieve:epidemic');
+const db = require('../../database');
 const cache = require('./cache');
 const {EPIDEMIC_DATA_KINDS} = require('../../config/db-cfg');
 const {URL} = require('url');
 
+// TODO use param like way, /:dateMin/:dateMax/:dataKinds ...
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.2.3
- * @apiGroup Timeline
+ * @apiVersion 0.3.0
+ * @apiGroup Epidemic
  * @apiPermission everyone
  *
- * @apiParam (Query Param) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}, can be multiple
- * @apiParam (Query Param) {none} verbose       return {name:..., value:...} or just the value buffer.
+ * @apiParam (Query) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
+ * @apiParam (Query) {none} verbose       return {name:..., value:...} or just the value buffer.
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/world/?dataKind=confirmedCount,deadCount"
@@ -52,7 +51,7 @@ const {URL} = require('url');
  }
  * @apiSampleRequest /api/retrieve/epidemic/timeline/world
  */
-router.get('/epidemic/timeline/world', async function (req, res) {
+router.get('/timeline/world', async function (req, res) {
     let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
     // type & usage check
@@ -74,7 +73,7 @@ router.get('/epidemic/timeline/world', async function (req, res) {
             }
             // not hit:
         }
-        { // Get epidemic world data, todo need faster impl
+        { // Get epidemic world data
             var worldTimeline = {};
             for (let dataKind of dataKinds) {
                 worldTimeline[dataKind] = [];
@@ -156,13 +155,13 @@ router.get('/epidemic/timeline/world', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.2.3
- * @apiGroup Timeline
+ * @apiVersion 0.3.0
+ * @apiGroup Epidemic
  * @apiPermission everyone
  *
- * @apiParam (Query Param) {string}  country
- * @apiParam (Query Param) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}, can be multiple
- * @apiParam (Query Param) {none} verbose       return {name:..., value:...} or just the value buffer
+ * @apiParam (Query) {string}  country
+ * @apiParam (Query) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
+ * @apiParam (Query) {none} verbose       return {name:..., value:...} or just the value buffer
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/country/?country=中国&dataKind=confirmedCount,deadCount"
@@ -198,7 +197,7 @@ router.get('/epidemic/timeline/world', async function (req, res) {
  }
  * @apiSampleRequest /api/retrieve/epidemic/timeline/country
  */
-router.get('/epidemic/timeline/country', async function (req, res) {
+router.get('/timeline/country', async function (req, res) {
     let country = req.query.country;
     let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
@@ -305,14 +304,14 @@ router.get('/epidemic/timeline/country', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.2.3
- * @apiGroup Timeline
+ * @apiVersion 0.3.0
+ * @apiGroup Epidemic
  * @apiPermission everyone
  *
- * @apiParam (Query Param) {string}  country
- * @apiParam (Query Param) {string}  province
- * @apiParam (Query Param) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'}, can be multiple
- * @apiParam (Query Param) {none} verbose        return {name:..., value:...} or just the value buffer. see the example 2 for details
+ * @apiParam (Query) {string}  country
+ * @apiParam (Query) {string}  province
+ * @apiParam (Query) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
+ * @apiParam (Query) {none} verbose        return {name:..., value:...} or just the value buffer. see the example 2 for details
  *
  * @apiExample {curl} Example usage 1:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount"
@@ -379,7 +378,7 @@ router.get('/epidemic/timeline/country', async function (req, res) {
  }
  * @apiSampleRequest /api/retrieve/epidemic/timeline/province
  */
-router.get('/epidemic/timeline/province', async function (req, res) {
+router.get('/timeline/province', async function (req, res) {
     let country = req.query.country;
     let province = req.query.province;
     let dataKinds = req.query.dataKind;

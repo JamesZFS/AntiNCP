@@ -1,15 +1,19 @@
 const fs = require('fs');
-const debug = require('debug')('backend:db-manager');
+const path = require('path');
+const debug = require('debug')('backend:database');
 const mysql = require('mysql');
 const chalk = require('chalk');
-const dbCfg = require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
-const initializingScriptPath = 'database/initialize.sql';
+const dbCfg = process.env.REMOTE_DB
+    ? require('../config/db-cfg').TENCENT_MYSQL_CFG
+    : require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
+const initializingScriptPath = path.resolve(__dirname, './initialize.sql');
 
 /**
  * Insist reconnecting until connection is make, throw unrecoverable error if fails
  * @return {Promise<void>}
  */
 async function insistConnecting() {
+    debug(`Connecting to ${dbCfg.host}:${dbCfg.port}`);
     connection = mysql.createConnection(dbCfg); // Recreate the connection, since the old one cannot be reused.
     return new Promise((resolve, reject) => connection.connect(err => {
         if (err) { // The server is either down or restarting (takes a while sometimes).
@@ -40,8 +44,8 @@ async function handleDisconnect() {
     }
     // If you're also serving http, display a 503 error.
     connection.on('error', function (err) {
-        if (err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
-            debug('Connection lost, attempting to reconnect...');
+        if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT') { // Connection to the MySQL server is usually
+            debug('Connection lost, attempting to reconnect...', err.message);
             initialize();                         // lost due to either server restart, or a
         } else {                                      // connnection idle timeout (the wait_timeout
             console.error('Unknown database connection error.');
@@ -65,6 +69,13 @@ function doSql(sql) {
             if (error) reject(error);
             else resolve(result);
         });
+    }).catch(err => {
+        if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ETIMEDOUT') { // try reconnect
+            debug('doSql:', err.message);
+            return initialize().then(() => doSql(sql));
+        } else {
+            return Promise.reject(err); // handled by caller
+        }
     })
 }
 
@@ -140,6 +151,7 @@ function insertEntry(table, entry) {
  * @return {Promise<Object>}
  */
 function insertEntries(table, entries) {
+    if (entries.length === 0) return Promise.resolve();
     let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {
@@ -160,7 +172,7 @@ function insertEntries(table, entries) {
      province: '四川省',
      city: '成都',
      confirmedCount: 10,
-     suspectedCount: 12,
+     activeCount: 12,
      curedCount: 13,
      deadCount: 5,
  }).then((res) => {
@@ -277,7 +289,7 @@ function refreshAvailablePlaces(sourceTable = 'Epidemic') {
  */
 async function updateClientInfo(ip) {
     return doSqls([
-        `INSERT INTO Clients (ip) SELECT * FROM (SELECT ${ip}) AS tmp WHERE NOT EXISTS (SELECT ip FROM Clients WHERE ip=${ip}) LIMIT 1;`,
+        `INSERT IGNORE INTO Clients (ip) VALUES (${ip});`,
         `UPDATE Clients SET reqCount=reqCount+1, prevReqTime=NOW() WHERE ip=${ip} LIMIT 1;`
     ]);
 }
@@ -289,6 +301,48 @@ async function updateClientInfo(ip) {
  */
 async function getClientInfo(ip) {
     return doSql(`SELECT * FROM Clients WHERE ip=${ip} LIMIT 1`);
+}
+
+/**
+ * Insert a new article data entry into 'Articles' table, skip when link duplicates
+ * ref: https://blog.csdn.net/fly910905/article/details/79634483
+ * @param entry{Object}
+ * @return {Promise<Object>}
+ */
+function insertArticleEntry(entry) {
+    return doSql(
+        `INSERT INTO Articles (${Object.keys(entry).join(',')}) SELECT ${Object.values(entry).join(',')} ` +
+        `FROM DUAL WHERE NOT EXISTS (SELECT id FROM Articles WHERE link=${entry.link});`
+    );
+}
+
+/**
+ * Insert multiple article data entries into 'Articles' table, skip when link duplicates
+ * ref: https://blog.csdn.net/fly910905/article/details/79634483
+ * @param entries{Object[]}
+ * @return {Promise<Object>}
+ */
+async function insertArticleEntries(entries) {
+    await doSqls(['DROP TABLE IF EXISTS Articles_tmp;', 'CREATE TABLE Articles_tmp LIKE Articles;']);
+    await insertEntries('Articles_tmp', entries);  // insert all into tmp table first
+    const cols = Object.keys(entries[0]).join(',');
+    await doSql(
+        `INSERT INTO Articles (${cols}) SELECT ${cols} FROM Articles_tmp ` +
+        `WHERE NOT EXISTS (SELECT id FROM Articles WHERE link=Articles_tmp.link);`
+    );
+    return doSql('DROP TABLE Articles_tmp;');
+}
+
+/**
+ * Select given fields from the table, **be aware of injection attack!**
+ * @param fields{string|string[]}
+ * @param conditions{undefined|string|string[]}
+ * @param distinct{undefined|boolean} whether to de-duplicate
+ * @param extra{undefined|string} as sql suffix
+ * @return Promise<Object>
+ */
+function selectArticles(fields, conditions, distinct, extra) {
+    return selectInTable('Articles', fields, conditions, distinct, extra);
 }
 
 /**
@@ -315,5 +369,6 @@ module.exports = {
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, fetchTable, countTableRows, selectInTable, selectEpidemicData,
     selectAvailableCities, selectAvailableProvinces, selectAvailableCountries, refreshAvailablePlaces,
+    insertArticleEntry, insertArticleEntries, selectArticles,
     updateClientInfo, getClientInfo
 };

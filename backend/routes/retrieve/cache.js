@@ -1,17 +1,20 @@
 'use strict';
 const redis = require('redis');
-var client;
 const red = require('chalk').red;
 const debug = require('debug')('backend:retrieve:cache');
+const host = process.env.REMOTE_DB ? require('../../config/db-cfg').TENCENT_MYSQL_CFG.host : 'localhost';
+const {sleep} = require('../../scheduler');
+var client;
 
 /**
  * @return {Promise<void>}
  */
 async function initialize() {
     return new Promise(async resolve => {
-        client = redis.createClient();
+        debug(`Connecting to ${host}:6379`);
+        client = redis.createClient({host: host});
         client.on('connect', () => {
-            debug('Redis initialized.');
+            debug('Redis connected.');
             resolve();
         });
         client.on('error', err => {
@@ -26,9 +29,14 @@ async function initialize() {
  */
 async function get(key) {
     return new Promise((resolve, reject) => {
-        client.get(key, (err, result) => {
+        client.get(key, async (err, result) => {
             if (err) {
                 debug('Get error:', err.message);
+                if (err.code === 'ETIMEDOUT') { // retry in 1 sec
+                    await sleep(1000);
+                    get().then(resolve).catch(reject);
+                    return;
+                }
                 reject(err);
             } else {
                 resolve(result);
@@ -44,9 +52,14 @@ async function get(key) {
  */
 async function set(key, val) {
     return new Promise((resolve, reject) => {
-        client.set(key, val, (err, reply) => {
+        client.set(key, val, async (err, reply) => {
             if (err) {
                 debug('Set error:', err.message);
+                if (err.code === 'ETIMEDOUT') { // retry in 1 sec
+                    await sleep(1000);
+                    set().then(resolve).catch(reject);
+                    return;
+                }
                 reject(err);
             } else {
                 resolve(reply);
@@ -60,9 +73,14 @@ async function set(key, val) {
  */
 async function flush() {
     return new Promise((resolve, reject) => {
-        client.flushall((err, reply) => {
+        client.flushall(async (err, reply) => {
             if (err) {
                 debug('Flush error:', err.message);
+                if (err.code === 'ETIMEDOUT') { // retry in 1 sec
+                    await sleep(1000);
+                    flush().then(resolve).catch(reject);
+                    return;
+                }
                 reject(err);
             } else {
                 debug('Flushed.');
@@ -72,14 +90,5 @@ async function flush() {
     });
 }
 
-async function test() {
-    debug('test begin');
-    await initialize();
-    await set('123', 'aa');
-    await get('123');
-    await flush();
-    await get('123');
-    debug('test done');
-}
 
 module.exports = {initialize, get, set, flush};

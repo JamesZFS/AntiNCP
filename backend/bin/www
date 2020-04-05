@@ -8,9 +8,9 @@ const debug = require('debug')('backend:server');
 const app = require('../app');
 const http = require('http');
 const chalk = require('chalk');
-const db = require('../database/db-manager');
-const fetcher = require('../fetch/fetcher');
+const db = require('../database');
 const cache = require('../routes/retrieve/cache');
+const analyzer = require('../analyze');
 const port = require('../config/consts').LOCAL_HOST_PORT;
 
 app.set('port', port);
@@ -30,16 +30,14 @@ async function launch() {
     try { // initialize db and reload data
         await db.initialize();
         await cache.initialize();
-        if (process.argv.indexOf('--download') >= 0) await fetcher.downloadEpidemicData();
-        if (process.argv.indexOf('--reload') >= 0) await fetcher.reloadEpidemicData();
-        await fetcher.initialize();
+        await analyzer.initialize();
     } catch (err) {
         console.error(chalk.red('Caught fatal error in server!'));
         console.error(err);
         await db.finalize();
         process.exit(1);
     }
-    debug('Initialize Finished.');
+    debug('Initialize finished.');
     server.listen(port);
     server.on('error', onError);
     server.on('listening', onListening);

@@ -1,5 +1,5 @@
 const LOCAL_MYSQL_CFG = {
-    host: '127.0.0.1',
+    host: 'localhost',
     user: 'root',
     password: 'mdty2020',
     port: '3306',
@@ -14,6 +14,6 @@ const TENCENT_MYSQL_CFG = { // only for testing purpose
     multipleStatements: true,
 };
 
-const EPIDEMIC_DATA_KINDS = ['confirmedCount', 'suspectedCount', 'curedCount', 'deadCount'];
+const EPIDEMIC_DATA_KINDS = ['confirmedCount', 'activeCount', 'curedCount', 'deadCount'];
 
 module.exports = {LOCAL_MYSQL_CFG, TENCENT_MYSQL_CFG, EPIDEMIC_DATA_KINDS};
