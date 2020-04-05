@@ -69,21 +69,21 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
 
 
 /**
- * @api {get} /api/retrieve/trends/articleId/:dateMin/:dateMax/:words  Get article id via words api
+ * @api {get} /api/retrieve/trends/articleId/:dateMin/:dateMax  Get article id via words api
  * @apiName GetTrendsArticleIds
- * @apiVersion 0.1.0
+ * @apiVersion 0.1.1
  * @apiGroup Trends
  * @apiPermission everyone
  *
  * @apiParam (Param) {string}  dateMin    date string in host's timezone, lower query bound(included)
  * @apiParam (Param) {string}  dateMax    date string in host's timezone, upper query bound(included), should be no lesser than `dateMin`
- * @apiParam (Param) {string}  words      words to query for article ids,
+ * @apiParam (Query) {string}  words      words to query for article ids,
  *  better not be stop words, no more than 20 words each query, or **a 400 response** will be returned
  * @apiParam (Query) {string}   mode      'or' | 'and', default 'and', to specify how the corresponding ids should be merged
  *  (and - intersect, or - union)
  *
  * @apiExample {curl} Example usage:
- *     curl "http://localhost/api/retrieve/trends/articleId/2020-4-1/2020-4-4/China&quarantine?mode=and"
+ *     curl "http://localhost/api/retrieve/trends/articleId/2020-4-1/2020-4-4?words=China,quarantine&mode=and"
  *
  * @apiExample Response (example):
  {
@@ -101,35 +101,26 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
         2472
     ]
  }
- * @apiSampleRequest /api/retrieve/trends/articleId/:dateMin/:dateMax/:words
+ * @apiSampleRequest /api/retrieve/trends/articleId/:dateMin/:dateMax
  */
-router.get('/articleId/:dateMin/:dateMax/:words', async function (req, res) {
-    let dateMin = new Date(req.params.dateMin), dateMax = new Date(req.params.dateMax);
-    // Validate date:
-    if (isNaN(dateMin.valueOf()) || isNaN(dateMax.valueOf())) {
-        res.status(400).render('error', {message: '`dateMin` or `dateMax` invalid!', status: 400});
-        return;
-    }
-    if (dateMin > dateMax) {
-        res.status(400).render('error', {message: '`dateMin` should be no greater than `dateMax`!', status: 400});
-        return;
-    }
+router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
+    let dateMin = new Date(req.params.dateMin), dateMax = new Date(req.params.dateMax), words = req.query.words;
+    // Validate date & words:
     try {
-        var words = req.params.words.tokenizeAndStem();
-        if (words.length === 0 || words.length > 20) { // noinspection ExceptionCaughtLocallyJS
-            throw new Error();
-        }
+        if (isNaN(dateMin.valueOf()) || isNaN(dateMax.valueOf())) throw new Error('`dateMin` or `dateMax` invalid!');
+        if (dateMin > dateMax) throw new Error('`dateMin` should be no greater than `dateMax`!');
+        if (words === undefined) throw new Error('Query `words` missing!');
+        words = words.tokenizeAndStem();
+        if (words.length === 0) throw new Error('Bad `words` param! (You may be missing the param or using stop words)');
+        if (words.length > 20) throw new Error('Don\'t query for more than 20 words each time!');
     } catch (err) {
-        res.status(400).render('error', {
-            message: 'Bad `words` param! (Don\'t use stop words, or too many words in a request)',
-            status: 400
-        });
+        res.status(400).render('error', {message: err.message, status: 400});
         return;
     }
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
     let mode = typeof req.query.mode === 'string' && req.query.mode.toLowerCase() === 'or' ? 'or' : 'and'; // default: 'and'
-    debug(`dateMin: ${dateMin}, dateMax: ${dateMax}, words: ${JSON.stringify(words)}, mode: ${mode}`);
+    // debug(`dateMin: ${dateMin}, dateMax: ${dateMax}, words: ${JSON.stringify(words)}, mode: ${mode}`);
     try {
         let acc; // Map: articleId => value
         for (let word of words) {

@@ -14,7 +14,7 @@ async function refreshWordIndex() {
     try {
         let articles = await db.selectArticles('*');
         wi.preprocessArticles(articles);
-        var wordIndex = wi.createWordIndex_tfidf(articles);
+        var wordIndex = wi.createWordIndex_tfidf(articles); // takes a long time
         var oldRows = await db.countTableRows('WordIndex');
         await db.clearTable('WordIndex'); // todo use tmp table and alter name
         await wi.storeWordIndex(wordIndex);

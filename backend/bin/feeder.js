@@ -24,7 +24,7 @@ async function launch() {
             ]);
         }
         if (process.argv.indexOf('--reload') >= 0) await fetcher.reloadEpidemicData();
-        await fetcher.initialize();
+        await fetcher.initialize(); // scheduler
     } catch (err) {
         console.error(chalk.red('Caught fatal error in feeder!'));
         console.error(err);

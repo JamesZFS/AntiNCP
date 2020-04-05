@@ -24,8 +24,8 @@ async function reloadEpidemicData() {
             await downloadEpidemicData(); // download data from source and then reload
             return reloadEpidemicData();
         }
-        await cache.flush();
         let oldRowCount = await db.countTableRows('Epidemic');
+        await cache.flush();
         await db.clearTable('Epidemic');
         await csv.batchReadAndMap(csvPath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
         await db.refreshAvailablePlaces('Epidemic');
@@ -62,7 +62,7 @@ async function downloadEpidemicData() {
             } else {  // give up
                 console.error(chalk.red('Fail to download from csv epidemic source. Skip this download.'), err.message);
                 throw err;
-            };
+            }
         }
         break; // success
     }
@@ -82,9 +82,7 @@ async function fetchVirusArticles() {
         while (true) {
             try {
                 entries = await rss.getArticlesFromRss(articleSources, rss.isAboutVirus, rss.article2Entry);
-                if (!entries || entries.length === 0) { // noinspection ExceptionCaughtLocallyJS
-                    throw new Error();
-                }
+                if (!entries || entries.length === 0) throw new Error();
             } catch (err) { // retry
                 debug(`Fail to fetch, retry in ${scheduler.fetchingPolicy.interval / 60000} mins.`);
                 if (--trial > 0) {
