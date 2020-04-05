@@ -16,8 +16,12 @@ Vue.use(VueAxios, axios);
 Vue.use(VueLogger, loggerCfg);
 Vue.use(require('vue-cookies'));
 Vue.$cookies.config('7d'); // default cookie config
+import Vuetify from 'vuetify'
+import vuetify from '@/plugins/vuetify'
+Vue.use(Vuetify)
 /* eslint-disable no-new */
 new Vue({
+  vuetify,
   el: '#app',
   router,
   components: {App},

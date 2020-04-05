@@ -1,21 +1,13 @@
 <template>
-  <div id="app">
-    <el-container>
-      <el-header class="header">
-        <div>
-          <h1 style="float: left">
-            <img src="./assets/logo.png" class="logo" alt="AntiNCP"/>
-          </h1>
-          <div style="float: left">
-            <NavBar></NavBar>
-          </div>
-        </div>
-      </el-header>
-      <el-main>
-        <router-view/>
-      </el-main>
-    </el-container>
-  </div>
+  <v-app id="app">
+    <v-container>
+      <NavBar></NavBar>
+      <v-spacer></v-spacer>
+      <v-container class="pl-11">
+        <router-view></router-view>
+      </v-container>
+    </v-container>
+  </v-app>
 </template>
 
 <script>

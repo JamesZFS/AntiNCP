@@ -1,13 +1,13 @@
 <!-- Page4 -->
 <template>
   <div class="page4">
-    <el-card>
+    <v-card class="mx-auto">
       <h3 slot="header">关于我们</h3>
       <p>码到退疫制作团队</p>
       <p>清华大学计算机系</p>
       <p>版本0.1.0</p>
       <p>本网站一共服务了{{ clientCount }}位用户🚀</p>
-    </el-card>
+    </v-card>
   </div>
 </template>
 
