@@ -1,6 +1,6 @@
 <!-- 预测图组件 -->
 <template>
-  <div id="PredictionChart" style="width: 80vw;height: 80vh;"></div>
+  <div id="PredictionChart" style="width: 85%;height: 80vh;" class="ml-5"></div>
 </template>
 
 <script>
@@ -44,7 +44,7 @@
           'curedCount': [],
           'deadCount': []
         },
-        coord_data:{
+        coord_data: {
           'suspectedCount': [],
           'confirmedCount': [],
           'curedCount': [],
@@ -57,21 +57,22 @@
         return {
           title: {
             text: this.cur_superiorPlace + '新冠疫情走势图',
-            subtext: 'Epidemic trend of new coronavirus in'+this.cur_superiorPlace,
+            subtext: 'Epidemic trend of COVID-19 in ' + this.cur_superiorPlace,
             left: 'left',
+            top: 'top',
             textStyle: {
-              fontSize: 25
+              fontSize: '25vw'
             },
           },
           tooltip: {
             trigger: 'axis',
-              axisPointer: {
+            axisPointer: {
               type: 'cross'
             }
           },
           xAxis: {
             type: 'category',
-              splitLine: {
+            splitLine: {
               lineStyle: {
                 type: 'dashed'
               }
@@ -79,7 +80,14 @@
           },
           yAxis: {
             type: 'value',
-              splitLine: {
+            axisLabel: {
+              fontSize: '12',
+              inside: true
+            },
+            axisTick:{
+              inside: true
+            },
+            splitLine: {
               lineStyle: {
                 type: 'dashed'
               }
@@ -87,60 +95,64 @@
           },
           legend: {
             left: 'right',
-              textStyle: {
-              fontSize: 25
+            top: "8%",
+            textStyle: {
+              fontSize: '25vw'
             },
             data: ['疑似', '确诊', '治愈', '死亡'],
-              selected: {
+            selected: {
               // '疑似+': false, '确诊+': true, '治愈+': false, '死亡+': false,
-                '疑似': false, '确诊': true, '治愈': false, '死亡': false
+              '疑似': false, '确诊': true, '治愈': false, '死亡': false
             }
           },
           series: [
             {
-            name: '疑似',
-            type: 'scatter',
-            emphasis: {
-              label: {
-                show: true,
-                position: 'left',
-                // color: 'blue',
-                fontSize: 16
+              name: '疑似',
+              type: 'scatter',
+              top: "20%",
+              emphasis: {
+                label: {
+                  show: true,
+                  position: 'left',
+                  // color: 'blue',
+                  fontSize: '16vw'
+                }
+              },
+              data: this.datamap['suspectedCount']
+            },
+            {
+              name: '疑似',
+              type: 'line',
+              top: "20%",
+              showSymbol: false,
+              smooth: true,
+              data: this.myRegression['suspectedCount'].points,
+              markPoint: {
+                itemStyle: {
+                  color: 'transparent'
+                },
+                label: {
+                  show: true,
+                  position: 'left',
+                  formatter: this.myRegression['suspectedCount'].expression,
+                  color: '#333',
+                  fontSize: '14vw'
+                },
+                data: [{
+                  coord: this.coord_data['suspectedCount']
+                }]
               }
             },
-            data: this.datamap['suspectedCount']
-          },
-            {
-            name: '疑似',
-            type: 'line',
-            showSymbol: false,
-            smooth: true,
-            data: this.myRegression['suspectedCount'].points,
-            markPoint: {
-              itemStyle: {
-                color: 'transparent'
-              },
-              label: {
-                show: true,
-                position: 'left',
-                formatter: this.myRegression['suspectedCount'].expression,
-                color: '#333',
-                fontSize: 14
-              },
-              data: [{
-                coord: this.coord_data['suspectedCount']
-              }]
-            }
-          },
             {
               name: '确诊',
               type: 'scatter',
+              top: "20%",
               emphasis: {
                 label: {
                   show: true,
                   position: 'left',
                   color: 'blue',
-                  fontSize: 16
+                  fontSize: '16vw'
                 }
               },
               data: this.datamap['confirmedCount']
@@ -148,6 +160,7 @@
             {
               name: '确诊',
               type: 'line',
+              top: "20%",
               showSymbol: false,
               smooth: true,
               data: this.myRegression['confirmedCount'].points,
@@ -160,22 +173,23 @@
                   position: 'left',
                   formatter: this.myRegression['confirmedCount'].expression,
                   color: '#333',
-                  fontSize: 14
+                  fontSize: '14vw'
                 },
                 data: [{
-                   coord: this.coord_data['confirmedCount']
+                  coord: this.coord_data['confirmedCount']
                 }]
               }
             },
             {
               name: '治愈',
               type: 'scatter',
+              top: "20%",
               emphasis: {
                 label: {
                   show: true,
                   position: 'left',
                   color: 'blue',
-                  fontSize: 16
+                  fontSize: '16vw'
                 }
               },
               data: this.datamap['curedCount']
@@ -183,6 +197,7 @@
             {
               name: '治愈',
               type: 'line',
+              top: "20%",
               showSymbol: false,
               smooth: true,
               data: this.myRegression['curedCount'].points,
@@ -195,7 +210,7 @@
                   position: 'left',
                   formatter: this.myRegression['suspectedCount'].expression,
                   color: '#333',
-                  fontSize: 14
+                  fontSize: '14vw'
                 },
                 data: [{
                   coord: this.coord_data['suspectedCount']
@@ -205,12 +220,13 @@
             {
               name: '死亡',
               type: 'scatter',
+              top: "20%",
               emphasis: {
                 label: {
                   show: true,
                   position: 'left',
                   color: 'blue',
-                  fontSize: 16
+                  fontSize: '16vw'
                 }
               },
               data: this.datamap['deadCount']
@@ -218,6 +234,7 @@
             {
               name: '死亡',
               type: 'line',
+              top: "20%",
               showSymbol: false,
               smooth: true,
               data: this.myRegression['deadCount'].points,
@@ -230,7 +247,7 @@
                   position: 'left',
                   formatter: this.myRegression['deadCount'].expression,
                   color: '#333',
-                  fontSize: 14
+                  fontSize: '14vw'
                 },
                 data: [{
                   coord: this.coord_data['deadCount']
@@ -242,27 +259,21 @@
       }
     },
     methods: {
-      drawTimeAxis(){
+      drawTimeAxis() {
         // console.log(this.coord_data)
         this.charts.setOption(this.myoption, true)
         this.charts.resize()
       },
-      dataImport(res){
+      dataImport(res) {
         var tmp_dataset = res
-        if(this.cur_superiorLevel == 'country')
-        {
+        if (this.cur_superiorLevel == 'country') {
           tmp_dataset = res.data.countryTimeline
-        }
-        else if(this.cur_superiorLevel == 'world')
-        {
+        } else if (this.cur_superiorLevel == 'world') {
           tmp_dataset = res.data.worldTimeline
-        }
-        else if(this.cur_superiorLevel == 'province')
-        {
+        } else if (this.cur_superiorLevel == 'province') {
           tmp_dataset = res.data.provinceTimeline
         }
-        for(var tmp_datakind in this.datamap)
-        {
+        for (var tmp_datakind in this.datamap) {
           // console.log(this.datamap)
           // console.log(res)
           this.datamap[tmp_datakind] = tmp_dataset[tmp_datakind]
@@ -272,11 +283,11 @@
 
         }
       },
-      placechange(tmp_superiorPlace,tmp_superiorLevel){
+      placechange(tmp_superiorPlace, tmp_superiorLevel) {
         this.cur_superiorPlace = tmp_superiorPlace;
         this.cur_superiorLevel = tmp_superiorLevel;
       },
-      initechart(){
+      initechart() {
         this.charts = echarts.init(document.getElementById('PredictionChart'));
       }
     },

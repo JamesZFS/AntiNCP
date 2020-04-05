@@ -1,6 +1,6 @@
 <!-- 含有时间轴的热度图组件 -->
 <template>
-  <div id="TimelineHeatMap" v-loading="loading" style="width: 80vw;height: 80vh;"></div>
+  <div id="TimelineHeatMap" v-loading="isloading" style="width: 90%;height: 80vh;"></div>
 </template>
 
 <script>
@@ -89,7 +89,7 @@
     data() {
       return {
         charts:'',
-        loading: false,
+        isloading: false,//热度图组件的loading用在切换数据类型标签上
         cur_superiorPlace: 'world',
         cur_superiorLevel: 'world',
         cur_dataMap: {},
@@ -103,7 +103,7 @@
         empty_option: {
           title: {
             text: '2020-01-10' + this.cur_superiorPlace + '疫情状况', textStyle: {
-              fontSize: 25
+              fontSize: '25vw'
             },
           },
           visualMap: {
@@ -187,6 +187,8 @@
               axisType: 'category',
               realtime: true,
               // loop: false,
+              right:'10%',
+              left:'10%',
               autoPlay: false,
               currentIndex: 0,
               playInterval: 1000,
@@ -200,14 +202,15 @@
             title: {
               subtext: '数据来自***',
               subtextStyle: {
-                fontSize: 20
+                fontSize: '20vw'
               },
             },
             tooltip: {},
             legend: {
               left: 'right',
+              top:"10%",
               textStyle: {
-                fontSize: 25
+                fontSize: '25vw'
               },
               data: ['疑似', '确诊', '治愈', '死亡'],
               selectedMode: 'single',
@@ -218,6 +221,10 @@
             grid: {
               top: 80,
               bottom: 100
+              // left: '3%',
+              // right: '4%',
+              // bottom: '3%',
+              // containLabel: true
             },
             series: [
               {name: '疑似', type: 'map', map: this.cur_superiorPlace, showSymbol: false},
@@ -232,12 +239,14 @@
     },
     methods: {
       drawTimeAxis() {
+        // this.isloading = true;
         for (var tmp_datakind in this.myoption.baseOption.legend.selected) {
           this.myoption.baseOption.legend.selected[tmp_datakind] = false
         }
         this.myoption.baseOption.legend.selected[cur_datakind] = true;
         this.charts.setOption(this.myoption, true);
         this.charts.resize();
+        // this.isloading = false;
       },
       dataImport(res) {
         //清空this.myoption.options和时间标签
@@ -299,21 +308,25 @@
       },
       initechart(){
         this.charts = echarts.init(document.getElementById('TimelineHeatMap'));
+      },
+      legend_change(obj){
+        cur_datakind = obj.name;
+        var tmp_max = this.maxdic[obj.name];
+        for (var i = 0; i < this.myoption.options.length; i++) {
+          this.myoption.options[i].visualMap.max = tmp_max;
+        }
+        this.myoption.baseOption.legend.selected = obj.selected;
+        this.drawTimeAxis();
       }
     },
     // 调用
     mounted() {
-      var tmp_maxdic = this.maxdic;
       this.charts = echarts.init(document.getElementById('TimelineHeatMap'));
-      this.charts.on('legendselectchanged', (obj) => {
-        cur_datakind = obj.name;
-        var tmp_max = tmp_maxdic[obj.name];
-        for (var i = 0; i < this.myoption.options.length; i++) {
-          this.myoption.options[i].visualMap.max = tmp_max
-        }
-        this.myoption.baseOption.legend.selected = obj.selected;
-        this.drawTimeAxis()
-      })
+      // this.charts.on('legendselectchanged', (obj) => {
+      //   this.isloading = true;
+      //   this.legend_change(obj);
+      //   this.isloading = false;
+      // })
     }
   }
 </script>
