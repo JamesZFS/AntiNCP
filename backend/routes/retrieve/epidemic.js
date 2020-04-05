@@ -11,7 +11,7 @@ const {URL} = require('url');
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.3.0
+ * @apiVersion 0.3.1
  * @apiGroup Epidemic
  * @apiPermission everyone
  *
@@ -25,16 +25,11 @@ const {URL} = require('url');
  {
     "country": ["中国", "美国", "英国"],
     "worldTimeline": [
-        "confirmedCount": [
-			["2020-01-01", 10],
-			["2020-01-02", 20],
-			["2020-01-03", 30],
-		],
-		"deadCount": [
-			["2020-01-01", 10],
-			["2020-01-02", 20],
-			["2020-01-03", 30],
-		]
+        "labels": ["2020-1-1", "2020-1-2", "2020-1-3"],
+        "datasets": {
+            "confirmedCount": [1, 2, 3],
+		    "deadCount": [1, 2, 3]
+        }
     ],
 	"timeline": {
 		"confirmedCount": {
@@ -74,16 +69,20 @@ router.get('/timeline/world', async function (req, res) {
             // not hit:
         }
         { // Get epidemic world data
-            var worldTimeline = {};
+            var worldTimeline = {
+                labels: [],
+                datasets: {}
+            };
             for (let dataKind of dataKinds) {
-                worldTimeline[dataKind] = [];
+                worldTimeline.datasets[dataKind] = [];
             }
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds.map(val => `SUM(${val}) AS ${val}`));
             let condition = `province=''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
+                worldTimeline.labels.push(item.date);
                 for (let dataKind of dataKinds) {
-                    worldTimeline[dataKind].push([item.date, item[dataKind]]);
+                    worldTimeline.datasets[dataKind].push(item[dataKind]);
                 }
             }
         }
@@ -169,31 +168,26 @@ router.get('/timeline/world', async function (req, res) {
  * @apiExample Response (example):
  {
     "country": "中国",
-	"superTimeline": {
-	    "confirmedCount": [
-			["2020-01-01", 10],
-			["2020-01-02", 20],
-			["2020-01-03", 30],
-		],
-		"deadCount": [
-			["2020-01-01", 10],
-			["2020-01-02", 20],
-			["2020-01-03", 30],
-		]
-	},
+    "countryTimeline": {
+        "labels": ["2020-1-1", "2020-1-2", "2020-1-3"],
+        "datasets": {
+            "confirmedCount": [1, 2, 3],
+		    "deadCount": [1, 2, 3]
+        }
+    },
     "province": ["四川省", "湖北省", "陕西省"],
-	"timeline": {
-		"confirmedCount": {
-			"1-1": [1, 2, 10],
-			"1-2": [2, 3, 11],
-			"1-3": [2, 4, 10]
-		},
-		"deadCount": {
-			"1-1": [1, 2, 10],
-			"1-2": [1, 3, 11],
-			"1-3": [1, 3, 12]
-		}
-	}
+    "timeline": {
+        "confirmedCount": {
+            "1-1": [1, 2, 10],
+            "1-2": [2, 3, 11],
+            "1-3": [2, 4, 10]
+        },
+        "deadCount": {
+            "1-1": [1, 2, 10],
+            "1-2": [1, 3, 11],
+            "1-3": [1, 3, 12]
+        }
+    }
  }
  * @apiSampleRequest /api/retrieve/epidemic/timeline/country
  */
@@ -222,16 +216,20 @@ router.get('/timeline/country', async function (req, res) {
             // not hit:
         }
         { // Get epidemic country data
-            var countryTimeline = {};
+            var countryTimeline = {
+                labels: [],
+                datasets: {}
+            };
             for (let dataKind of dataKinds) {
-                countryTimeline[dataKind] = [];
+                countryTimeline.datasets[dataKind] = [];
             }
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
             let condition = `country=${db.escape(country)} AND province=''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
+                countryTimeline.labels.push(item.date);
                 for (let dataKind of dataKinds) {
-                    countryTimeline[dataKind].push([item.date, item[dataKind]]);
+                    countryTimeline.datasets[dataKind].push(item[dataKind]);
                 }
             }
         }
@@ -319,32 +317,27 @@ router.get('/timeline/country', async function (req, res) {
  * @apiExample Response (example 1):
  {
     "country": "中国",
-	"province": "四川省",
-	"provinceTimeline": {
-	    "confirmedCount": [
-			["2020-01-01", 10],
-			["2020-01-02", 20],
-			["2020-01-03", 30],
-		],
-		"deadCount": [
-			["2020-01-01", 10],
-			["2020-01-02", 20],
-			["2020-01-03", 30],
-		]
-	},
-	"city": ["成都市", "乐山市", "眉山市"],
-	"timeline": {
-		"confirmedCount": {
-			"2020-01-01": [1, 2, 10],
-			"2020-01-02": [2, 3, 11],
-			"2020-01-03": [2, 4, 10]
-		},
-		"deadCount": {
-			"2020-01-01": [1, 2, 10],
-			"2020-01-02": [1, 3, 11],
-			"2020-01-03": [1, 3, 12]
-		}
-	}
+    "province": "四川省",
+    "provinceTimeline": {
+        "labels": ["2020-1-1", "2020-1-2", "2020-1-3"],
+        "datasets": {
+            "confirmedCount": [1, 2, 3],
+		    "deadCount": [1, 2, 3]
+        }
+    },
+    "city": ["成都市", "乐山市", "眉山市"],
+    "timeline": {
+        "confirmedCount": {
+            "2020-01-01": [1, 2, 10],
+            "2020-01-02": [2, 3, 11],
+            "2020-01-03": [2, 4, 10]
+        },
+        "deadCount": {
+            "2020-01-01": [1, 2, 10],
+            "2020-01-02": [1, 3, 11],
+            "2020-01-03": [1, 3, 12]
+        }
+    }
  }
  *
  * @apiExample {curl} Example usage 2:
@@ -353,28 +346,25 @@ router.get('/timeline/country', async function (req, res) {
  * @apiExample Response (example 2):
  {
     "country": "中国",
-	"province": "四川省",
-	"provinceTimeline": {
-	    "confirmedCount": [
-			["2020-01-01", 10],
-			...
-		],
-		"deadCount": [
-			["2020-01-01", 10],
-			...
-		]
-	}
-	"city": ["成都", "乐山", "眉山"],
-	"timeline": {
-		"confirmedCount": {
-			"2020-01-01": [{"name":"成都市", "value":1}, {"name":"乐山市", "value":2}, {...}],
-			"2020-01-02": [{...},{...},{...}],
-		},
-		"deadCount": {
-			"2020-01-01": [...],
-			"2020-01-02": [...],
-		}
-	}
+    "province": "四川省",
+    "provinceTimeline": {
+        "labels": ["2020-1-1", "2020-1-2", "2020-1-3"],
+        "datasets": {
+            "confirmedCount": [1, 2, 3],
+		    "deadCount": [1, 2, 3]
+        }
+    }
+    "city": ["成都", "乐山", "眉山"],
+    "timeline": {
+        "confirmedCount": {
+            "2020-01-01": [{"name":"成都市", "value":1}, {"name":"乐山市", "value":2}, {...}],
+            "2020-01-02": [{...},{...},{...}],
+        },
+        "deadCount": {
+            "2020-01-01": [...],
+            "2020-01-02": [...],
+        }
+    }
  }
  * @apiSampleRequest /api/retrieve/epidemic/timeline/province
  */
@@ -404,16 +394,20 @@ router.get('/timeline/province', async function (req, res) {
             // not hit:
         }
         { // Get epidemic provincial data
-            var provinceTimeline = {};
+            var provinceTimeline = {
+                labels: [],
+                datasets: {}
+            };
             for (let dataKind of dataKinds) {
-                provinceTimeline[dataKind] = [];
+                provinceTimeline.datasets[dataKind] = [];
             }
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
             let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city=''`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
+                provinceTimeline.labels.push(item.date);
                 for (let dataKind of dataKinds) {
-                    provinceTimeline[dataKind].push([item.date, item[dataKind]]);
+                    provinceTimeline.datasets[dataKind].push(item[dataKind]);
                 }
             }
         }
