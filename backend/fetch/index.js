@@ -114,7 +114,7 @@ async function fetchVirusArticles() {
 function initialize() {
     // Update epidemic data daily:
     scheduler.scheduleJob(scheduler.onceADay, async function (time) {
-        debug(`Auto update begins at ${time}`);
+        debug('Auto update begins at', chalk.bgGreen(`${time}`));
         try {
             await downloadEpidemicData();
             await reloadEpidemicData();
@@ -126,7 +126,7 @@ function initialize() {
     });
     // Update virus articles incrementally
     scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
-        debug(`Auto update begins at ${time}`);
+        debug('Auto update begins at', chalk.bgGreen(`${time}`));
         try {
             let {startId, endId} = await fetchVirusArticles();
             // todo analyze data
