@@ -14,7 +14,7 @@ Date.prototype.addDay = function (days = 1) {
 /**
  * @api {get} /api/retrieve/trends/timeline/:dateMin/:dateMax  Get trends timeline api
  * @apiName GetTrendsTimeline
- * @apiVersion 0.1.0
+ * @apiVersion 0.1.1
  * @apiGroup Trends
  * @apiPermission everyone
  *
@@ -29,15 +29,15 @@ Date.prototype.addDay = function (days = 1) {
  [
  {
         "name": "coronaviru",
-        "value": 25065.69000000006
+        "value": 25065.69
     },
  {
         "name": "new",
-        "value": 6859.9599999999955
+        "value": 6859.96
     },
  {
         "name": "us",
-        "value": 6742.839999999995
+        "value": 6742.84
     }
  ]
  * @apiSampleRequest /api/retrieve/trends/timeline/:dateMin/:dateMax
@@ -57,7 +57,7 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
     try {
-        let result = await db.selectInTable('Trends', ['word AS name', 'SUM(value) AS value'],
+        let result = await db.selectInTable('Trends', ['word AS name', 'ROUND(SUM(value), 2) AS value'],
             `date BETWEEN ${dateMin} AND ${dateMax}`, false,
             `GROUP BY word ORDER BY value DESC LIMIT ${limit}`);
         res.status(200).send(result);
