@@ -22,6 +22,9 @@ app.use(clientMonitor); // monitor client's behavior
 app.use('/', express.static(path.resolve(__dirname, '../../frontend/dist'))); // host frontend as static pages
 app.use('/doc', express.static(path.join(__dirname, '../doc'))); 		   // show api document
 app.use('/public', express.static(path.join(__dirname, '../public')));
+app.get('/code', function(req, res) {
+    res.status(403).render('error', {message: 'Code coming soon!', status: 403});
+});
 
 app.use('/api', indexRouter);
 app.use('/users', usersRouter);
