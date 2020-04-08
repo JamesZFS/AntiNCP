@@ -7,7 +7,7 @@ const onceADay = new schedule.RecurrenceRule();
 Object.assign(onceADay, {hour: [12], minute: [0], second: [0]});  // trigger at 12'o clock every day
 
 const every = {
-    Hour: '15 * * * *',
+    Hour: '5 * * * *',
     thirtyMins: '*/30 * * * *',
     tenMins: '*/10 * * * *',
 };

@@ -3,7 +3,7 @@ const redis = require('redis');
 const red = require('chalk').red;
 const debug = require('debug')('backend:retrieve:cache');
 const host = process.env.REMOTE_DB ? require('../../config/db-cfg').TENCENT_MYSQL_CFG.host : 'localhost';
-const {sleep} = require('../../scheduler');
+const scheduler = require('../../scheduler');
 var client;
 
 /**
@@ -24,6 +24,17 @@ async function initialize() {
 }
 
 /**
+ * @return {Promise<void>}
+ */
+async function initializeHost() {
+    await initialize();
+    // flush cache daily
+    scheduler.scheduleJob(scheduler.onceADay, function() {
+        flush();
+    });
+}
+
+/**
  * @param key{string}
  * @return {Promise<string>}
  */
@@ -33,7 +44,7 @@ async function get(key) {
             if (err) {
                 debug('Get error:', err.message);
                 if (err.code === 'ETIMEDOUT') { // retry in 1 sec
-                    await sleep(1000);
+                    await scheduler.sleep(1000);
                     get().then(resolve).catch(reject);
                     return;
                 }
@@ -56,7 +67,7 @@ async function set(key, val) {
             if (err) {
                 debug('Set error:', err.message);
                 if (err.code === 'ETIMEDOUT') { // retry in 1 sec
-                    await sleep(1000);
+                    await scheduler.sleep(1000);
                     set().then(resolve).catch(reject);
                     return;
                 }
@@ -77,7 +88,7 @@ async function flush() {
             if (err) {
                 debug('Flush error:', err.message);
                 if (err.code === 'ETIMEDOUT') { // retry in 1 sec
-                    await sleep(1000);
+                    await scheduler.sleep(1000);
                     flush().then(resolve).catch(reject);
                     return;
                 }
@@ -91,4 +102,4 @@ async function flush() {
 }
 
 
-module.exports = {initialize, get, set, flush};
+module.exports = {initialize, initializeHost, get, set, flush};

@@ -25,7 +25,7 @@ async function reloadEpidemicData() {
             return reloadEpidemicData();
         }
         let oldRowCount = await db.countTableRows('Epidemic');
-        await cache.flush();
+        // cache.flush();
         await db.clearTable('Epidemic');
         await csv.batchReadAndMap(csvPath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
         await db.refreshAvailablePlaces('Epidemic');
