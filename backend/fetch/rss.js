@@ -2,13 +2,14 @@
 'use strict';
 const debug = require('debug')('backend:fetch:rss');
 const rssParser = require('rss-parser');
+const Agent = require('socks5-http-client/lib/Agent')
+const request = require('request');
 const dateFormat = require('dateformat');
 const chalk = require('chalk');
 const utf8 = require('utf8');
 const stripHtml = require("string-strip-html");
 const escape = require('../database').escape;
-const IS_ABOUT_VIRUS_REG = /wuhan|pandemic|corona|virus|flu|covid|quarantine/ig; // i - ignore capitalization, g - global
-const URL_REG = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\\+.~#?&/=]*)/g;
+const {IS_ABOUT_VIRUS_REG, URL_REG, PROXY_HOST, PROXY_PORT} = require('./config');
 
 /**
  * Get articles from rss sources
@@ -24,7 +25,22 @@ async function getArticlesFromRss(rssSources, filter, map) {
     for (let [_idx, source] of Object.entries(rssSources)) {
         debug(`Fetching articles from '${source.name}'`);
         try {
-            let feeds = await parser.parseURL(source.url);
+            let feeds = await new Promise((resolve, reject) => {
+                const option = {
+                    url: 'http://www.channelnewsasia.com/rssfeeds/8395986',
+                    agentClass: Agent,
+                    agentOptions: {
+                        socksHost: PROXY_HOST,
+                        socksPort: PROXY_PORT
+                    },
+                    method: 'GET'
+                }
+                request(option, (err, res, body) => {
+                    if (err) { reject(err); return; }
+                    // consume response body
+                    parser.parseString(body).then(resolve).catch(reject);
+                });
+            });
             feeds.items.forEach(item => {
                 if (!filter || filter(item.title) || filter(item.link) || filter(item.content)) {
                     item.articleSource = {
@@ -79,4 +95,4 @@ function article2Entry(article) {
     return result;
 }
 
-module.exports = {getArticlesFromRss, isAboutVirus, article2Entry};
+module.exports = { getArticlesFromRss, isAboutVirus, article2Entry };

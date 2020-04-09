@@ -5,9 +5,9 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "feeder": "proxychains4 node ./bin/feeder.js",
-    "reload": "proxychains4 node ./bin/feeder.js --reload",
-    "download": "proxychains4 node ./bin/feeder.js --download --reload",
+    "feeder": "node ./bin/feeder.js",
+    "reload": "node ./bin/feeder.js --reload",
+    "download": "node ./bin/feeder.js --download --reload",
     "api": "apidoc -i . -e 'node_modules/*'"
   },
   "dependencies": {
@@ -31,6 +31,7 @@
     "redis": "^3.0.2",
     "rss-parser": "^3.7.6",
     "string-strip-html": "^4.3.19",
-    "utf8": "^3.0.0"
+    "utf8": "^3.0.0",
+    "request": "^2.88.2"
   }
 }

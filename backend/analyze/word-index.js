@@ -2,7 +2,7 @@
 const ProgressBar = require('progress');
 const db = require('../database');
 const natural = require('natural');
-const getPageRank = require('../config/third-party/articles').getPageRank;
+const getPageRank = require('../fetch/third-party/articles').getPageRank;
 require('./preprocess'); // register `tokenize`, `stem` & `tokenizeAndStem` method
 
 

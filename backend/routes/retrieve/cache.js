@@ -2,7 +2,7 @@
 const redis = require('redis');
 const red = require('chalk').red;
 const debug = require('debug')('backend:retrieve:cache');
-const host = process.env.REMOTE_DB ? require('../../config/db-cfg').TENCENT_MYSQL_CFG.host : 'localhost';
+const host = process.env.REMOTE_DB ? require('../../database/config').TENCENT_MYSQL_CFG.host : 'localhost';
 const scheduler = require('../../scheduler');
 var client;
 
@@ -20,17 +20,6 @@ async function initialize() {
         client.on('error', err => {
             console.log('Cache error:', red(err.message));
         });
-    });
-}
-
-/**
- * @return {Promise<void>}
- */
-async function initializeHost() {
-    await initialize();
-    // flush cache daily
-    scheduler.scheduleJob(scheduler.onceADay, function() {
-        flush();
     });
 }
 
@@ -102,4 +91,4 @@ async function flush() {
 }
 
 
-module.exports = {initialize, initializeHost, get, set, flush};
+module.exports = {initialize, get, set, flush};

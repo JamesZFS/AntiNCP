@@ -4,8 +4,8 @@ const debug = require('debug')('backend:database');
 const mysql = require('mysql');
 const chalk = require('chalk');
 const dbCfg = process.env.REMOTE_DB
-    ? require('../config/db-cfg').TENCENT_MYSQL_CFG
-    : require('../config/db-cfg').LOCAL_MYSQL_CFG; // you may choose a different mysql server
+    ? require('./config').TENCENT_MYSQL_CFG
+    : require('./config').LOCAL_MYSQL_CFG; // you may choose a different mysql server
 const initializingScriptPath = path.resolve(__dirname, './initialize.sql');
 
 /**

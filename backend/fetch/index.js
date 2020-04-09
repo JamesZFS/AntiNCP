@@ -6,12 +6,13 @@ const path = require('path');
 const download = require('download-file');
 const chalk = require('chalk');
 const db = require('../database');
+const analyzer = require('../analyze');
 const scheduler = require('../scheduler');
 const cache = require('../routes/retrieve/cache');
 const csv = require('./csv');
 const rss = require('./rss');
-const epidemicSource = require('../config/third-party/epidemic').CHL; // may select other data sources
-const articleSources = require('../config/third-party/articles').ALL; // may select other article sources
+const epidemicSource = require('./third-party/epidemic').CHL; // may select other data sources
+const articleSources = require('./third-party/articles').ALL; // may select other article sources
 
 /**
  * Reload epidemic data in the db, auto-selecting the newest csv file
@@ -25,7 +26,7 @@ async function reloadEpidemicData() {
             return reloadEpidemicData();
         }
         let oldRowCount = await db.countTableRows('Epidemic');
-        // cache.flush();
+        cache.flush();
         await db.clearTable('Epidemic');
         await csv.batchReadAndMap(csvPath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
         await db.refreshAvailablePlaces('Epidemic');
@@ -97,6 +98,7 @@ async function fetchVirusArticles() {
         }
         debug('Fetching success.');
         let backupFile = path.resolve(__dirname, '../public/data/rss/RSS-backup.txt');
+        if (!fs.existsSync(backupFile)) fs.mkdirSync(path.dirname(backupFile), { recursive: true });
         // let entries = JSON.parse(fs.readFileSync(backupFile));
         fs.writeFileSync(backupFile, JSON.stringify(entries, null, 4)); // backup
         debug(`Articles backed up into ${backupFile}`);
@@ -129,7 +131,9 @@ function initialize() {
         debug('Auto update begins at', chalk.bgGreen(`${time}`));
         try {
             let {startId, endId} = await fetchVirusArticles();
-            // todo analyze data
+            // todo analyze data incr
+            await analyzer.refreshWordIndex();
+            await analyzer.refreshTrends();
             debug('Auto update finished.');
         } catch (err) {
             debug('Auto update aborted.');
@@ -139,5 +143,5 @@ function initialize() {
 }
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData, fetchVirusArticles, initialize, dataSource: epidemicSource.areaAPI
+    reloadEpidemicData, downloadEpidemicData, fetchVirusArticles, initialize
 };

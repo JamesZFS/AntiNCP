@@ -1,13 +1,10 @@
 // Data analysis module
 'use strict';
 const chalk = require('chalk');
-const path = require('path');
-const childProcess = require('child_process');
 const debug = require('debug')('backend:analyze');
 const db = require('../database');
 const wi = require('./word-index');
 const trends = require('./trends');
-const scheduler = require('../scheduler');
 
 
 // Refresh WordIndex table (will clean first)
@@ -49,18 +46,4 @@ async function refreshTrends() {
     debug('Refreshing Trends success.', chalk.green(`[+] ${newRows - oldRows} words.`), `${newRows} words in total.`);
 }
 
-function initialize() {
-    // Update WordIndex and Trends table periodically
-    scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
-        debug('Auto update begins at', chalk.bgGreen(`${time}`));
-        let cp = childProcess.fork(path.resolve(__dirname, './child-job'), null, {silent: true});
-        cp.on('exit', code => {
-            if (code === 0)
-                debug('Auto update finished.');
-            else
-                debug('Auto update aborted. Code =', code);
-        });
-    });
-}
-
-module.exports = {refreshTrends, refreshWordIndex, initialize};
+module.exports = {refreshTrends, refreshWordIndex};

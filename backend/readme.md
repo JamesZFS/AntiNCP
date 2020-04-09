@@ -19,6 +19,10 @@
 
 ## 启动方法
 
+一键在后台安装依赖+生成api+运行服务系统+运行数据系统：
+
+`bash run.sh`
+
 ### 启动WEB服务系统
 
 快速启动：（当数据库中已有内容，不需要刷新时）
@@ -33,7 +37,7 @@
 
 数据管理系统需要从外网获取信息，因此需要用到代理工具 [proxychains的安装与配置](https://www.hi-linux.com/posts/48321.html)
 
-安装后，请确保环境中存在 `proxychains4`
+安装后，请确保环境中存在 `proxychains4`，并且 ssr 处在 1080 端口运行（其他端口需要修改 `fetch/config.js` 中的 `PROXY_PORT`）。
 
 快速启动：
 

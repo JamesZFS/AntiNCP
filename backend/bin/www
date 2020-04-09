@@ -10,8 +10,12 @@ const http = require('http');
 const chalk = require('chalk');
 const db = require('../database');
 const cache = require('../routes/retrieve/cache');
-const analyzer = require('../analyze');
-const port = require('../config/consts').LOCAL_HOST_PORT;
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+const port = normalizePort(process.env.PORT || 3000);
 
 app.set('port', port);
 
@@ -29,8 +33,7 @@ async function launch() {
     debug('Initializing...');
     try { // initialize db and reload data
         await db.initialize();
-        await cache.initializeHost();
-        await analyzer.initialize();
+        await cache.initialize();
     } catch (err) {
         console.error(chalk.red('Caught fatal error in server!'));
         console.error(err);
@@ -81,6 +84,26 @@ function onListening() {
         ? 'pipe ' + addr
         : 'port ' + addr.port;
     debug('Listening on ' + bind);
+}
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+    var port = parseInt(val, 10);
+
+    if (isNaN(port)) {
+        // named pipe
+        return val;
+    }
+
+    if (port >= 0) {
+        // port number
+        return port;
+    }
+
+    return false;
 }
 
 launch();

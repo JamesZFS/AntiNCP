@@ -68,7 +68,8 @@ const CHL = {
     }
 };
 
+const EPIDEMIC_DATA_KINDS = ['confirmedCount', 'activeCount', 'curedCount', 'deadCount'];
 
 module.exports = {
-    DXY, CHL,
+    DXY, CHL, EPIDEMIC_DATA_KINDS
 };

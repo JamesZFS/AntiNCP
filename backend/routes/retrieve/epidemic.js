@@ -4,7 +4,7 @@ const router = require('express').Router();
 const debug = require('debug')('backend:retrieve:epidemic');
 const db = require('../../database');
 const cache = require('./cache');
-const {EPIDEMIC_DATA_KINDS} = require('../../config/db-cfg');
+const {EPIDEMIC_DATA_KINDS} = require('../../fetch/third-party/epidemic');
 const {URL} = require('url');
 
 // TODO use param like way, /:dateMin/:dateMax/:dataKinds ...
