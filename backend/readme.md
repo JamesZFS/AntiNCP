@@ -1,6 +1,6 @@
 # AntiNCP Backend
 
-版本 0.2.0
+版本 0.3.2
 
 ## 后端概要
 
@@ -35,9 +35,11 @@
 
 ### 启动数据管理系统
 
-数据管理系统需要从外网获取信息，因此需要用到代理工具 [proxychains的安装与配置](https://www.hi-linux.com/posts/48321.html)
+数据管理系统需要从外网获取信息，因此需要用到代理工具 `privoxy` 和 `ssr`
 
-安装后，请确保环境中存在 `proxychains4`，并且 ssr 处在 1080 端口运行（其他端口需要修改 `fetch/config.js` 中的 `PROXY_PORT`）。
+安装后，请确保：
+- ssr socks5 处在 1080 端口运行。
+- 环境中存在 `privoxy` ，并且 http proxy 必须在 8118 端口运行，代理规则是 `forward-socks5  /  127.0.0.1:1080 .`
 
 快速启动：
 

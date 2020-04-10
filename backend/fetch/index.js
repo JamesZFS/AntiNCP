@@ -3,14 +3,15 @@
 const debug = require('debug')('backend:fetcher');
 const fs = require('fs');
 const path = require('path');
-const download = require('download-file');
 const chalk = require('chalk');
 const db = require('../database');
 const analyzer = require('../analyze');
 const scheduler = require('../scheduler');
 const cache = require('../routes/retrieve/cache');
+const wget = require('../utils/wget');
 const csv = require('./csv');
 const rss = require('./rss');
+const {WGET_TIMEOUT} = require('./config');
 const epidemicSource = require('./third-party/epidemic').CHL; // may select other data sources
 const articleSources = require('./third-party/articles').ALL; // may select other article sources
 
@@ -48,13 +49,7 @@ async function downloadEpidemicData() {
     let trial = scheduler.fetchingPolicy.maxTrials;
     while (true) {
         try {
-            await new Promise((resolve, reject) => download(url, { // try downloading
-                directory: epidemicSource.downloadDir,
-                filename: Date.now() + '.csv',
-            }, err => {
-                if (err) reject(err);
-                else resolve();
-            }));
+            await wget(url, filePath, true, {timeout: WGET_TIMEOUT});
         } catch (err) {
             debug(`Fail to downlaod, retry in ${scheduler.fetchingPolicy.interval / 60000} mins.`);
             if (--trial > 0) {
@@ -131,7 +126,7 @@ function initialize() {
         debug('Auto update begins at', chalk.bgGreen(`${time}`));
         try {
             let {startId, endId} = await fetchVirusArticles();
-            // todo analyze data incr
+            // TODO: analyze data incr
             await analyzer.refreshWordIndex();
             await analyzer.refreshTrends();
             debug('Auto update finished.');

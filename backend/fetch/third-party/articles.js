@@ -6,7 +6,7 @@ const NEWS_RSS = {
     bbc: {
         short: 'BBC',
         name: 'British Broadcasting Corporation',
-        url: 'http://feeds.bbci.co.uk/news/world/rss.xml',
+        url: 'https://feeds.bbci.co.uk/news/world/rss.xml',
         pagerank: 7.64,
     },
     cna: {

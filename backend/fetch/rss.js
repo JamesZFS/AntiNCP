@@ -2,14 +2,15 @@
 'use strict';
 const debug = require('debug')('backend:fetch:rss');
 const rssParser = require('rss-parser');
-const Agent = require('socks5-http-client/lib/Agent')
-const request = require('request');
 const dateFormat = require('dateformat');
 const chalk = require('chalk');
 const utf8 = require('utf8');
+const fs = require('fs');
 const stripHtml = require("string-strip-html");
 const escape = require('../database').escape;
-const {IS_ABOUT_VIRUS_REG, URL_REG, PROXY_HOST, PROXY_PORT} = require('./config');
+const wget = require('../utils/wget');
+const TEMP_XML = 'tmp.xml';
+const {IS_ABOUT_VIRUS_REG, URL_REG, WGET_TIMEOUT} = require('./config');
 
 /**
  * Get articles from rss sources
@@ -25,22 +26,9 @@ async function getArticlesFromRss(rssSources, filter, map) {
     for (let [_idx, source] of Object.entries(rssSources)) {
         debug(`Fetching articles from '${source.name}'`);
         try {
-            let feeds = await new Promise((resolve, reject) => {
-                const option = {
-                    url: 'http://www.channelnewsasia.com/rssfeeds/8395986',
-                    agentClass: Agent,
-                    agentOptions: {
-                        socksHost: PROXY_HOST,
-                        socksPort: PROXY_PORT
-                    },
-                    method: 'GET'
-                }
-                request(option, (err, res, body) => {
-                    if (err) { reject(err); return; }
-                    // consume response body
-                    parser.parseString(body).then(resolve).catch(reject);
-                });
-            });
+            // proxy download with wget
+            await wget(source.url, TEMP_XML, true, {timeout: WGET_TIMEOUT});
+            let feeds = await parser.parseString(fs.readFileSync(TEMP_XML).toString());
             feeds.items.forEach(item => {
                 if (!filter || filter(item.title) || filter(item.link) || filter(item.content)) {
                     item.articleSource = {
