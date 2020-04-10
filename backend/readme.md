@@ -45,6 +45,10 @@
 
 `npm run feeder`
 
+如果你的 ssr 拥有 http 代理，或者端口号与规定不一致，请在执行 `npm run feeder` 的同时指定环境变量 `HTTP_PROXY_PORT` 的值。
+
+例如，在我的电脑上，ssr 的 http proxy server 端口是1087，那么我执行 `HTTP_PROXY_PORT=1087 npm run feeder`
+
 若要输出调试信息：
 
 `DEBUG=backend:* npm run feeder`

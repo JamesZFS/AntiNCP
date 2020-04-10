@@ -4,12 +4,7 @@ const router = require('express').Router();
 const debug = require('debug')('backend:retrieve:trends');
 const wi = require('../../analyze/word-index');
 const db = require('../../database');
-
-Date.prototype.addDay = function (days = 1) {
-    let date = new Date(this.valueOf());
-    date.setDate(date.getDate() + days);
-    return date;
-};
+require('../../utils/date');
 
 /**
  * @api {get} /api/retrieve/trends/timeline/:dateMin/:dateMax  Get trends timeline api

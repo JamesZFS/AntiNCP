@@ -5,6 +5,6 @@
     "scripts": {
         "env": "cd backend; npm install; cd ../frontend; npm install; cd ..",
         "build": "cd backend; npm run api; cd ../frontend; npm run build; cd ..",
-        "start": "cd backend; npm run reload; cd .."
+        "start": "cd backend; bash run.sh; cd .."
     }
 }

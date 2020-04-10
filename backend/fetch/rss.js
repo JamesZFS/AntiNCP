@@ -83,4 +83,4 @@ function article2Entry(article) {
     return result;
 }
 
-module.exports = { getArticlesFromRss, isAboutVirus, article2Entry };
+module.exports = {getArticlesFromRss, isAboutVirus, article2Entry};

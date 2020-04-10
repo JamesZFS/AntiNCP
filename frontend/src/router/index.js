@@ -1,10 +1,11 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import HomePage from '../components/HomePage'
-import PandemicMap from '../components/PandemicMap'
-import PandemicReports from "../components/PandemicReports";
-import HotWords from "../components/HotWords";
-import About from "../components/About";
+import Home from '@/views/Home'
+import Map from '@/views/Map'
+import Trends from '@/views/Trends';
+import Reports from '@/views/Reports';
+import About from '@/views/About';
+import NotFound from "@/views/NotFound";
 
 Vue.use(Router);
 
@@ -12,28 +13,32 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'HomePage',
-      component: PandemicMap
+      name: '主页',
+      component: Home
     },
     {
       path: '/map',
-      name: 'PandemicMap',
-      component: PandemicMap
+      name: '疫情地图',
+      component: Map
     },
     {
-      path: '/report',
-      name: 'PandemicReports',
-      component: PandemicReports
+      path: '/trends',
+      name: '热点关注',
+      component: Trends
     },
     {
-      path: '/hot',
-      name: 'HotWords',
-      component: HotWords
+      path: '/reports',
+      name: '疫情报道',
+      component: Reports
     },
     {
       path: '/about',
-      name: 'About',
+      name: '关于我们',
       component: About
+    },
+    {
+      path: '*',
+      component: NotFound,
     }
   ]
 })

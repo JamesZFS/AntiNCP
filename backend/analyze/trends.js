@@ -3,12 +3,7 @@ const ProgressBar = require('progress');
 const dateFormat = require('dateformat');
 const db = require('../database');
 const {preprocessArticles} = require('./word-index');
-
-Date.prototype.addDay = function (days = 1) {
-    let date = new Date(this.valueOf());
-    date.setDate(date.getDate() + days);
-    return date;
-};
+require('../utils/date');
 
 /**
  * Add trends items within date range into db

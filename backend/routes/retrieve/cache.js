@@ -3,7 +3,7 @@ const redis = require('redis');
 const red = require('chalk').red;
 const debug = require('debug')('backend:retrieve:cache');
 const host = process.env.REMOTE_DB ? require('../../database/config').TENCENT_MYSQL_CFG.host : 'localhost';
-const scheduler = require('../../scheduler');
+const scheduler = require('../../utils/scheduler');
 var client;
 
 /**
