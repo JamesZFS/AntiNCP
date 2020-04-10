@@ -1,0 +1,13 @@
+{
+	"name": "AntiNCP Backend API",
+	"title": "AntiNCP Backend API",
+	"url": "http://129.204.207.38",
+	"order": [
+		"GetUser",
+		"PostUser"
+	],
+	"template": {
+		"withCompare": true,
+		"withGenerator": true
+	}
+}

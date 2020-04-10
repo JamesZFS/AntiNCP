@@ -1,1 +1,4 @@
 node_modules
+doc
+/public/data/
+npm-debug.log
