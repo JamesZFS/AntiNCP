@@ -1,6 +1,6 @@
 {
     "name": "AntiNCP",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "description": "An intelligent information visualizer & analyzer on 2020 NCP epidemic.",
     "scripts": {
         "env": "cd backend; npm install; cd ../frontend; npm install; cd ..",
