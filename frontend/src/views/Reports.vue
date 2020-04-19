@@ -1,23 +1,23 @@
 <template>
   <v-container class="fill-height align-start">
     <v-card
-            width="100vw"
-            class="mx-auto"
-            :loading="loading"
+        width="100vw"
+        class="mx-auto"
+        :loading="loading"
     >
       <v-toolbar
-              class="secondary"
-              height="auto"
-              dark
+          class="secondary"
+          height="auto"
+          dark
       >
         <v-col>
           <v-row>
             <v-tooltip bottom :open-delay="300">
               <template v-slot:activator="{on}">
                 <v-app-bar-nav-icon
-                        v-on="on"
-                        class="ml-n3"
-                        @click="advanced ^= 1"
+                    v-on="on"
+                    class="ml-n3"
+                    @click="advanced ^= 1"
                 />
               </template>
               <span>高级搜索</span>
@@ -25,21 +25,21 @@
 
             <!--   Search field:   -->
             <ChipTextInput
-                    ref="textInput"
-                    prompt="查询关键词...（键入或选择）"
-                    class="mr-2"
-                    style="max-width: 80%"
-                    :items="candidateChips"
+                ref="textInput"
+                prompt="查询关键词...（键入或选择）"
+                class="mr-2"
+                style="max-width: 80%"
+                :items="candidateChips"
             />
 
             <v-radio-group v-if="advanced" v-model="mode" row class="mt-3 mx-2">
               <v-radio
-                      label="AND"
-                      value="and"
+                  label="AND"
+                  value="and"
               />
               <v-radio
-                      label="OR"
-                      value="or"
+                  label="OR"
+                  value="or"
               />
             </v-radio-group>
 
@@ -67,61 +67,61 @@
           <!--    Date Picker    -->
           <v-row v-if="advanced" class="mt-3">
             <v-dialog
-                    ref="dialog1"
-                    v-model="dialog.min"
-                    :return-value.sync="date"
-                    width="290px"
+                ref="dialog1"
+                v-model="dialog.min"
+                :return-value.sync="date"
+                width="290px"
             >
               <template v-slot:activator="{ on }">
                 <v-text-field
-                        v-model="date.min"
-                        label="起始日期"
-                        prepend-icon="mdi-calendar"
-                        readonly
-                        solo-inverted
-                        hide-details
-                        class="mr-2"
-                        v-on="on"
+                    v-model="date.min"
+                    label="起始日期"
+                    prepend-icon="mdi-calendar"
+                    readonly
+                    solo-inverted
+                    hide-details
+                    class="mr-2"
+                    v-on="on"
                 ></v-text-field>
               </template>
               <v-date-picker
-                      v-model="date.min"
-                      color="success"
-                      scrollable
-                      no-title
-                      show-current
-                      :allowed-dates="x => new Date(x) <= new Date(date.max || Date())"
-                      @input="$refs.dialog1.save(date)"
+                  v-model="date.min"
+                  color="success"
+                  scrollable
+                  no-title
+                  show-current
+                  :allowed-dates="x => new Date(x) <= new Date(date.max || Date())"
+                  @input="$refs.dialog1.save(date)"
               >
               </v-date-picker>
             </v-dialog>
 
             <v-dialog
-                    ref="dialog2"
-                    v-model="dialog.max"
-                    :return-value.sync="date"
-                    width="290px"
+                ref="dialog2"
+                v-model="dialog.max"
+                :return-value.sync="date"
+                width="290px"
             >
               <template v-slot:activator="{ on }">
                 <v-text-field
-                        v-model="date.max"
-                        label="截止日期"
-                        prepend-icon="mdi-calendar"
-                        readonly
-                        solo-inverted
-                        hide-details
-                        class="mr-2"
-                        v-on="on"
+                    v-model="date.max"
+                    label="截止日期"
+                    prepend-icon="mdi-calendar"
+                    readonly
+                    solo-inverted
+                    hide-details
+                    class="mr-2"
+                    v-on="on"
                 ></v-text-field>
               </template>
               <v-date-picker
-                      v-model="date.max"
-                      color="primary"
-                      scrollable
-                      no-title
-                      show-current
-                      :allowed-dates="x => new Date(x) >= new Date(date.min || Date())"
-                      @input="$refs.dialog2.save(date)"
+                  v-model="date.max"
+                  color="primary"
+                  scrollable
+                  no-title
+                  show-current
+                  :allowed-dates="x => new Date(x) >= new Date(date.min || Date())"
+                  @input="$refs.dialog2.save(date)"
               >
               </v-date-picker>
             </v-dialog>
@@ -131,45 +131,64 @@
 
       </v-toolbar>
 
+      <v-pagination
+          v-model="curPage"
+          :total-visible="10"
+          :length="pageCount"
+          @input="setPage"
+          circle
+          class="mb-n5 mt-5"
+      />
+
       <v-skeleton-loader
-              v-if="loading"
-              class="mx-auto"
-              type="list-item-three-line@6"
-              loading
+          v-if="loading"
+          class="mx-auto my-10"
+          type="list-item-three-line@8"
+          loading
       ></v-skeleton-loader>
 
       <!--   Article list view   -->
       <ArticleList
-              :items="articles"
-              v-else
+          :items="articles"
+          v-else
+      />
+
+      <v-pagination
+          v-if="curPageCount >= 6"
+          v-model="curPage"
+          :total-visible="10"
+          :length="pageCount"
+          @input="setPage"
+          circle
+          class="mb-8"
       />
 
     </v-card>
 
     <v-snackbar
-            v-model="success"
-            :timeout="3000"
-            color="success"
+        v-model="success"
+        :timeout="3000"
+        color="success"
     >
       Miao~ {{successMessage}}
       <v-btn
-              dark
-              text
-              @click="success = false"
+          dark
+          text
+          @click="success = false"
       >
         Close
       </v-btn>
     </v-snackbar>
 
     <v-snackbar
-            v-model="error"
-            color="error"
+        v-model="error"
+        color="error"
     >
       出错了 QAQ {{errorMessage}}
       <v-btn
-              dark
-              text
-              @click="error = false"
+          dark
+          text
+          @click="error = false"
       >
         Close
       </v-btn>
@@ -180,13 +199,17 @@
 
 <script>
   import Vue from 'vue';
-  import api from '@/api';
-  import ArticleList from "@/components/ArticleList";
-  import ChipTextInput from "@/components/ChipTextInput";
-  import {processArticles} from '@/utils';
+  import api from '../api';
+  import ArticleList from "../components/ArticleList";
+  import ChipTextInput from "../components/ChipTextInput";
+  import {processArticles} from '../utils';
 
-  const articlesLimit = 30;
   const defaultChips = ['coronavirus', 'COVID', 'Wuhan', 'China', 'quarantine', '...'];
+  const notFoundMsg = '没有找到相关结果';
+  const unknownMsg = '未知错误';
+  const longAgo = '2020/1/1';
+  const tipMsg = '（请勿使用停用词查询，一次查询的查询词别输入太多哦~）';
+  const successHintMsg = '已自动按相关顺序排序';
 
   export default {
     name: "Reports",
@@ -196,103 +219,146 @@
       this.candidateChips = history ? JSON.parse(history) : defaultChips;
     },
     methods: {
+      // on clicking refresh btn or created()
       async refresh() {
         this.loading = true;
-        this.articles = processArticles(await this.fetchArticlesWithinTime());
+        this.articleIds = await this.fetchArticleIdsWithinTime();
+        this.setPage(1);
         this.loading = false;
         // console.log('refreshed');
       },
       async onSearchBtn() {
-        this.query = this.$refs.textInput.chips.join();
-        console.log('on search:', this.query);
+        let query = this.$refs.textInput.chips.join();
+        console.log('on search:', query);
         this.loading = true;
-        let res;
-        if (this.query === '') {
-          res = processArticles(await this.fetchArticlesWithinTime(this.date.min, this.date.max));
+        if (query === '') { // search only via date
+          this.articleIds = await this.fetchArticleIdsWithinTime(this.date.min, this.date.max);
         } else { // fetch by words
-          res = processArticles(await this.fetchArticlesByWords(this.query, this.mode, this.date.min, this.date.max));
+          this.articleIds = await this.fetchArticleIdsByWords(query, this.mode, this.date.min, this.date.max);
         }
-        if (res.length > 0) { // update search history
-          this.articles = res;
-          if (this.query.length !== '') {
-            this.candidateChips.unshift(...this.query.split(','));
-            this.candidateChips = this.candidateChips.slice(0, 6);
-            Vue.$cookies.set('searchHistory', JSON.stringify(this.candidateChips));
-          }
+        this.setPage(1);
+        this.loading = false;
+        if (this.articleIds.length > 0 && query !== '') { // update search history, if success
+          this.candidateChips.unshift(...query.split(','));
+          this.candidateChips = this.candidateChips.slice(0, 6);
+          Vue.$cookies.set('searchHistory', JSON.stringify(this.candidateChips));
+        }
+      },
+      // Will change `this.articles`
+      async setPage(input) {
+        this.curPage = input;
+        // load article details when page changes
+        let ids = this.articleIds.slice((this.curPage - 1) * this.articlesPerPage, this.curPage * this.articlesPerPage);
+        // console.log('set page:', (this.curPage - 1) * this.articlesPerPage, this.curPage * this.articlesPerPage);
+        this.loading = true;
+        try {
+          this.articles = await this.fetchArticlesViaIds(ids);
+          this.curPageCount = this.articles.length;
+          this.articles = processArticles(this.articles);
+        } catch (e) {
+          this.error = true;
+          this.errorMessage = unknownMsg;
+          console.error('cannot fetch articles via ids:', e)
         }
         this.loading = false;
       },
-      async fetchArticlesWithinTime(timeMin, timeMax) {
-        // console.log(timeMin, timeMax);
-        timeMin = timeMin ? new Date(timeMin) : new Date().addDay(-7);
-        timeMax = timeMax ? new Date(timeMax) : new Date();
+      /**
+       * @param ids{int[]}
+       * @return {Promise<Object[]>} article array
+       */
+      async fetchArticlesViaIds(ids) {
         try {
-          var res = await Vue.axios.get(api.GET_ARTICLES_WITHIN_TIME
-              .replace(':timeMin', timeMin.toISOString())
-              .replace(':timeMax', timeMax.toISOString()), {
-            params: {limit: articlesLimit}
-          });
+          var res = await this.axios.post(api.GET_ARTICLES_POST, {ids});
         } catch (e) {
           this.error = true;
-          this.errorMessage = 'Unknown';
-          console.error('error fetching articles by ids:', e);
+          this.errorMessage = unknownMsg;
+          console.error('error fetching articles via ids:', e);
           return [];
         }
-        if (res.data.articles.length === 0) {
+        if (res.data.count === 0) {
           this.error = true;
-          this.errorMessage = '没有找到相关结果';
+          this.errorMessage = notFoundMsg;
         }
         return res.data.articles;
       },
-      async fetchArticlesByWords(words, mode, dateMin, dateMax) {
+      /**
+       * @return {Promise<int[]>}  array of article ids
+       */
+      async fetchArticleIdsWithinTime(timeMin, timeMax) {
+        // console.log(timeMin, timeMax);
+        timeMin = timeMin ? new Date(timeMin) : new Date(longAgo);
+        timeMax = timeMax ? new Date(timeMax) : new Date();
+        try {
+          var res = await Vue.axios.get(api.GET_ARTICLES_WITHIN_TIME
+            .replace(':timeMin', timeMin.toISOString())
+            .replace(':timeMax', timeMax.toISOString()));
+        } catch (e) {
+          this.error = true;
+          this.errorMessage = unknownMsg;
+          console.error('error fetching article ids within time:', e);
+          return [];
+        }
+        if (res.data.count === 0) {
+          this.error = true;
+          this.errorMessage = notFoundMsg;
+        }
+        return res.data.articleIds;
+      },
+      /**
+       * @param words{string[]}
+       * @param mode{string}
+       * @param dateMin{Date}
+       * @param dateMax{Date}
+       * @return {Promise<int[]>}  array of article ids
+       */
+      async fetchArticleIdsByWords(words, mode, dateMin, dateMax) {
         // console.log(dateMin, dateMax);
-        dateMin = dateMin ? new Date(dateMin) : new Date('2020/1/1');
+        dateMin = dateMin ? new Date(dateMin) : new Date(longAgo);
         dateMax = dateMax ? new Date(dateMax) : new Date();
         try {
           var res = await Vue.axios.get(api.GET_TRENDS_ARTICLE_IDS
-              .replace(':dateMin', dateMin.toISOString())
-              .replace(":dateMax", dateMax.toISOString()), {
+            .replace(':dateMin', dateMin.toISOString())
+            .replace(":dateMax", dateMax.toISOString()), {
             params: {words, mode}
           });
         } catch (e) {
           this.error = true;
-          this.errorMessage = '（请勿使用停用词查询，一次查询的查询词别输入太多哦~）';
+          this.errorMessage = tipMsg;
           console.error('error fetching articles ids by words:', e);
           return [];
         }
-        let ids = res.data.articleIds;
-        if (ids.length === 0) {
+        if (res.data.count === 0) {
           this.error = true;
-          this.errorMessage = '没有找到相关结果';
-          return [];
+          this.errorMessage = notFoundMsg;
+        } else {
+          this.success = true;
+          this.successMessage = successHintMsg;
         }
-        try {
-          res = await Vue.axios.get(api.GET_ARTICLES, {params: {ids: ids.slice(0, articlesLimit).join(',')}});
-        } catch (e) {
-          this.error = true;
-          this.errorMessage = 'Unknown';
-          console.error('error fetching articles by ids:', e);
-          return [];
-        }
-        this.success = true;
-        this.successMessage = '已自动按相关顺序排序';
-        return res.data.articles;
+        return res.data.articleIds;
       }
     },
     data: () => ({
       loading: null,
+      articleIds: [],  // cached article ids after search / refresh
+      articles: [],  // articles of current page
+      curPage: 0,
+      curPageCount: 0,
+      articlesPerPage: 30,
       advanced: false,
       candidateChips: [],
-      query: '',
       mode: 'and',
       success: false,
       successMessage: '',
       error: false,
       errorMessage: '',
-      articles: [],
       dialog: {min: false, max: false},
       date: {min: null, max: null},
     }),
+    computed: {
+      pageCount() {
+        return Math.ceil(this.articleIds.length / this.articlesPerPage);
+      }
+    },
     components: {ArticleList, ChipTextInput}
   }
 

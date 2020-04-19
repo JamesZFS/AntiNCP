@@ -146,7 +146,7 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
             }
         }
         if (acc === undefined || acc.size === 0) { // not found
-            res.status(200).send({
+            res.status(200).json({
                 count: 0,
                 articleIds: []
             });
@@ -165,7 +165,7 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
         ]);
         let filteredIds = sortedIds.filter(id => idsWithinDate.has(id));
         // debug(sortedIds.length - filteredIds.length);
-        res.status(200).send({
+        res.status(200).json({
             count: filteredIds.length,
             articleIds: filteredIds
         });

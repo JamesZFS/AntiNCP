@@ -118,12 +118,12 @@
 </template>
 
 <script>
-  import WordCloud from '@/components/WordCloud';
-  import ArticleList from "@/components/ArticleList";
+  import WordCloud from '../components/WordCloud';
+  import ArticleList from "../components/ArticleList";
   import Vue from "vue";
-  import api from "@/api";
+  import api from "../api";
   import deepcopy from 'deepcopy';
-  import {processArticles} from "@/utils";
+  import {processArticles} from "../utils";
 
   export default {
     name: "Trends",
@@ -168,7 +168,7 @@
       },
       async refresh() {
         this.loading = true;
-        this.bubbles = await fetchTrendBubbles(1, 7, 40);
+        this.bubbles = await fetchTrendBubbles(1, 15, 40);
         this.loading = false;
       },
       clearCurrentSelection() {
@@ -311,7 +311,7 @@
       return [];
     }
     try {
-      res = await Vue.axios.get(api.GET_ARTICLES, {params: {ids: ids.slice(0, articlesLimit).join(',')}});
+      res = await Vue.axios.post(api.GET_ARTICLES_POST, {params: {ids: ids.slice(0, articlesLimit)}});
     } catch (e) {
       console.error('error fetching articles by ids:', e);
       return [];

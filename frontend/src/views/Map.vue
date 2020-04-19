@@ -66,10 +66,10 @@
 </template>
 
 <script>
-  import TimelineHeatMap from '@/components/TimelineHeatMap'
-  import NewDataChart from '@/components/NewDataChart'
+  import TimelineHeatMap from '../components/TimelineHeatMap'
+  import NewDataChart from '../components/NewDataChart'
   import vue from "vue";
-  import apis from "@/api";
+  import apis from "../api";
   //用于在发请求之前进行name转换
   var request_filter = {
     '北京': '北京市', '天津': '天津市', '上海': '上海市',

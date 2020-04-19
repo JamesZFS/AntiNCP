@@ -22,20 +22,20 @@ export function processArticles(articles) {
   let res = [];
   let curDate = '';
   let prevTime = 0;
-  for (let x of articles) {
+  articles.forEach((x, i) => {
     x.img = require(`../assets/avatar/${x.sourceName}.png`);
     x.content = `<span class='text--primary'>${x.creator}</span> &mdash; ${x.content}`;
     let d = new Date(x.date);
     if (d.toLocaleDateString() !== curDate) { // date changed
       curDate = d.toLocaleDateString();
-      res.push({header: curDate, bold: true}); // add separator
-      res.push({divider: true, inset: false});
+      if (i > 0) res.push({divider: true, inset: false});  // add separator
+      res.push({header: curDate, bold: true}); // date
     }
     if (Math.abs(prevTime - d.valueOf()) >= timeDisplayInterval) {
       prevTime = d.valueOf();
       res.push({header: d.toLocaleTimeString()});
     }
     res.push(x);
-  }
+  });
   return res;
 }

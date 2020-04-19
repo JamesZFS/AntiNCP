@@ -10,9 +10,9 @@
 <script>
     import echarts from 'echarts'
     import $ from 'jquery'
-    import USA from '@/assets/worldcountryjson/USA.json'
+    import USA from '../assets/worldcountryjson/USA.json'
     import china from 'echarts/map/json/china'
-    import world from '@/assets/world.json'
+    import world from '../assets/world.json'
     import sichuan from 'echarts/map/json/province/sichuan'
     import shanxi1 from 'echarts/map/json/province/shanxi1'
     import xinjiang from 'echarts/map/json/province/xinjiang'

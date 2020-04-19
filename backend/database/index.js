@@ -341,7 +341,7 @@ async function insertArticleEntries(entries) {
  * @param extra{undefined|string} as sql suffix
  * @return Promise<Object>
  */
-function selectArticles(fields, conditions, distinct, extra) {
+function selectArticles(fields, conditions = undefined, distinct = undefined, extra = undefined) {
     return selectInTable('Articles', fields, conditions, distinct, extra);
 }
 
