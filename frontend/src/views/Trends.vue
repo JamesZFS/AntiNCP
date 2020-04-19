@@ -295,7 +295,7 @@
     }
   }
 
-  async function fetchArticlesByWords(words, mode, dateMin, dateMax, articlesLimit = 30) {
+  async function fetchArticlesByWords(words, mode, dateMin, dateMax, articlesLimit = 50) {
     try {
       var res = await Vue.axios.get(api.GET_TRENDS_ARTICLE_IDS
           .replace(':dateMin', dateMin.toISOString())
@@ -311,7 +311,7 @@
       return [];
     }
     try {
-      res = await Vue.axios.post(api.GET_ARTICLES_POST, {params: {ids: ids.slice(0, articlesLimit)}});
+      res = await Vue.axios.post(api.GET_ARTICLES_POST, {ids: ids.slice(0, articlesLimit)});
     } catch (e) {
       console.error('error fetching articles by ids:', e);
       return [];

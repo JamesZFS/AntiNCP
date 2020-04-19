@@ -209,7 +209,6 @@
   const unknownMsg = '未知错误';
   const longAgo = '2020/1/1';
   const tipMsg = '（请勿使用停用词查询，一次查询的查询词别输入太多哦~）';
-  const successHintMsg = '已自动按相关顺序排序';
 
   export default {
     name: "Reports",
@@ -332,7 +331,7 @@
           this.errorMessage = notFoundMsg;
         } else {
           this.success = true;
-          this.successMessage = successHintMsg;
+          this.successMessage = `共找到 ${res.data.count} 条结果，已按相关顺序排序`;
         }
         return res.data.articleIds;
       }
