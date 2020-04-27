@@ -62,7 +62,7 @@ router.get('/timeline/world', async function (req, res) {
         { // Look up in the cache
             var url = getNormalizeUrl(req);
             let val = await cache.get(url);
-            if (val !== null) { // hit
+            if (val != null) { // hit
                 res.status(200).send(val);
                 return;
             }
@@ -209,7 +209,7 @@ router.get('/timeline/country', async function (req, res) {
         { // Look up in the cache
             var url = getNormalizeUrl(req);
             let val = await cache.get(url);
-            if (val !== null) { // hit
+            if (val != null) { // hit
                 res.status(200).send(val);
                 return;
             }
@@ -387,7 +387,7 @@ router.get('/timeline/province', async function (req, res) {
         { // Look up in the cache
             var url = getNormalizeUrl(req);
             let val = await cache.get(url);
-            if (val !== null) { // hit
+            if (val != null) { // hit
                 res.status(200).send(val);
                 return;
             }
