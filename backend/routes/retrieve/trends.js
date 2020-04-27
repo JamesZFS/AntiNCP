@@ -117,7 +117,7 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
     let mode = typeof req.query.mode === 'string' && req.query.mode.toLowerCase() === 'or' ? 'or' : 'and'; // default: 'and'
     // debug(`dateMin: ${dateMin}, dateMax: ${dateMax}, words: ${JSON.stringify(words)}, mode: ${mode}`);
     try {
-        let acc; // Map: articleId => value
+        let acc; // Map: articleId => value TODO
         for (let word of words) {
             let res = await db.selectInTable('WordIndex', 'occurrences', `word=${db.escape(word)}`, false, 'LIMIT 1');
             let cur = res.length > 0 ? wi.deserialize(res[0].occurrences) : new Map();

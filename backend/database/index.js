@@ -137,10 +137,11 @@ async function finalize() {
  * Insert a data entry into a given table
  * @param table{string}
  * @param entry{Object}
+ * @param extra{string}
  * @return {Promise<Object>}
  */
-function insertEntry(table, entry) {
-    let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES (${Object.values(entry).join(',')});`;
+function insertEntry(table, entry, extra = '') {
+    let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES (${Object.values(entry).join(',')}); ${extra}`;
     return doSql(sql); // error unhandled
 }
 
@@ -148,16 +149,17 @@ function insertEntry(table, entry) {
  * Insert a data entry batch into a given table
  * @param table{string}
  * @param entries{Object[]} have to make sure they have **the same keys**
+ * @param extra{string}
  * @return {Promise<Object>}
  */
-function insertEntries(table, entries) {
+function insertEntries(table, entries, extra = '') {
     if (entries.length === 0) return Promise.resolve();
     let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {
         vals.push(`(${Object.values(entry).join(',')})`);
     }
-    sql += vals.join(',') + ';';
+    sql += vals.join(',') + ' ' + extra + ';';
     return doSql(sql); // error unhandled
 }
 
@@ -207,16 +209,6 @@ function clearTable(table) {
 }
 
 /**
- * Fetch the whole table
- * @param table{string}
- * @return {Promise}
- */
-function fetchTable(table) {
-    let sql = `SELECT * FROM ${table};`;
-    return doSql(sql);
-}
-
-/**
  * Count table rows
  * @param table{string}
  * @return {Promise<int>}
@@ -233,7 +225,7 @@ async function countTableRows(table) {
  * @param conditions{undefined|string|string[]}
  * @param distinct{boolean} whether to de-duplicate
  * @param extra{string} as sql suffix
- * @return Promise<Object>
+ * @return Promise<Object[]>
  */
 function selectInTable(table, fields, conditions, distinct = false, extra = '') {
     if (typeof fields === 'string') fields = [fields];
@@ -252,7 +244,7 @@ function selectInTable(table, fields, conditions, distinct = false, extra = '') 
  * @param conditions{undefined|string|string[]}
  * @param distinct{undefined|boolean} whether to de-duplicate
  * @param extra{undefined|string} as sql suffix
- * @return Promise<Object>
+ * @return Promise<Object[]>
  */
 function selectEpidemicData(fields, conditions, distinct, extra) {
     return selectInTable('Epidemic', fields, conditions, distinct, extra);
@@ -339,7 +331,7 @@ async function insertArticleEntries(entries) {
  * @param conditions{undefined|string|string[]}
  * @param distinct{undefined|boolean} whether to de-duplicate
  * @param extra{undefined|string} as sql suffix
- * @return Promise<Object>
+ * @return Promise<Object[]>
  */
 function selectArticles(fields, conditions = undefined, distinct = undefined, extra = undefined) {
     return selectInTable('Articles', fields, conditions, distinct, extra);
@@ -367,8 +359,9 @@ function escape(value) {
 module.exports = {
     initialize, finalize, escapeId, escape,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
-    clearTable, fetchTable, countTableRows, selectInTable, selectEpidemicData,
+    clearTable, countTableRows, selectInTable, selectEpidemicData,
     selectAvailableCities, selectAvailableProvinces, selectAvailableCountries, refreshAvailablePlaces,
     insertArticleEntry, insertArticleEntries, selectArticles,
-    updateClientInfo, getClientInfo
+    updateClientInfo, getClientInfo,
+    doSql, doSqls,
 };
