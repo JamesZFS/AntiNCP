@@ -33,7 +33,7 @@ async function launch() {
     debug('Initializing...');
     try { // initialize db and reload data
         await db.initialize();
-        // await cache.initialize();
+        await cache.initialize();
     } catch (err) {
         console.error(chalk.red('Caught fatal error in server!'));
         console.error(err);
