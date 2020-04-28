@@ -52,9 +52,8 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
     try {
-        let result = await db.selectInTable('Trends', ['word AS name', 'ROUND(SUM(value), 2) AS value'],
-            `date BETWEEN ${dateMin} AND ${dateMax}`, false,
-            `GROUP BY word ORDER BY value DESC LIMIT ${limit}`);
+        let result = await db.doSql(`SELECT stem as name, ROUND(SUM(freq), 4) AS value FROM Trends 
+            WHERE date BETWEEN ${dateMin} AND ${dateMax} GROUP BY name ORDER BY value DESC LIMIT ${limit}`);
         res.status(200).send(result);
     } catch (err) {
         res.status(500).end();
@@ -66,7 +65,7 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
 /**
  * @api {get} /api/retrieve/trends/articleId/:dateMin/:dateMax  Get article id via words api
  * @apiName GetTrendsArticleIds
- * @apiVersion 0.1.1
+ * @apiVersion 1.0.0
  * @apiGroup Trends
  * @apiPermission everyone
  *
@@ -112,40 +111,11 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
         res.status(400).render('error', {message: err.message, status: 400});
         return;
     }
-    dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
-    dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
-    let mode = typeof req.query.mode === 'string' && req.query.mode.toLowerCase() === 'or' ? 'or' : 'and'; // default: 'and'
+    let modeOr = typeof req.query.mode === 'string' && req.query.mode.toLowerCase() === 'or'; // default: 'and'
     // debug(`dateMin: ${dateMin}, dateMax: ${dateMax}, words: ${JSON.stringify(words)}, mode: ${mode}`);
     try {
-        let acc; // Map: articleId => value TODO
-        for (let word of words) {
-            let res = await db.selectInTable('WordIndex', 'occurrences', `word=${db.escape(word)}`, false, 'LIMIT 1');
-            let cur = res.length > 0 ? wi.deserialize(res[0].occurrences) : new Map();
-            if (acc === undefined) // first word
-                acc = cur;
-            else { // union or intersect keys based on `mode`
-                if (mode === 'or') {
-                    for (let [key, curVal] of cur) {
-                        let oldVal = acc.get(key) || 0;
-                        acc.set(key, oldVal + curVal);
-                    }
-                } else { // and
-                    let newMap = new Map();
-                    for (let [key, curVal] of cur) {
-                        let oldVal = acc.get(key);
-                        if (oldVal) {
-                            newMap.set(key, oldVal + curVal);
-                        }
-                    }
-                    acc = newMap;
-                    if (acc.size === 0) { // early stop
-                        acc = undefined;
-                        break;
-                    }
-                }
-            }
-        }
-        if (acc === undefined || acc.size === 0) { // not found
+        let idsByStems = await searchByStems(words, modeOr);
+        if (idsByStems.size === 0) { // not found
             res.status(200).json({
                 count: 0,
                 articleIds: []
@@ -153,26 +123,73 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
             return;
         }
         // todo: possibly cache the map
-        let idsWithinDate;
-        let sortedIds = [];
+        let idsByDate;
+        let sortedIds = []; // sort by tfidf desc
         await Promise.all([ // Run in parallel
             new Promise(resolve => {
-                sortedIds = [...acc.entries()].sort((a, b) => a[1] > b[1]).map(x => x[0]); // fewer
+                sortedIds = [...idsByStems.entries()].sort((a, b) => b[1] - a[1]);//.map(x => x[0]);
                 resolve();
             }),
-            db.selectArticles('id', `date BETWEEN ${dateMin} AND ${dateMax}`)
-                .then(res => idsWithinDate = new Set(res.map(x => x.id))) // more
+            searchByDate(dateMin, dateMax).then(res => idsByDate = res),
         ]);
-        let filteredIds = sortedIds.filter(id => idsWithinDate.has(id));
+        let filteredIds = sortedIds.filter(([id, _tfidf]) => idsByDate.has(id));
         // debug(sortedIds.length - filteredIds.length);
         res.status(200).json({
             count: filteredIds.length,
-            articleIds: filteredIds
+            articleIds: filteredIds,
         });
     } catch (err) {
         res.status(500).end();
         debug('Unconfirmed error:', err);
     }
 });
+
+/**
+ * @param stems{string[]}
+ * @param orMode{boolean}
+ * @return {Promise<Map<int, float>>}
+ */
+async function searchByStems(stems, orMode = false) {
+    let acc = null; // Map: articleId => tfidf
+    for (let stem of stems) {
+        stem = db.escape(stem);
+        let res = await db.doSql(`SELECT a.articleId AS id, a.freq /* tf */ * LOG(1 / b.freq) /* idf */ AS tfidf 
+            FROM WordIndex a, TrendsSumUp b WHERE a.stem = ${stem} AND b.stem = ${stem} ORDER BY tfidf DESC`);
+        let cur = new Map(res.map(({id, tfidf}) => [id, tfidf])); // construct map
+        if (!acc) // first stem
+            acc = cur;
+        else { // union or intersect keys based on `mode`
+            if (orMode) {
+                for (let [key, curVal] of cur) {
+                    let oldVal = acc.get(key) || 0;
+                    acc.set(key, oldVal + curVal);
+                }
+            } else { // and
+                let newMap = new Map();
+                for (let [key, curVal] of cur) {
+                    let oldVal = acc.get(key);
+                    if (oldVal) newMap.set(key, oldVal + curVal);
+                }
+                acc = newMap;
+                if (acc.size === 0) { // early stop
+                    break;
+                }
+            }
+        }
+    }
+    return acc || new Map();
+}
+
+/**
+ * @param dateMin{Date}
+ * @param dateMax{Date}
+ * @return {Promise<Set<int>>}
+ */
+async function searchByDate(dateMin, dateMax) {
+    dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
+    dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
+    let res = await db.doSql(`SELECT id FROM Articles WHERE date BETWEEN ${dateMin} AND ${dateMax}`);
+    return new Set(res.map(x => x.id));
+}
 
 module.exports = router;

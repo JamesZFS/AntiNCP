@@ -79,7 +79,7 @@ async function updateTrends(dateMin = '2020/1/1', dateMax = Date()) {
         console.error(chalk.red('Error when updating Trends:'), err.message);
         throw err;
     }
-    debug('Updating Trends success.', chalk.green(`[+] ${newRows - oldRows} words.`), `${newRows} words in total.`);
+    debug('Update Trends success.', chalk.green(`[+] ${newRows - oldRows} words.`), `${newRows} words in total.`);
 }
 
 module.exports = {updateTrends};

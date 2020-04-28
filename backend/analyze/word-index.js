@@ -73,11 +73,12 @@ async function updateWordIndex(idMin = 0, idMax = 0) {
         });
         // io with database per bulk
         for (let curId = idMin; curId <= idMax; curId += ID_STEP) {
-            bar.tick(ID_STEP);
-            let articles = await db.doSql(`SELECT * FROM Articles WHERE id BETWEEN ${curId} AND ${curId + ID_STEP - 1}`);
+            let curIdMax = Math.min(curId + ID_STEP - 1, idMax);
+            bar.tick(curIdMax - curId + 1);
+            let articles = await db.doSql(`SELECT * FROM Articles WHERE id BETWEEN ${curId} AND ${curIdMax}`);
             if (articles.length === 0) continue;
             await storeWordStem(articles);
-            console.assert(articles[0].pagerank !== undefined);
+            // console.assert(articles[0].pagerank !== undefined);
             await storeWordIndex(articles);
         }
         var newRows = await db.countTableRows('WordIndex');
