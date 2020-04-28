@@ -9,7 +9,7 @@ require('../../utils/date');
 /**
  * @api {get} /api/retrieve/trends/timeline/:dateMin/:dateMax  Get trends timeline api
  * @apiName GetTrendsTimeline
- * @apiVersion 0.1.1
+ * @apiVersion 1.0.0
  * @apiGroup Trends
  * @apiPermission everyone
  *
@@ -124,12 +124,12 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
         let sortedIds = []; // sort by tfidf desc
         await Promise.all([ // Run in parallel
             new Promise(resolve => {
-                sortedIds = [...idsByStems.entries()].sort((a, b) => b[1] - a[1]);//.map(x => x[0]); todo
+                sortedIds = [...idsByStems.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
                 resolve();
             }),
             searchIdsByDate(dateMin, dateMax).then(res => idsByDate = res),
         ]);
-        let filteredIds = sortedIds.filter(([id, _tfidf]) => idsByDate.has(id));
+        let filteredIds = sortedIds.filter(id => idsByDate.has(id));
         // debug(sortedIds.length - filteredIds.length);
         res.status(200).json({
             count: filteredIds.length,
@@ -150,8 +150,9 @@ async function searchIdsByStems(stems, orMode = false) {
     let acc = null; // Map: articleId => tfidf
     for (let stem of stems) {
         stem = db.escape(stem);
+        let articleCount = await db.countTableRows('Articles');
         let res = await db.doSql(`
-SELECT a.articleId AS id, a.freq /* tf */ * LOG(1 / b.freq) /* idf */ AS tfidf 
+SELECT a.articleId AS id, a.freq /* tf */ * LOG(${articleCount} / b.count) /* idf */ AS tfidf 
 FROM WordIndex a, WordIndexSumUp b WHERE a.stem = ${stem} AND b.stem = ${stem} ORDER BY tfidf DESC`);
         let cur = new Map(res.map(({id, tfidf}) => [id, tfidf])); // construct map
         if (!acc) // first stem
@@ -201,9 +202,12 @@ async function searchIdsByDate(dateMin, dateMax) {
 async function searchTrendsByDate(dateMin, dateMax, limit) {
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
+    // const {globalDateMin, globalDateMax} = (await db.doSql('SELECT MIN(date) AS globalDateMin, MAX(date) AS globalDateMax FROM Articles'))[0];
+    // const dayCount = Math.ceil(new Date(globalDateMax).dayDiff(new Date(globalDateMin)) + 1);
+    const N = 60; // todo adjustable param
     return db.doSql(`
 SELECT c.word AS name, ROUND(tmp.tfidf, 4) as value
-FROM (SELECT a.stem as stem, SUM(a.freq) /* tf */ * LOG(1 / b.freq) /* idf */ AS tfidf /* tfidf */
+FROM (SELECT a.stem as stem, SUM(a.freq) /* tf */ * LOG(${N} / b.count) /* idf */ AS tfidf /* tfidf */
       FROM Trends a,
            TrendsSumUp b
       WHERE a.stem = b.stem

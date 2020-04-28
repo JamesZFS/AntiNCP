@@ -129,9 +129,11 @@ function initialize() {
             if (startId < endId) { // has update
                 // update index tables incrementally
                 await analyzer.updateWordIndex(startId, endId - 1);
-                let dateMin = (await db.doSql(`SELECT date FROM Articles WHERE id = ${startId}`))[0].date;
-                let dateMax = (await db.doSql(`SELECT date FROM Articles WHERE id = ${endId - 1}`))[0].date;
-                await analyzer.updateTrends(dateMin, dateMax);
+                // let dateMin = (await db.doSql(`SELECT date FROM Articles WHERE id = ${startId}`))[0].date;
+                // let dateMax = (await db.doSql(`SELECT date FROM Articles WHERE id = ${endId - 1}`))[0].date;
+                for (let table of ['Trends', 'TrendsSumUp'])
+                    await db.clearTable(table);
+                await analyzer.updateTrends(); // refresh for convenience
             }
             debug('Auto update finished.');
         } catch (err) {

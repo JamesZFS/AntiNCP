@@ -24,8 +24,11 @@ async function launch() {
             await fetcher.reloadEpidemicData();
         }
         if (process.argv.indexOf('--rebuild') >= 0) { // rebuild all index tables
-            await Promise.all([db.clearTable('WordStem'), db.clearTable('WordIndex'), db.clearTable('Trends')]);
-            await Promise.all([analyzer.updateWordIndex(), analyzer.updateTrends()]);
+            for (let table of ['Stem2Word', 'Trends', 'TrendsSumUp', 'WordIndex', 'WordIndexSumUp', 'WordStem'])
+                await db.clearTable(table);
+            await analyzer.updateTrends();
+            await analyzer.updateWordIndex();
+            // await Promise.all([analyzer.updateWordIndex(), analyzer.updateTrends()]);
         }
         await fetcher.initialize(); // scheduler
     } catch (err) {

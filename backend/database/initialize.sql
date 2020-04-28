@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS `Trends`
     COMMENT = 'Trends table';
 CREATE TABLE IF NOT EXISTS `TrendsSumUp`
 (
-    `stem` VARCHAR(32) NOT NULL,
-    `freq` DOUBLE      NOT NULL,
+    `stem`  VARCHAR(32)  NOT NULL,
+    `count` INT UNSIGNED NOT NULL,
     PRIMARY KEY (`stem`)
 )
     COMMENT = 'Word frequency in all days';
@@ -101,8 +101,8 @@ CREATE TABLE IF NOT EXISTS `WordIndex`
     COMMENT = 'Word-to-article index';
 CREATE TABLE IF NOT EXISTS `WordIndexSumUp`
 (
-    `stem` VARCHAR(32) NOT NULL,
-    `freq` DOUBLE      NOT NULL,
+    `stem`  VARCHAR(32)  NOT NULL,
+    `count` INT UNSIGNED NOT NULL,
     PRIMARY KEY (`stem`)
 )
     COMMENT = 'Word frequency in all articles';

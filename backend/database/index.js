@@ -348,7 +348,7 @@ function escapeId(id) {
 
 /**
  * Call mysql escape
- * @param value{string}
+ * @param value{*}
  * @return {string}
  */
 function escape(value) {
