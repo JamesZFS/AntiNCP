@@ -49,11 +49,8 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
         return;
     }
     let limit = Math.min(Math.max(1, parseInt(req.query.limit) || 20), 1000); // 1 ~ 1000
-    dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
-    dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
     try {
-        let result = await db.doSql(`SELECT stem as name, ROUND(SUM(freq), 4) AS value FROM Trends 
-            WHERE date BETWEEN ${dateMin} AND ${dateMax} GROUP BY name ORDER BY value DESC LIMIT ${limit}`);
+        let result = await searchTrendsByDate(dateMin, dateMax, limit);
         res.status(200).send(result);
     } catch (err) {
         res.status(500).end();
@@ -114,7 +111,7 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
     let modeOr = typeof req.query.mode === 'string' && req.query.mode.toLowerCase() === 'or'; // default: 'and'
     // debug(`dateMin: ${dateMin}, dateMax: ${dateMax}, words: ${JSON.stringify(words)}, mode: ${mode}`);
     try {
-        let idsByStems = await searchByStems(words, modeOr);
+        let idsByStems = await searchIdsByStems(words, modeOr);
         if (idsByStems.size === 0) { // not found
             res.status(200).json({
                 count: 0,
@@ -127,10 +124,10 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
         let sortedIds = []; // sort by tfidf desc
         await Promise.all([ // Run in parallel
             new Promise(resolve => {
-                sortedIds = [...idsByStems.entries()].sort((a, b) => b[1] - a[1]);//.map(x => x[0]);
+                sortedIds = [...idsByStems.entries()].sort((a, b) => b[1] - a[1]);//.map(x => x[0]); todo
                 resolve();
             }),
-            searchByDate(dateMin, dateMax).then(res => idsByDate = res),
+            searchIdsByDate(dateMin, dateMax).then(res => idsByDate = res),
         ]);
         let filteredIds = sortedIds.filter(([id, _tfidf]) => idsByDate.has(id));
         // debug(sortedIds.length - filteredIds.length);
@@ -149,12 +146,13 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
  * @param orMode{boolean}
  * @return {Promise<Map<int, float>>}
  */
-async function searchByStems(stems, orMode = false) {
+async function searchIdsByStems(stems, orMode = false) {
     let acc = null; // Map: articleId => tfidf
     for (let stem of stems) {
         stem = db.escape(stem);
-        let res = await db.doSql(`SELECT a.articleId AS id, a.freq /* tf */ * LOG(1 / b.freq) /* idf */ AS tfidf 
-            FROM WordIndex a, TrendsSumUp b WHERE a.stem = ${stem} AND b.stem = ${stem} ORDER BY tfidf DESC`);
+        let res = await db.doSql(`
+SELECT a.articleId AS id, a.freq /* tf */ * LOG(1 / b.freq) /* idf */ AS tfidf 
+FROM WordIndex a, WordIndexSumUp b WHERE a.stem = ${stem} AND b.stem = ${stem} ORDER BY tfidf DESC`);
         let cur = new Map(res.map(({id, tfidf}) => [id, tfidf])); // construct map
         if (!acc) // first stem
             acc = cur;
@@ -185,11 +183,36 @@ async function searchByStems(stems, orMode = false) {
  * @param dateMax{Date}
  * @return {Promise<Set<int>>}
  */
-async function searchByDate(dateMin, dateMax) {
+async function searchIdsByDate(dateMin, dateMax) {
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
     let res = await db.doSql(`SELECT id FROM Articles WHERE date BETWEEN ${dateMin} AND ${dateMax}`);
     return new Set(res.map(x => x.id));
+}
+
+/**
+ * Query tf (within date params) and idf (from overall stat) -> tfidf -> sort -> limit -> lookup original word.
+ * This is 100% MySQL operation, super fast.
+ * @param dateMin{Date}
+ * @param dateMax{Date}
+ * @param limit{int}
+ * @return {Promise<{string, float}[]>}
+ */
+async function searchTrendsByDate(dateMin, dateMax, limit) {
+    dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
+    dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
+    return db.doSql(`
+SELECT c.word AS name, ROUND(tmp.tfidf, 4) as value
+FROM (SELECT a.stem as stem, SUM(a.freq) /* tf */ * LOG(1 / b.freq) /* idf */ AS tfidf /* tfidf */
+      FROM Trends a,
+           TrendsSumUp b
+      WHERE a.stem = b.stem
+        AND a.date BETWEEN ${dateMin} AND ${dateMax}
+      GROUP BY stem
+      ORDER BY tfidf DESC
+      LIMIT ${limit}) tmp
+         INNER JOIN Stem2Word c ON tmp.stem = c.stem
+`);
 }
 
 module.exports = router;

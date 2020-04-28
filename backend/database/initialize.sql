@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS `Trends`
 (
     `date` DATE        NOT NULL,
     `stem` VARCHAR(32) NOT NULL,
-    `freq` DOUBLE      NOT NULL, -- frequency within a day
+    `freq` DOUBLE      NOT NULL, -- frequency within a day, [0, 1]
     INDEX `idx` (`date` ASC, `stem` ASC)
 )
     COMMENT = 'Trends table';
@@ -74,21 +74,35 @@ CREATE TABLE IF NOT EXISTS `TrendsSumUp`
     `freq` DOUBLE      NOT NULL,
     PRIMARY KEY (`stem`)
 )
-    COMMENT = 'Frequency sum up';
+    COMMENT = 'Word frequency in all days';
 CREATE TABLE IF NOT EXISTS `WordStem`
 (
     `stem` VARCHAR(32) NOT NULL, -- stemmed word
     `word` VARCHAR(32) NOT NULL, -- original word before stemmed
-    `freq` DOUBLE      NOT NULL,
+    `freq` DOUBLE      NOT NULL, -- the bigger, the stronger mapping
     UNIQUE INDEX `idx` (`stem`, `word`)
 )
     COMMENT = 'Words and their stems';
+CREATE TABLE IF NOT EXISTS `Stem2Word`
+(
+    `stem` VARCHAR(32) NOT NULL, -- stemmed word
+    `word` VARCHAR(32) NOT NULL, -- original word before stemmed
+    PRIMARY KEY (`stem`)         -- one to one mapping
+)
+    COMMENT = 'Stem to word';
 CREATE TABLE IF NOT EXISTS `WordIndex`
 (
-    `stem`      VARCHAR(32)  NOT NULL, -- stemmed word,
+    `stem`      VARCHAR(32)  NOT NULL, -- stemmed word
     `articleId` INT UNSIGNED NOT NULL,
-    `freq`      DOUBLE       NOT NULL,
+    `freq`      DOUBLE       NOT NULL, -- word frequency in an article, [0, 1]
     FOREIGN KEY (`articleId`) REFERENCES Articles (`id`),
     UNIQUE INDEX `idx` (`stem`, `articleId`)
 )
     COMMENT = 'Word-to-article index';
+CREATE TABLE IF NOT EXISTS `WordIndexSumUp`
+(
+    `stem` VARCHAR(32) NOT NULL,
+    `freq` DOUBLE      NOT NULL,
+    PRIMARY KEY (`stem`)
+)
+    COMMENT = 'Word frequency in all articles';
