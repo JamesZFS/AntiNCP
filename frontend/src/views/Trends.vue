@@ -16,53 +16,58 @@
           </v-icon>
         </template>
 
-        <v-card
-            class="elevation-3 lighten-1"
-            :color="colors[index % colors.length]"
-        >
-          <v-card-title class="title display-1 white--text">{{bubble.title}}</v-card-title>
-          <v-card-text class="white text--primary pt-2">
-            <!--       Word bubbles:    -->
-            <v-tooltip
-                v-for="(trend, index) in bubble.trends"
-                :key="index"
-                bottom
+        <v-hover>
+          <template v-slot="{hover}">
+            <v-card
+                class="lighten-1"
+                :elevation="hover ? 16 : 3"
+                :color="bubble.color"
             >
-              <template v-slot:activator="{ on }">
-                <v-chip
-                    v-on="on"
-                    class="ma-1"
-                    filter
-                    :input-value="trend.selected"
-                    :color="trend.selected ? '#90CAF9' : trend.color"
-                    :class="trend.textColor && `${trend.textColor}--text`"
-                    @click="onClickSomeTrend(trend, bubble)"
+              <v-card-title class="title display-1 white--text">{{bubble.title}}</v-card-title>
+              <v-card-text class="white text--primary pt-2">
+                <!--       Word bubbles:    -->
+                <v-tooltip
+                    v-for="(trend, index) in bubble.trends"
+                    :key="index"
+                    bottom
                 >
-                  <v-icon v-if="trend.star" left>mdi-star</v-icon>
-                  {{trend.name}}
-                </v-chip>
-              </template>
-              <div>热度：{{trend.value}}</div>
-              <div>増势：{{trend.incr}}</div>
-              <div v-if="trend.ascendBy">
+                  <template v-slot:activator="{ on }">
+                    <v-chip
+                        v-on="on"
+                        class="ma-1"
+                        filter
+                        :input-value="trend.selected"
+                        :color="trend.selected ? '#90CAF9' : trend.color"
+                        :class="trend.textColor && `${trend.textColor}--text`"
+                        @click="onClickSomeTrend(trend, bubble)"
+                    >
+                      <v-icon v-if="trend.star" left>mdi-star</v-icon>
+                      {{trend.name}}
+                    </v-chip>
+                  </template>
+                  <div>热度：{{trend.value}}</div>
+                  <div>増势：{{trend.incr}}</div>
+                  <div v-if="trend.ascendBy">
                 <span>
                   増势：{{isNaN(trend.ascendBy) ? 'Infinity' : Math.round((trend.ascendBy + Number.EPSILON) * 100 ) / 100}}
                   <v-icon color="white">mdi-arrow-up</v-icon>
                 </span>
-              </div>
-            </v-tooltip>
-            <v-btn
-                color="accent"
-                class="d-block mx-auto mt-2 px-5 darken-4"
-                outlined
-                small
-                @click="onGenerateWordCloud(bubble)"
-            >
-              <v-icon>mdi-hand-pointing-left</v-icon>
-              &nbsp; 生成词云
-            </v-btn>
-          </v-card-text>
-        </v-card>
+                  </div>
+                </v-tooltip>
+                <v-btn
+                    color="orange"
+                    class="d-block mx-auto mt-2 px-5 darken-4"
+                    outlined
+                    small
+                    @click="onGenerateWordCloud(bubble)"
+                >
+                  <v-icon>mdi-hand-pointing-left</v-icon>
+                  &nbsp; 生成词云
+                </v-btn>
+              </v-card-text>
+            </v-card>
+          </template>
+        </v-hover>
       </v-timeline-item>
     </v-timeline>
     <v-skeleton-loader
@@ -124,11 +129,13 @@
     import Vue from "vue";
     import api from "../api";
     import deepcopy from 'deepcopy';
-    import {processArticles} from "../utils";
+    import {processArticles, colorLerp, hexToRgb} from "../utils";
 
     const colorGrey = [217, 217, 217];
     const colorGreen = [16, 173, 16];
     const colorDark = [110, 110, 110];
+    let colorPrimary;
+    let colorAccent;
 
     export default {
         name: "Trends",
@@ -136,29 +143,7 @@
         data() {
             return {
                 loading: false,
-                bubbles: [{  // list of bubbles
-                    title: '1/1',
-                    date: {min: new Date('2020/1/1'), max: new Date('2020/5/1')},
-                    trends: [
-                        {
-                            name: 'demo',
-                            value: 123,
-                            star: true,
-                            color: 'orange',
-                        },
-                        {
-                            name: 'haha',
-                            value: 10,
-                            color: 'green'
-                        },
-                        {
-                            name: 'ok',
-                            value: 5,
-                            selected: true
-                        }
-                    ]
-                }],
-                colors: ['amber', 'blue', 'teal', 'purple', 'cyan', 'black', 'orange'],
+                bubbles: [],
                 selectedTrends: [],
                 selectedDate: {min: null, max: null},
                 rightDrawer: false,
@@ -231,27 +216,21 @@
             },
         },
         created() {
+            colorPrimary = hexToRgb(this.$vuetify.theme.themes.light.primary);
+            colorAccent = hexToRgb(this.$vuetify.theme.themes.light.accent);
             this.refresh();
-        }
+        },
     }
 
     function valueToDegree(value) {
         return Math.round(value * 1e5 + Number.EPSILON) / 1e2;
     }
 
-    function colorLerp(alpha, c1, c2) {
-        let beta = 1 - alpha;
-        return [
-            Math.round(beta * c1[0] + alpha * c2[0]),
-            Math.round(beta * c1[1] + alpha * c2[1]),
-            Math.round(beta * c1[2] + alpha * c2[2]),
-        ];
-    }
-
     async function fetchTrendBubbles(timeWindow, n_bubble, n_trend) {
+        const today = new Date();
         let date = {
-            max: new Date(),
-            min: new Date().addDay(-timeWindow + 1),
+            max: today,
+            min: today.addDay(-timeWindow + 1),
         };
         let bubbles = [];
         for (let i = 0; i < n_bubble; i++, date.min = date.min.addDay(-timeWindow), date.max = date.max.addDay(-timeWindow)) {
@@ -272,6 +251,11 @@
                     date: deepcopy(date),
                     trends: res.data,
                 };
+                { // compute color of bubble, suggested by @Suiyi
+                    let alpha = Math.tanh(today.dayDiff(date.max) / 10.0); // [0, 1)
+                    let color = colorLerp(alpha, colorPrimary, colorAccent);
+                    bubble.color = `rgb(${color})`;
+                }
                 for (let trend of bubble.trends) { // render color
                     trend.value = valueToDegree(trend.value);
                     trend.incr = valueToDegree(trend.incr);
