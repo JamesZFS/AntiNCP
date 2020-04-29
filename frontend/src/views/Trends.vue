@@ -183,7 +183,6 @@
             },
             loadRelativeReports() {
                 let queryWords = this.selectedTrends.map(x => x.name).join(',');
-                // alert(queryWords);
                 this.$nextTick(async () => {
                     this.loadingReports = true;
                     this.relativeReports = await fetchArticlesByWords(
@@ -203,13 +202,11 @@
             },
             onClickSomeTrend(trend, bubble) {
                 if (bubble.date !== this.selectedDate) { // not from the same bubble
-                    // alert(`${JSON.stringify(this.selectedDate)} !== ${JSON.stringify(bubble.date)}`);
                     this.clearCurrentSelection();
                     this.selectedDate = bubble.date;
                     this.selectedTrends.push(trend);
                     trend.selected = true;
                 } else { // from the same bubble
-                    // alert(`${JSON.stringify(this.selectedDate)} === ${JSON.stringify(bubble.date)}`);
                     let index = this.selectedTrends.indexOf(trend);
                     if (index >= 0) { // cancel
                         this.selectedTrends.splice(index, 1);

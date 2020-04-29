@@ -33,7 +33,7 @@ export function processArticles(articles) {
     let curDate = '';
     let prevTime = 0;
     articles.forEach((x, i) => {
-        x.img = require(`../assets/avatar/${x.sourceName}.png`);
+        x.img = require(`../assets/avatar/${x.sourceName}.jpg`);
         x.content = `<span class='text--primary'>${x.creator}</span> &mdash; ${x.content}`;
         let d = new Date(x.date);
         if (d.toLocaleDateString() !== curDate) { // date changed
