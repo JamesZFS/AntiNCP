@@ -9,7 +9,6 @@ const fs = require('fs');
 const stripHtml = require("string-strip-html");
 const escape = require('../database').escape;
 const wget = require('../utils/wget');
-const TEMP_XML = 'tmp.xml';
 const {IS_ABOUT_VIRUS_REG, URL_REG, WGET_TIMEOUT} = require('./config');
 
 /**
@@ -20,36 +19,43 @@ const {IS_ABOUT_VIRUS_REG, URL_REG, WGET_TIMEOUT} = require('./config');
  * @return {Promise<Object[]>}
  */
 async function getArticlesFromRss(rssSources, filter, map) {
-    const articles = [];
+    let articles = [];
     // rss parser
-    const parser = new rssParser();
-    for (let [_idx, source] of Object.entries(rssSources)) {
-        debug(`Fetching articles from '${source.name}'`);
-        try {
-            // proxy download with wget
-            await wget(source.url, TEMP_XML, true, {timeout: WGET_TIMEOUT});
-            let feeds = await parser.parseString(fs.readFileSync(TEMP_XML).toString());
-            feeds.items.forEach(item => {
-                if (!filter || filter(item.title) || filter(item.link) || filter(item.content)) {
-                    item.articleSource = {
-                        short: source.short,
-                        name: source.name
-                    };
-                    if (map) {
-                        try {
-                            articles.push(map(item));
-                        } catch (err) {
-                            debug(`Error when parsing article '${item.link}' from source '${source.short}': ${err.message}`);
+    let jobs = [];
+    for (let [idx, source] of Object.entries(rssSources)) {
+        jobs.push(new Promise(async (resolve) => {
+            let parser = new rssParser();
+            debug(`Fetching articles from '${source.name}'`);
+            let temp_xml = `tmp-${idx}.xml`;
+            try {
+                // proxy download with wget
+                await wget(source.url, temp_xml, true, {timeout: WGET_TIMEOUT});
+                let feeds = await parser.parseString(fs.readFileSync(temp_xml).toString());
+                feeds.items.forEach(item => {
+                    if (!filter || filter(item.title) || filter(item.link) || filter(item.content)) {
+                        item.articleSource = {
+                            short: source.short,
+                            name: source.name
+                        };
+                        if (map) {
+                            try {
+                                articles.push(map(item));
+                            } catch (err) {
+                                debug(`Error when parsing article '${item.link}' from source '${source.short}': ${err.message}`);
+                            }
+                        } else {
+                            articles.push(item);
                         }
-                    } else {
-                        articles.push(item);
                     }
-                }
-            });
-        } catch (err) {
-            console.error(chalk.red('Get rss feeds failed:'), err.message);
-        }
+                });
+            } catch (err) {
+                console.error(chalk.red('Get rss feeds failed:'), err.message);
+            }
+            fs.unlinkSync(temp_xml);
+            resolve();
+        }));
     }
+    await Promise.all(jobs); // get in parallel
     return articles;
 }
 

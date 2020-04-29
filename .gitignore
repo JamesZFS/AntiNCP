@@ -1,5 +1,5 @@
 .idea
 node_modules/
 screenlog.*
-tmp.xml
+tmp-*.xml
 npm-debug.log
