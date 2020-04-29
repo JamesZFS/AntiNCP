@@ -7,7 +7,8 @@ const WORD_REG = /^[a-zA-Z]+$/;
 
 natural.stopwords = new Set(natural.stopwords.concat(['the', 'on', 'www',
     'http', 'https', 'com', 'co', 'span', 'link', 'submitted', 'comments',
-    'will', 'not', 'div', 'pic', 'twitter'
+    'will', 'not', 'div', 'pic', 'twitter', 
+    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
 ]));
 
 /**
