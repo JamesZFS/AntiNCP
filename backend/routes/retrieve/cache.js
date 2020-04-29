@@ -25,7 +25,7 @@ async function initialize() {
 
 /**
  * @param key{string}
- * @return {Promise<string>}
+ * @return {Promise<string|undefined>}
  */
 async function get(key) {
     return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ async function get(key) {
                 debug('Get error:', err.message);
                 if (err.code === 'ETIMEDOUT') { // retry in 1 sec
                     await scheduler.sleep(1000);
-                    get().then(resolve).catch(reject);
+                    get(key).then(resolve).catch(reject);
                     return;
                 }
                 reject(err);
@@ -57,7 +57,7 @@ async function set(key, val) {
                 debug('Set error:', err.message);
                 if (err.code === 'ETIMEDOUT') { // retry in 1 sec
                     await scheduler.sleep(1000);
-                    set().then(resolve).catch(reject);
+                    set(key, val).then(resolve).catch(reject);
                     return;
                 }
                 reject(err);

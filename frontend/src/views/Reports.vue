@@ -283,14 +283,14 @@
       /**
        * @return {Promise<int[]>}  array of article ids
        */
-      async fetchArticleIdsWithinTime(timeMin, timeMax) {
-        // console.log(timeMin, timeMax);
-        timeMin = timeMin ? new Date(timeMin) : new Date(longAgo);
-        timeMax = timeMax ? new Date(timeMax) : new Date();
+      async fetchArticleIdsWithinTime(dateMin, dateMax) {
+        // console.log(dateMin, dateMax);
+        dateMin = dateMin ? new Date(dateMin) : new Date(longAgo);
+        dateMax = dateMax ? new Date(dateMax) : new Date();
         try {
           var res = await Vue.axios.get(api.GET_ARTICLES_WITHIN_TIME
-            .replace(':timeMin', timeMin.toISOString())
-            .replace(':timeMax', timeMax.toISOString()));
+            .replace(':dateMin', dateMin.format('yyyy-mm-dd'))
+            .replace(':dateMax', dateMax.format('yyyy-mm-dd')));
         } catch (e) {
           this.error = true;
           this.errorMessage = unknownMsg;

@@ -93,7 +93,7 @@ async function fetchVirusArticles() {
         }
         debug('Fetching success.');
         let backupFile = path.resolve(__dirname, '../public/data/rss/RSS-backup.txt');
-        if (!fs.existsSync(backupFile)) fs.mkdirSync(path.dirname(backupFile), { recursive: true });
+        if (!fs.existsSync(backupFile)) fs.mkdirSync(path.dirname(backupFile), {recursive: true});
         // let entries = JSON.parse(fs.readFileSync(backupFile));
         fs.writeFileSync(backupFile, JSON.stringify(entries, null, 4)); // backup
         debug(`Articles backed up into ${backupFile}`);
@@ -126,9 +126,15 @@ function initialize() {
         debug('Auto update begins at', chalk.bgGreen(`${time}`));
         try {
             let {startId, endId} = await fetchVirusArticles();
-            // TODO: analyze data incr
-            await analyzer.refreshWordIndex();
-            await analyzer.refreshTrends();
+            if (startId < endId) { // has update
+                // update index tables incrementally
+                await analyzer.updateWordIndex(startId, endId - 1);
+                // let dateMin = (await db.doSql(`SELECT date FROM Articles WHERE id = ${startId}`))[0].date;
+                // let dateMax = (await db.doSql(`SELECT date FROM Articles WHERE id = ${endId - 1}`))[0].date;
+                for (let table of ['Trends', 'TrendsSumUp'])
+                    await db.clearTable(table);
+                await analyzer.updateTrends(); // refresh for convenience
+            }
             debug('Auto update finished.');
         } catch (err) {
             debug('Auto update aborted.');

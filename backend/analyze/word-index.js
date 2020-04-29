@@ -1,130 +1,110 @@
 'use strict';
+const chalk = require('chalk');
 const ProgressBar = require('progress');
+const debug = require('debug')('backend:analyze');
 const db = require('../database');
-const natural = require('natural');
-const getPageRank = require('../fetch/third-party/articles').getPageRank;
-require('./preprocess'); // register `tokenize`, `stem` & `tokenizeAndStem` method
+const tuple = require('../utils/tuple');
+const {preprocessArticles} = require('./preprocess'); // register `tokenize`, `stem` & `tokenizeAndStem` method
+const ID_STEP = 1000;
 
+// c.r. https://stackoverflow.com/questions/12102200/get-records-with-max-value-for-each-group-of-grouped-sql-results
+const STEM_TO_WORD_UPDATE_SQL = `
+    INSERT IGNORE INTO Stem2Word (stem, word)
+    SELECT a.stem as stem, a.word as word
+    FROM WordStem a
+             LEFT JOIN WordStem b ON a.stem = b.stem AND a.freq < b.freq
+    WHERE b.freq is NULL`;
 
-/**
- * Preprocess articles into stemmed tokens **in place**
- * @param articles{Object[]}
- * @return {Object[]}
- */
-function preprocessArticles(articles) {
-    articles.forEach(article => {
-        article.tokens = article.title.tokenizeAndStem().concat(article.content.tokenizeAndStem());
-        article.pagerank = getPageRank(article.sourceName);
-    });
-    return articles;
+// clear and rebuild Stem2Word table (this is 100% based on MySQL operations)
+async function refreshStem2Word() {
+    await db.clearTable('Stem2Word');
+    await db.doSql(STEM_TO_WORD_UPDATE_SQL);
 }
 
-/**
- * Create wordIndex whose value is tfidf in all documents
- * @param articles{Object[]} should contain `id` and (stemmed) `tokens`{string[]} field
- * @return {Map<string, Map<int, number>>} maps a stemmed word to a map that maps an article id to the rank value
- */
-function createWordIndex_tfidf(articles) {
-    let tfidf = new natural.TfIdf();
-    let wordIndex = new Map();
+// update stem-word relationship
+async function storeWordStem(articles) {
+    let wordStems = new Map(); // (word, stem) -> frequency
+    preprocessArticles(articles, (word, stem) => {
+        let old = wordStems.get(tuple(word, stem)) || 0;
+        wordStems.set(tuple(word, stem), old + 1);
+    });
+    let entries = []; // [(stem, word, freq)]
+    for (let [[word, stem], freq] of wordStems.entries()) {
+        entries.push({stem: db.escape(stem), word: db.escape(word), freq});
+    }
+    await db.insertEntries('WordStem', entries, `ON DUPLICATE KEY UPDATE freq = freq + VALUES(freq)`);
+}
+
+// update word-index
+async function storeWordIndex(articles) {
+    let entries = []; // [(stem, articleId, freq)]
+    let wordIndexSumUp = new Map(); // stem -> set(articleId)
     for (let article of articles) {
-        article.tokens.forEach(token => {
-            if (!wordIndex.has(token)) wordIndex.set(token, new Map());  // new word
-        });
-        tfidf.addDocument(article.tokens);
+        let wordsPerArticle = new Map(); // stem -> count
+        let total = 0; // total words in an article
+        for (let stem of article.tokens) {
+            total += 1;
+            let old = wordsPerArticle.get(stem) || 0;
+            wordsPerArticle.set(stem, old + 1);
+            if (wordIndexSumUp.has(stem)) wordIndexSumUp.get(stem).add(article.id);
+            else wordIndexSumUp.set(stem, new Set([article.id]));
+        }
+        for (let [stem, count] of wordsPerArticle.entries()) entries.push({
+            stem: db.escape(stem),
+            articleId: article.id,
+            freq: count / total, // document freq, i.e. tf
+        })
     }
-    let bar = new ProgressBar('  computing tfidfs [:bar] :rate/bps :percent :etas', {
-        complete: '=',
-        incomplete: ' ',
-        head: '>',
-        width: 20,
-        total: wordIndex.size
+    await db.insertEntries('WordIndex', entries); // throw error on duplication
+    // const totalArticles = await db.countTableRows('Articles');
+    // const oldArticles = totalArticles - articles.length;
+    entries = [...wordIndexSumUp.entries()].map(([stem, articeleIds]) => {
+        return {
+            stem: db.escape(stem),
+            count: articeleIds.size,
+        }
     });
-    for (let [word, occurrences] of wordIndex.entries()) {
-        bar.tick();
-        tfidf.tfidfs(word, (i, measure) => {
-            if (measure <= 0) return;
-            occurrences.set(articles[i].id, measure);
+    await db.insertEntries('WordIndexSumUp', entries, `ON DUPLICATE KEY UPDATE count = count + VALUES(count)`);
+}
+
+/** Update WordIndex table & WordStem table incrementally
+ * @param idMin{int}
+ * @param idMax{int}
+ * @return {Promise<void>}
+ */
+async function updateWordIndex(idMin = 0, idMax = 0) {
+    debug('Updating WordIndex/WordStem table...');
+    try {
+        var oldRows = await db.countTableRows('WordIndex');
+        idMin = idMin || (await db.doSql('SELECT MIN(id) AS id FROM Articles'))[0].id;
+        idMax = idMax || (await db.doSql('SELECT MAX(id) AS id FROM Articles'))[0].id;
+        let bar = new ProgressBar('  computing tf-idf [:bar] :rate/bps :percent :etas', {
+            complete: '=',
+            incomplete: ' ',
+            head: '>',
+            width: 20,
+            total: idMax - idMin + 1,
         });
+        // io with database per bulk
+        for (let curId = idMin; curId <= idMax; curId += ID_STEP) {
+            let curIdMax = Math.min(curId + ID_STEP - 1, idMax);
+            bar.tick(curIdMax - curId + 1);
+            let articles = await db.doSql(`SELECT * FROM Articles WHERE id BETWEEN ${curId} AND ${curIdMax}`);
+            if (articles.length === 0) continue;
+            await storeWordStem(articles); // articles preprocessed here
+            // console.assert(articles[0].pagerank !== undefined);
+            await storeWordIndex(articles);
+        }
+        await refreshStem2Word();
+        var newRows = await db.countTableRows('WordIndex');
+    } catch (err) {
+        console.error(chalk.red('Error when updating WordIndex:'), err.message);
+        throw err;
     }
-    return wordIndex;
-}
-
-/**
- * Create wordIndex whose value is tf * pagerank in all documents
- * @param articles{Object[]} should contain `id` and (stemmed) `tokens`{string[]} and `pagerank` field
- * @param warmStart{undefined|Map<string, Map<int, number>>} initial wordIndex
- * @return {Map<string, Map<int, number>>} maps a stemmed word to a map that maps an article id to the rank value
- */
-function createWordIndex_pagerank(articles, warmStart) {
-    var wordIndex = warmStart || new Map();
-    let bar = new ProgressBar('  building wordIndex [:bar] :rate/bps :percent :etas', {
-        complete: '=',
-        incomplete: ' ',
-        head: '>',
-        width: 20,
-        total: articles.length
-    });
-    for (let article of articles) {
-        bar.tick();
-        article.tokens.forEach(token => {
-            let occurrences = wordIndex.get(token);
-            if (occurrences === undefined)
-                wordIndex.set(token, new Map([[article.id, article.pagerank]]));
-            else {
-                let oldVal = occurrences.get(article.id) || 0;
-                occurrences.set(article.id, oldVal + article.pagerank);
-            }
-        });
-    }
-    return wordIndex;
-}
-
-Map.prototype.serialize = function (...args) {
-    return JSON.stringify([...this.entries()], ...args);
-};
-
-/**
- * Deserialize a map from string
- * @param str{string}
- * @return {Map}
- */
-function deserialize(str) {
-    return JSON.parse(str).reduce((m, [key, val]) => m.set(key, val), new Map());
-}
-
-/**
- * Store the wordIndex to db
- * @param wordIndex{Map<string, Map<int, number>>}
- */
-async function storeWordIndex(wordIndex) {
-    let entries = [];
-    for (let [word, occurrences] of wordIndex.entries()) {
-        entries.push({
-            word: db.escape(word),
-            occurrences: db.escape(occurrences.serialize())
-        });
-    }
-    await db.insertEntries('WordIndex', entries);
-}
-
-/**
- * Load the wordIndex from db
- * @return {Map<string, Map<int, number>>}
- */
-async function loadWordIndex() {
-    let res = await db.selectInTable('WordIndex', ['word', 'occurrences']);
-    let wordIndex = new Map();
-    res.forEach(item => wordIndex.set(item.word, deserialize(item.occurrences)));
-    return wordIndex;
+    debug('Update WordIndex/WordStem success.', chalk.green(`[+] ${newRows - oldRows} records.`), `${newRows} records in total.`);
 }
 
 
 module.exports = {
-    preprocessArticles,
-    createWordIndex_pagerank,
-    createWordIndex_tfidf,
-    storeWordIndex,
-    loadWordIndex,
-    deserialize
+    updateWordIndex,
 };
