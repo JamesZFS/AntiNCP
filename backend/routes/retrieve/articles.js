@@ -109,7 +109,7 @@ router.get('/timeRange/:dateMin/:dateMax', async function (req, res) {
     let order = typeof req.query.order === 'string' && req.query.order.toLowerCase() === 'asc' ? 'ASC' : 'DESC'; // default: 'DESC'
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
-    debug(dateMin, dateMax);
+    // debug(dateMin, dateMax);
     try {
         let result = await db.selectArticles('id', `date BETWEEN ${dateMin} AND ${dateMax}`,
             false, `ORDER BY date ${order}`);
