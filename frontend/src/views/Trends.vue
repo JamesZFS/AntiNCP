@@ -72,10 +72,24 @@
     </v-timeline>
     <v-skeleton-loader
         v-else
-        type="article@4"
+        type="article@10"
         width="60vw"
         class="mx-auto my-4"
     />
+    <v-skeleton-loader
+        v-if="stillMoreBubbles"
+        type="article@2"
+        width="60vw"
+        class="mx-auto my-4"
+        v-intersect="onScrollToEnd"
+    />
+    <v-alert
+        v-else
+        type="warning"
+        class="mx-5 my-4"
+    >
+      没有更多了。
+    </v-alert>
     <v-navigation-drawer
         v-model="rightDrawer"
         absolute
@@ -150,15 +164,14 @@
                 relativeReports: [],
                 fab: false,
                 loadingReports: false,
+                stillMoreBubbles: true,
             };
         },
         methods: {
-            onGenerateWordCloud(curBubble) {
-                this.$refs.MyWorldCloud.drawwordcloud(curBubble);
-            },
             async refresh() {
                 this.loading = true;
-                this.bubbles = await fetchTrendBubbles(1, 15, 40);
+                const today = new Date();
+                this.bubbles = await fetchTrendBubbles(today, 1, 7, 40);
                 this.loading = false;
             },
             clearCurrentSelection() {
@@ -167,6 +180,26 @@
                 }
                 this.selectedTrends = [];
                 this.selectedDate = {min: null, max: null};
+            },
+            loadRelativeReports() {
+                let queryWords = this.selectedTrends.map(x => x.name).join(',');
+                // alert(queryWords);
+                this.$nextTick(async () => {
+                    this.loadingReports = true;
+                    this.relativeReports = await fetchArticlesByWords(
+                        queryWords, 'and',
+                        this.selectedDate.min, this.selectedDate.max
+                    );
+                    if (this.relativeReports.length === 0) {
+                        this.relativeReports.push({
+                            header: '未找到相关结果（建议减少查询词）'
+                        })
+                    }
+                    this.loadingReports = false;
+                });
+            },
+            onGenerateWordCloud(curBubble) {
+                this.$refs.MyWorldCloud.drawwordcloud(curBubble);
             },
             onClickSomeTrend(trend, bubble) {
                 if (bubble.date !== this.selectedDate) { // not from the same bubble
@@ -197,23 +230,13 @@
                     this.loadRelativeReports();
                 }
             },
-            loadRelativeReports() {
-                let queryWords = this.selectedTrends.map(x => x.name).join(',');
-                // alert(queryWords);
-                this.$nextTick(async () => {
-                    this.loadingReports = true;
-                    this.relativeReports = await fetchArticlesByWords(
-                        queryWords, 'and',
-                        this.selectedDate.min, this.selectedDate.max
-                    );
-                    if (this.relativeReports.length === 0) {
-                        this.relativeReports.push({
-                            header: '未找到相关结果（建议减少查询词）'
-                        })
-                    }
-                    this.loadingReports = false;
-                });
-            },
+            async onScrollToEnd(entries, observer, isIntersecting) { // load more bubbles
+                if (this.loading || !isIntersecting) return;
+                let lastDay = this.bubbles[this.bubbles.length - 1].date.min.addDay(-1);
+                let newBubbles = await fetchTrendBubbles(lastDay, 1, 7, 40);
+                if (newBubbles.length > 0) this.bubbles = this.bubbles.concat(newBubbles);
+                else this.stillMoreBubbles = false; // no more
+            }
         },
         created() {
             colorPrimary = hexToRgb(this.$vuetify.theme.themes.light.primary);
@@ -226,11 +249,11 @@
         return Math.round(value * 1e5 + Number.EPSILON) / 1e2;
     }
 
-    async function fetchTrendBubbles(timeWindow, n_bubble, n_trend) {
+    async function fetchTrendBubbles(lastDate, timeWindow, n_bubble, n_trend) {
         const today = new Date();
         let date = {
-            max: today,
-            min: today.addDay(-timeWindow + 1),
+            max: lastDate,
+            min: lastDate.addDay(-timeWindow + 1),
         };
         let bubbles = [];
         for (let i = 0; i < n_bubble; i++, date.min = date.min.addDay(-timeWindow), date.max = date.max.addDay(-timeWindow)) {
