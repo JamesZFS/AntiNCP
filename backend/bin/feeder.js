@@ -25,6 +25,7 @@ async function launch() {
         }
         if (process.argv.indexOf('--rebuild') >= 0) { // rebuild all index tables
             for (let table of ['Stem2Word', 'Trends', 'TrendsSumUp', 'WordIndex', 'WordIndexSumUp', 'WordStem'])
+            // for (let table of ['Trends', 'TrendsSumUp'])
                 await db.clearTable(table);
             await analyzer.updateTrends();
             await analyzer.updateWordIndex();

@@ -9,7 +9,7 @@ require('../../utils/date');
 /**
  * @api {get} /api/retrieve/trends/timeline/:dateMin/:dateMax  Get trends timeline api
  * @apiName GetTrendsTimeline
- * @apiVersion 1.0.0
+ * @apiVersion 1.1.0
  * @apiGroup Trends
  * @apiPermission everyone
  *
@@ -23,16 +23,19 @@ require('../../utils/date');
  * @apiExample Response (example):
  [
  {
-        "name": "coronaviru",
-        "value": 25065.69
+        "name": "Coronavirus",
+        "value": 0.1,
+        "incr": 0.2,
     },
  {
         "name": "new",
-        "value": 6859.96
+        "value": 0.01,
+        "incr": 0.3,
     },
  {
         "name": "us",
-        "value": 6742.84
+        "value": 0.001
+        "incr": 0.5,
     }
  ]
  * @apiSampleRequest /api/retrieve/trends/timeline/:dateMin/:dateMax
@@ -200,14 +203,18 @@ async function searchIdsByDate(dateMin, dateMax) {
  * @return {Promise<{string, float}[]>}
  */
 async function searchTrendsByDate(dateMin, dateMax, limit) {
+    const prevDay = db.escape(dateFormat(dateMin.addDay(-1), 'yyyy-mm-dd'));
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax, 'yyyy-mm-dd'));
     // const {globalDateMin, globalDateMax} = (await db.doSql('SELECT MIN(date) AS globalDateMin, MAX(date) AS globalDateMax FROM Articles'))[0];
     // const dayCount = Math.ceil(new Date(globalDateMax).dayDiff(new Date(globalDateMin)) + 1);
     const N = 60; // todo adjustable param
     return db.doSql(`
-SELECT c.word AS name, ROUND(tmp.tfidf, 4) as value
-FROM (SELECT a.stem as stem, SUM(a.freq) /* tf */ * LOG(${N} / b.count) /* idf */ AS tfidf /* tfidf */
+SELECT c.word AS name, ROUND(tmp.tfidf, 6) AS value, tmp.date AS date, tmp.tf - IFNULL(prev.freq, 0) AS incr
+FROM (SELECT a.stem                                               AS stem,
+             SUM(a.freq)                                          AS tf,
+             SUM(a.freq) /* tf */ * LOG(${N} / b.count) /* idf */ AS tfidf,
+             a.date                                               AS date
       FROM Trends a,
            TrendsSumUp b
       WHERE a.stem = b.stem
@@ -215,8 +222,8 @@ FROM (SELECT a.stem as stem, SUM(a.freq) /* tf */ * LOG(${N} / b.count) /* idf *
       GROUP BY stem
       ORDER BY tfidf DESC
       LIMIT ${limit}) tmp
-         INNER JOIN Stem2Word c ON tmp.stem = c.stem
-`);
+         LEFT JOIN Trends prev ON tmp.stem = prev.stem AND prev.date = ${prevDay}
+         INNER JOIN Stem2Word c on c.stem = tmp.stem`);
 }
 
 module.exports = router;
