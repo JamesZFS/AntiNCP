@@ -201,7 +201,7 @@ async function searchIdsByDate(dateMin, dateMax) {
  */
 async function searchTrendsByDate(dateMin, dateMax, limit) {
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
-    dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
+    dateMax = db.escape(dateFormat(dateMax, 'yyyy-mm-dd'));
     // const {globalDateMin, globalDateMax} = (await db.doSql('SELECT MIN(date) AS globalDateMin, MAX(date) AS globalDateMax FROM Articles'))[0];
     // const dayCount = Math.ceil(new Date(globalDateMax).dayDiff(new Date(globalDateMin)) + 1);
     const N = 60; // todo adjustable param

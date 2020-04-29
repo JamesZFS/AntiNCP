@@ -67,18 +67,18 @@ async function storeTrendsWithin(dateMin, dateMax) {
 }
 
 /** Update Trends table incrementally
- * @param dateMin{string}
- * @param dateMax{string}
+ * @param dateMin{string} if not specified, = today - 60 days
+ * @param dateMax{string} if not specified, = today
  * @return {Promise<void>}
  */
-async function updateTrends(dateMin = '2020/1/1', dateMax = Date()) {
+async function updateTrends(dateMin = null, dateMax = null) {
     debug('Updating Trends table...');
     try {
         var oldRows = await db.countTableRows('Trends');
-        dateMin = new Date(dateMin);
-        dateMax = new Date(dateMax);
-        dateMin = new Date(dateMin.toLocaleDateString());
-        dateMax = new Date(dateMax.toLocaleDateString());
+        dateMin = dateMin ? new Date(dateMin) : new Date().addDay(-60);
+        dateMax = dateMax ? new Date(dateMax) : new Date();
+        // dateMin = new Date(dateMin.toLocaleDateString());
+        // dateMax = new Date(dateMax.toLocaleDateString());
         // fetch articles within each day
         await storeTrendsWithin(dateMin, dateMax);
         var newRows = await db.countTableRows('Trends');

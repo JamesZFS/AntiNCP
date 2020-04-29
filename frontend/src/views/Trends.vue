@@ -236,11 +236,11 @@
       min: new Date().addDay(-timeWindow + 1),
     };
     let bubbles = [];
-    for (var i = 0; i < n_bubble + 1; i++, date.min = date.min.addDay(-timeWindow), date.max = date.max.addDay(-timeWindow)) {
+    for (let i = 0; i < n_bubble + 1; i++, date.min = date.min.addDay(-timeWindow), date.max = date.max.addDay(-timeWindow)) {
       try {
         var res = await Vue.axios.get(api.GET_TRENDS_TIMELINE
-            .replace(':dateMin', date.min.toISOString())
-            .replace(':dateMax', date.max.toISOString()), {
+            .replace(':dateMin', date.min.format('yyyy-mm-dd'))
+            .replace(':dateMax', date.max.format('yyyy-mm-dd')), {
           params: {
             limit: 500,
           }
@@ -298,8 +298,8 @@
   async function fetchArticlesByWords(words, mode, dateMin, dateMax, articlesLimit = 50) {
     try {
       var res = await Vue.axios.get(api.GET_TRENDS_ARTICLE_IDS
-          .replace(':dateMin', dateMin.toISOString())
-          .replace(":dateMax", dateMax.toISOString()), {
+          .replace(':dateMin', dateMin.format('yyyy-mm-dd'))
+          .replace(":dateMax", dateMax.format('yyyy-mm-dd')), {
         params: {words, mode}
       });
     } catch (e) {

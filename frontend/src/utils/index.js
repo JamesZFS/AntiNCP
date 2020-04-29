@@ -16,6 +16,16 @@ Date.prototype.format = function (mask, utc, gmt) {
   return dateFormat(this, mask, utc, gmt);
 };
 
+const MILLISECONDS_PER_DAY = 86400000;
+
+/**
+ * @param other{Date}
+ * @return {number} float
+ */
+Date.prototype.dayDiff = function (other) {
+  return (this - other) / MILLISECONDS_PER_DAY
+};
+
 const timeDisplayInterval = 10 * 60 * 1000; // 10 mins
 
 export function processArticles(articles) {

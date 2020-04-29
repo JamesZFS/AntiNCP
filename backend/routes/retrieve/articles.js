@@ -71,14 +71,14 @@ router.post('/', async function (req, res) {
 
 
 /**
- * @api {get} /api/retrieve/articles/timeRange/:timeMin/:timeMax  Get article ids within time range
+ * @api {get} /api/retrieve/articles/timeRange/:dateMin/:dateMax  Get article ids within time range
  * @apiName GetArticleIdsWithinTime
- * @apiVersion 0.2.0
+ * @apiVersion 0.3.0
  * @apiGroup Articles
  * @apiPermission everyone
  *
- * @apiParam (Param) {string}   timeMin  query time string lower bound (as accurate as a second)
- * @apiParam (Param) {string}   timeMax  query time string upper bound (INCLUDED)
+ * @apiParam (Param) {string}   dateMin  query date string lower bound
+ * @apiParam (Param) {string}   dateMax  query date string upper bound (INCLUDED)
  * @apiParam (Query) {string}   order    'asc' or 'desc' - return the result in time ascending order or descending order.
  *  By default 'desc'
  *
@@ -95,23 +95,23 @@ router.post('/', async function (req, res) {
     ]
  }
 
- * @apiSampleRequest /api/retrieve/articles/timeRange/:timeMin/:timeMax
+ * @apiSampleRequest /api/retrieve/articles/timeRange/:dateMin/:dateMax
  */
-router.get('/timeRange/:timeMin/:timeMax', async function (req, res) {
-    let timeMin = new Date(req.params.timeMin), timeMax = new Date(req.params.timeMax);
+router.get('/timeRange/:dateMin/:dateMax', async function (req, res) {
+    let dateMin = new Date(req.params.dateMin), dateMax = new Date(req.params.dateMax);
     try {
-        if (isNaN(timeMin.valueOf()) || isNaN(timeMax.valueOf())) throw new Error('`timeMin` or `timeMax` invalid!');
-        if (timeMin > timeMax) throw new Error('`timeMin` should be no greater than `timeMax`!');
+        if (isNaN(dateMin.valueOf()) || isNaN(dateMax.valueOf())) throw new Error('`dateMin` or `dateMax` invalid!');
+        if (dateMin > dateMax) throw new Error('`dateMin` should be no greater than `dateMax`!');
     } catch (err) {
         res.status(400).render('error', {message: err.message, status: 400});
         return;
     }
     let order = typeof req.query.order === 'string' && req.query.order.toLowerCase() === 'asc' ? 'ASC' : 'DESC'; // default: 'DESC'
-    timeMin = db.escape(dateFormat(timeMin, 'yyyy-mm-dd HH:MM:ss'));
-    timeMax = db.escape(dateFormat(timeMax.addSec(), 'yyyy-mm-dd HH:MM:ss'));
-    // debug(timeMin, timeMax);
+    dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
+    dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
+    debug(dateMin, dateMax);
     try {
-        let result = await db.selectArticles('id', `date BETWEEN ${timeMin} AND ${timeMax}`,
+        let result = await db.selectArticles('id', `date BETWEEN ${dateMin} AND ${dateMax}`,
             false, `ORDER BY date ${order}`);
         result = result.map(x => x.id);
         res.status(200).json({

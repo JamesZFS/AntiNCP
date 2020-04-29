@@ -18,4 +18,4 @@ const MILLISECONDS_PER_DAY = 86400000;
  */
 Date.prototype.dayDiff = function (other) {
     return (this - other) / MILLISECONDS_PER_DAY
-}
+};
