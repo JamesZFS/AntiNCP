@@ -18,7 +18,7 @@ async function launch() {
         await db.initialize();
         await cache.initialize();
         if (process.argv.indexOf('--download') >= 0) {
-            await Promise.all([fetcher.downloadEpidemicData(), fetcher.fetchVirusArticles()]);
+            await Promise.all([fetcher.downloadEpidemicData(), fetcher.fetchVirusArticlesAndAnalyze()]);
         }
         if (process.argv.indexOf('--reload') >= 0) {
             await fetcher.reloadEpidemicData();

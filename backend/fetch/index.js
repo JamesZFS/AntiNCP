@@ -107,6 +107,19 @@ async function fetchVirusArticles() {
     return {startId, endId};
 }
 
+async function fetchVirusArticlesAndAnalyze() {
+    let {startId, endId} = await fetchVirusArticles();
+    if (startId < endId) { // has update
+        // update index tables incrementally
+        await analyzer.updateWordIndex(startId, endId - 1);
+        // let dateMin = (await db.doSql(`SELECT date FROM Articles WHERE id = ${startId}`))[0].date;
+        // let dateMax = (await db.doSql(`SELECT date FROM Articles WHERE id = ${endId - 1}`))[0].date;
+        for (let table of ['Trends', 'TrendsSumUp'])
+            await db.clearTable(table);
+        await analyzer.updateTrends(); // refresh for convenience
+    }
+}
+
 // Scheduler: download newest csv and update db once a day
 function initialize() {
     // Update epidemic data daily:
@@ -125,16 +138,7 @@ function initialize() {
     scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
         debug('Auto update begins at', chalk.bgGreen(`${time}`));
         try {
-            let {startId, endId} = await fetchVirusArticles();
-            if (startId < endId) { // has update
-                // update index tables incrementally
-                await analyzer.updateWordIndex(startId, endId - 1);
-                // let dateMin = (await db.doSql(`SELECT date FROM Articles WHERE id = ${startId}`))[0].date;
-                // let dateMax = (await db.doSql(`SELECT date FROM Articles WHERE id = ${endId - 1}`))[0].date;
-                for (let table of ['Trends', 'TrendsSumUp'])
-                    await db.clearTable(table);
-                await analyzer.updateTrends(); // refresh for convenience
-            }
+            await fetchVirusArticlesAndAnalyze();
             debug('Auto update finished.');
         } catch (err) {
             debug('Auto update aborted.');
@@ -144,5 +148,5 @@ function initialize() {
 }
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData, fetchVirusArticles, initialize
+    reloadEpidemicData, downloadEpidemicData, fetchVirusArticles, fetchVirusArticlesAndAnalyze, initialize
 };
