@@ -264,13 +264,12 @@ function selectAvailableCountries() {
 
 /**
  * Clear and reload available places from source table (should contain field `country`, `province`, and `city`)
- * @param sourceTable{string}
  * @return {Promise<Object>}
  */
-function refreshAvailablePlaces(sourceTable = 'Epidemic') {
+function refreshAvailablePlaces() {
     return doSqls([
         'TRUNCATE TABLE Places;', // clear
-        `INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM ${sourceTable};`
+        `INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM AntiNCP.Epidemic;`
     ]);
 }
 

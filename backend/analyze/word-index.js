@@ -67,35 +67,37 @@ async function storeWordIndex(articles) {
     await db.insertEntries('WordIndexSumUp', entries, `ON DUPLICATE KEY UPDATE count = count + VALUES(count)`);
 }
 
+async function _updateWordIndex(idMin, idMax) {
+    let bar = new ProgressBar('  computing tf-idf [:bar] :rate/bps :percent :etas', {
+        complete: '=',
+        incomplete: ' ',
+        head: '>',
+        width: 20,
+        total: idMax - idMin + 1,
+    });
+    // io with database per bulk
+    for (let curId = idMin; curId <= idMax; curId += ID_STEP) {
+        let curIdMax = Math.min(curId + ID_STEP - 1, idMax);
+        bar.tick(curIdMax - curId + 1);
+        let articles = await db.doSql(`SELECT * FROM Articles WHERE id BETWEEN ${curId} AND ${curIdMax}`);
+        if (articles.length === 0) continue;
+        await storeWordStem(articles); // articles preprocessed here
+        // console.assert(articles[0].pagerank !== undefined);
+        await storeWordIndex(articles);
+    }
+    await refreshStem2Word();
+}
+
 /** Update WordIndex table & WordStem table incrementally
  * @param idMin{int}
  * @param idMax{int}
  * @return {Promise<void>}
  */
-async function updateWordIndex(idMin = 0, idMax = 0) {
+async function updateWordIndex(idMin, idMax) {
     debug('Updating WordIndex/WordStem table...');
     try {
         var oldRows = await db.countTableRows('WordIndex');
-        idMin = idMin || (await db.doSql('SELECT MIN(id) AS id FROM Articles'))[0].id;
-        idMax = idMax || (await db.doSql('SELECT MAX(id) AS id FROM Articles'))[0].id;
-        let bar = new ProgressBar('  computing tf-idf [:bar] :rate/bps :percent :etas', {
-            complete: '=',
-            incomplete: ' ',
-            head: '>',
-            width: 20,
-            total: idMax - idMin + 1,
-        });
-        // io with database per bulk
-        for (let curId = idMin; curId <= idMax; curId += ID_STEP) {
-            let curIdMax = Math.min(curId + ID_STEP - 1, idMax);
-            bar.tick(curIdMax - curId + 1);
-            let articles = await db.doSql(`SELECT * FROM Articles WHERE id BETWEEN ${curId} AND ${curIdMax}`);
-            if (articles.length === 0) continue;
-            await storeWordStem(articles); // articles preprocessed here
-            // console.assert(articles[0].pagerank !== undefined);
-            await storeWordIndex(articles);
-        }
-        await refreshStem2Word();
+        await _updateWordIndex(idMin, idMax);
         var newRows = await db.countTableRows('WordIndex');
     } catch (err) {
         console.error(chalk.red('Error when updating WordIndex:'), err.message);
@@ -104,7 +106,24 @@ async function updateWordIndex(idMin = 0, idMax = 0) {
     debug('Update WordIndex/WordStem success.', chalk.green(`[+] ${newRows - oldRows} records.`), `${newRows} records in total.`);
 }
 
+async function refreshWordIndex() {
+    debug('Refreshing WordIndex/WordStem table...');
+    try {
+        var oldRows = await db.countTableRows('WordIndex');
+        // clear old:
+        for (let table of ['Stem2Word', 'Trends', 'TrendsSumUp', 'WordIndex', 'WordIndexSumUp', 'WordStem']) await db.clearTable(table);
+        // build new:
+        let idMin = (await db.doSql('SELECT MIN(id) AS id FROM Articles'))[0].id;
+        let idMax = (await db.doSql('SELECT MAX(id) AS id FROM Articles'))[0].id;
+        await _updateWordIndex(idMin, idMax);
+        var newRows = await db.countTableRows('WordIndex');
+    } catch (err) {
+        console.error(chalk.red('Error when refreshing WordIndex:'), err.message);
+        throw err;
+    }
+    debug('Refreshing WordIndex/WordStem success.', chalk.green(`[+] ${newRows - oldRows} records.`), `${newRows} records in total.`);
+}
 
 module.exports = {
-    updateWordIndex,
+    updateWordIndex, refreshWordIndex
 };

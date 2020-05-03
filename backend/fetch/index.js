@@ -1,5 +1,6 @@
 'use strict';
 // Auto data fetching system
+const dateFormat = require('dateformat');
 const debug = require('debug')('backend:fetcher');
 const fs = require('fs');
 const path = require('path');
@@ -11,59 +12,9 @@ const cache = require('../routes/retrieve/cache');
 const wget = require('../utils/wget');
 const csv = require('./csv');
 const rss = require('./rss');
-const {WGET_TIMEOUT} = require('./config');
 const epidemicSource = require('./third-party/epidemic').CHL; // may select other data sources
 const articleSources = require('./third-party/articles').ALL; // may select other article sources
-
-/**
- * Reload epidemic data in the db, auto-selecting the newest csv file
- * auto download if no csv is found
- */
-async function reloadEpidemicData() {
-    try {
-        let csvPath = csv.selectNewestFile(epidemicSource.downloadDir);
-        if (csvPath === null) { // if no csv found
-            await downloadEpidemicData(); // download data from source and then reload
-            return reloadEpidemicData();
-        }
-        let oldRowCount = await db.countTableRows('Epidemic');
-        cache.flush();
-        await db.clearTable('Epidemic');
-        await csv.batchReadAndMap(csvPath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
-        await db.refreshAvailablePlaces('Epidemic');
-        let newRowCount = await db.countTableRows('Epidemic');
-        debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
-    } catch (err) {
-        console.error(chalk.red('Fail to reload epidemic data.'), err.message);
-        throw new Error('Fail to reload epidemic data.');
-    }
-}
-
-/**
- * Download epidemic data from source api, save it to downloadDir
- */
-async function downloadEpidemicData() {
-    const url = epidemicSource.areaAPI;
-    const filePath = path.join(epidemicSource.downloadDir, Date.now() + '.csv');
-    debug(`Downloading Epidemic Data from ${url} into ${filePath} ... (Be patient, this may take a while)`);
-    let trial = scheduler.fetchingPolicy.maxTrials;
-    while (true) {
-        try {
-            await wget(url, filePath, true, {timeout: WGET_TIMEOUT});
-        } catch (err) {
-            debug(`Fail to downlaod, retry in ${scheduler.fetchingPolicy.interval / 60000} mins.`);
-            if (--trial > 0) {
-                await scheduler.sleep(scheduler.fetchingPolicy.interval);
-                continue;
-            } else {  // give up
-                console.error(chalk.red('Fail to download from csv epidemic source. Skip this download.'), err.message);
-                throw err;
-            }
-        }
-        break; // success
-    }
-    debug('Download success.');
-}
+const {STORY_BEGINS} = require('./config');
 
 /**
  * Fetch articles related to virus, insert into db (INCREMENTALLY)
@@ -114,31 +65,51 @@ async function fetchVirusArticlesAndAnalyze() {
         await analyzer.updateWordIndex(startId, endId - 1);
         // let dateMin = (await db.doSql(`SELECT date FROM Articles WHERE id = ${startId}`))[0].date;
         // let dateMax = (await db.doSql(`SELECT date FROM Articles WHERE id = ${endId - 1}`))[0].date;
-        for (let table of ['Trends', 'TrendsSumUp'])
-            await db.clearTable(table);
-        await analyzer.updateTrends(); // refresh for convenience
+        await analyzer.refreshTrends(); // refresh for convenience
     }
 }
 
-// Scheduler: download newest csv and update db once a day
+// Fetch epidemic data on `date` and store in db **incrementally** (data of the **same day** will be **overwritten**)
+async function fetchEpidemicData(date) {
+    // Download:
+    let dateStr = dateFormat(date, 'yyyy-mm-dd');
+    let api = epidemicSource.dateAPI.replace(':date', dateStr);
+    let filePath = path.join(epidemicSource.downloadDir, 'tmp.csv');
+    debug(`Downloading Epidemic Data from ${api} into ${filePath} ...`);
+    await wget(api, filePath, true, true);
+    debug('Download success.');
+    // Load incrementally:
+    let oldRowCount = await db.countTableRows('Epidemic');
+    await cache.flush();
+    await db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(dateStr)}`); // clear old records of this date
+    await csv.batchReadAndMap(filePath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
+    await db.refreshAvailablePlaces();
+    let newRowCount = await db.countTableRows('Epidemic');
+    debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
+}
+
+// Clear all before fetch.
+// Be cautious of using this.
+async function reFetchEpidemicData() {
+    await db.clearTable('Epidemic');
+    for (let date = new Date(STORY_BEGINS); date <= new Date(); date = date.addDay()) {
+        await fetcher.fetchEpidemicData(date);
+    }
+}
+
+async function fetchAll() {
+    return Promise.all([
+        fetchEpidemicData(new Date()),
+        fetchVirusArticlesAndAnalyze()]
+    )
+}
+
 function initialize() {
-    // Update epidemic data daily:
-    scheduler.scheduleJob(scheduler.onceADay, async function (time) {
-        debug('Auto update begins at', chalk.bgGreen(`${time}`));
-        try {
-            await downloadEpidemicData();
-            await reloadEpidemicData();
-            csv.cleanDirectoryExceptNewest(epidemicSource.downloadDir);
-            debug('Auto update finished.');
-        } catch (err) {
-            debug(`Auto update aborted.`);
-        }
-    });
-    // Update virus articles incrementally
+    // Update epidemic data and virus articles incrementally
     scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
         debug('Auto update begins at', chalk.bgGreen(`${time}`));
         try {
-            await fetchVirusArticlesAndAnalyze();
+            await fetchAll();
             debug('Auto update finished.');
         } catch (err) {
             debug('Auto update aborted.');
@@ -148,5 +119,5 @@ function initialize() {
 }
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData, fetchVirusArticles, fetchVirusArticlesAndAnalyze, initialize
+    fetchAll, fetchEpidemicData, fetchVirusArticlesAndAnalyze, initialize
 };

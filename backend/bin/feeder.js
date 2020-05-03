@@ -18,18 +18,11 @@ async function launch() {
         await db.initialize();
         await cache.initialize();
         if (process.argv.indexOf('--download') >= 0) {
-            await Promise.all([fetcher.downloadEpidemicData(), fetcher.fetchVirusArticlesAndAnalyze()]);
+            await fetcher.fetchAll();
         }
-        if (process.argv.indexOf('--reload') >= 0) {
-            await fetcher.reloadEpidemicData();
-        }
-        if (process.argv.indexOf('--rebuild') >= 0) { // rebuild all index tables
-            for (let table of ['Stem2Word', 'Trends', 'TrendsSumUp', 'WordIndex', 'WordIndexSumUp', 'WordStem'])
-            // for (let table of ['Trends', 'TrendsSumUp'])
-                await db.clearTable(table);
-            await analyzer.updateTrends();
-            await analyzer.updateWordIndex();
-            // await Promise.all([analyzer.updateWordIndex(), analyzer.updateTrends()]);
+        if (process.argv.indexOf('--rebuild') >= 0) { // rebuild all index tables from Articles
+            await analyzer.refreshTrends();
+            await analyzer.refreshWordIndex();
         }
         await fetcher.initialize(); // scheduler
     } catch (err) {

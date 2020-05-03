@@ -48,6 +48,7 @@ const DXY = {
 
 const CHL = {
     areaAPI: 'https://raw.githubusercontent.com/canghailan/Wuhan-2019-nCoV/master/Wuhan-2019-nCoV.csv',
+    dateAPI: 'https://raw.githubusercontent.com/canghailan/Wuhan-2019-nCoV/master/Data/:date.csv',
     downloadDir: 'public/data/chl-area/',
     expColumns: ['date', 'country', 'province', 'city', 'confirmed', 'cured', 'dead'],
     /**

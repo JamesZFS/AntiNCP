@@ -1,7 +1,7 @@
 // Data analysis module
 'use strict';
 
-const {updateWordIndex} = require('./word-index');
-const {updateTrends} = require('./trends');
+const {updateWordIndex, refreshWordIndex} = require('./word-index');
+const {updateTrends, refreshTrends} = require('./trends');
 
-module.exports = {updateTrends, updateWordIndex};
+module.exports = {updateTrends, refreshTrends, updateWordIndex, refreshWordIndex};

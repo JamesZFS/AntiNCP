@@ -9,7 +9,7 @@ const fs = require('fs');
 const stripHtml = require("string-strip-html");
 const escape = require('../database').escape;
 const wget = require('../utils/wget');
-const {IS_ABOUT_VIRUS_REG, URL_REG, WGET_TIMEOUT} = require('./config');
+const {IS_ABOUT_VIRUS_REG, URL_REG} = require('./config');
 
 /**
  * Get articles from rss sources
@@ -29,7 +29,7 @@ async function getArticlesFromRss(rssSources, filter, map) {
             let temp_xml = `tmp-${idx}.xml`;
             try {
                 // proxy download with wget
-                await wget(source.url, temp_xml, true, {timeout: WGET_TIMEOUT});
+                await wget(source.url, temp_xml, true);
                 let feeds = await parser.parseString(fs.readFileSync(temp_xml).toString());
                 feeds.items.forEach(item => {
                     if (!filter || filter(item.title) || filter(item.link) || filter(item.content)) {

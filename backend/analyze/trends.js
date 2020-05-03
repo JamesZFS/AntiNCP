@@ -5,6 +5,7 @@ const chalk = require('chalk');
 const debug = require('debug')('backend:analyze');
 const db = require('../database');
 const {preprocessArticles} = require('./preprocess');
+const {TRENDS_WINDOW_DAYS} = require('./config');
 require('../utils/date');
 
 /**
@@ -67,18 +68,16 @@ async function storeTrendsWithin(dateMin, dateMax) {
 }
 
 /** Update Trends table incrementally
- * @param dateMin{string} if not specified, = today - 60 days
- * @param dateMax{string} if not specified, = today
+ * @param dateMin{string}
+ * @param dateMax{string}
  * @return {Promise<void>}
  */
-async function updateTrends(dateMin = null, dateMax = null) {
+async function updateTrends(dateMin, dateMax) {
     debug('Updating Trends table...');
     try {
         var oldRows = await db.countTableRows('Trends');
-        dateMin = dateMin ? new Date(dateMin) : new Date().addDay(-60);
-        dateMax = dateMax ? new Date(dateMax) : new Date();
-        // dateMin = new Date(dateMin.toLocaleDateString());
-        // dateMax = new Date(dateMax.toLocaleDateString());
+        dateMin = new Date(dateMin);
+        dateMax = new Date(dateMax);
         // fetch articles within each day
         await storeTrendsWithin(dateMin, dateMax);
         var newRows = await db.countTableRows('Trends');
@@ -89,4 +88,24 @@ async function updateTrends(dateMin = null, dateMax = null) {
     debug('Update Trends success.', chalk.green(`[+] ${newRows - oldRows} words.`), `${newRows} words in total.`);
 }
 
-module.exports = {updateTrends};
+async function refreshTrends() {
+    debug('Refreshing Trends table...');
+    try {
+        var oldRows = await db.countTableRows('Trends');
+        // clear old:
+        for (let table of ['Trends', 'TrendsSumUp']) await db.clearTable(table);
+        let dateMin = new Date().addDay(-TRENDS_WINDOW_DAYS);
+        let dateMax = new Date();
+        // store new:
+        await storeTrendsWithin(dateMin, dateMax);
+        var newRows = await db.countTableRows('Trends');
+    } catch (err) {
+        console.error(chalk.red('Error when refreshing Trends:'), err.message);
+        throw err;
+    }
+    debug('Refreshing Trends success.', chalk.green(`[+] ${newRows - oldRows} words.`), `${newRows} words in total.`);
+}
+
+module.exports = {
+    updateTrends, refreshTrends
+};
