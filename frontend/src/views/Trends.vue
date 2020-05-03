@@ -253,46 +253,52 @@
             min: lastDate.addDay(-timeWindow + 1),
         };
         let bubbles = [];
+        let jobs = [];
         for (let i = 0; i < n_bubble; i++, date.min = date.min.addDay(-timeWindow), date.max = date.max.addDay(-timeWindow)) {
-            try {
-                var res = await Vue.axios.get(api.GET_TRENDS_TIMELINE
-                    .replace(':dateMin', date.min.format('yyyy-mm-dd'))
-                    .replace(':dateMax', date.max.format('yyyy-mm-dd')), {
-                    params: {
-                        limit: n_trend,
+            jobs.push(new Promise(async (resolve, reject) => {
+                try {
+                    var res = await Vue.axios.get(api.GET_TRENDS_TIMELINE
+                        .replace(':dateMin', date.min.format('yyyy-mm-dd'))
+                        .replace(':dateMax', date.max.format('yyyy-mm-dd')), {
+                        params: {limit: n_trend}
+                    });
+                    if (res.data.length === 0) {
+                        resolve();
+                        return;
                     }
-                });
-                if (res.data.length === 0) continue;
-                let bubble = {
-                    title: (timeWindow === 1
-                        ? `${date.min.format('mm/dd')}`
-                        : `${date.min.format('mm/dd')} - ${date.max.format('mm/dd')}`)
-                        + ' 热词',
-                    date: deepcopy(date),
-                    trends: res.data,
-                };
-                { // compute color of bubble, suggested by @Suiyi
-                    let alpha = Math.tanh(today.dayDiff(date.max) / 10.0); // [0, 1)
-                    let color = colorLerp(alpha, colorPrimary, colorAccent);
-                    bubble.color = `rgb(${color})`;
+                    let bubble = {
+                        title: (timeWindow === 1
+                            ? `${date.min.format('mm/dd')}`
+                            : `${date.min.format('mm/dd')} - ${date.max.format('mm/dd')}`)
+                            + ' 热词',
+                        date: deepcopy(date),
+                        trends: res.data,
+                    };
+                    { // compute color of bubble, suggested by @Suiyi
+                        let alpha = Math.tanh(today.dayDiff(date.max) / 10.0); // [0, 1)
+                        let color = colorLerp(alpha, colorPrimary, colorAccent);
+                        bubble.color = `rgb(${color})`;
+                    }
+                    for (let trend of bubble.trends) { // render color
+                        trend.value = valueToDegree(trend.value);
+                        trend.incr = valueToDegree(trend.incr);
+                        let alpha = Math.tanh(trend.incr); // (-1, 1)
+                        let a2 = alpha * alpha;
+                        let color = alpha > 0 ? colorLerp(a2, colorGrey, colorGreen) : colorLerp(a2, colorGrey, colorDark);
+                        let textColor = a2 > 0.6 ? 'white' : 'black';
+                        Object.assign(trend, {color: `rgb(${color})`, textColor});
+                    }
+                    // star the first
+                    Object.assign(bubble.trends[0], {star: true, color: 'orange', textColor: 'white'});
+                    bubbles.push(bubble);
+                    resolve();
+                } catch (err) {
+                    console.error(`Cannot fetch trends timeline data from backend with ${err}`);
+                    reject(err);
                 }
-                for (let trend of bubble.trends) { // render color
-                    trend.value = valueToDegree(trend.value);
-                    trend.incr = valueToDegree(trend.incr);
-                    let alpha = Math.tanh(trend.incr); // (-1, 1)
-                    let a2 = alpha * alpha;
-                    let color = alpha > 0 ? colorLerp(a2, colorGrey, colorGreen) : colorLerp(a2, colorGrey, colorDark);
-                    let textColor = a2 > 0.6 ? 'white' : 'black';
-                    Object.assign(trend, {color: `rgb(${color})`, textColor});
-                }
-                // star the first
-                Object.assign(bubble.trends[0], {star: true, color: 'orange', textColor: 'white'});
-                bubbles.push(bubble);
-            } catch (err) {
-                console.error(`Cannot fetch trends timeline data from backend with ${err}`);
-                throw err;
-            }
+            }));
         }
+        await Promise.all(jobs);
         return bubbles;
     }
 
