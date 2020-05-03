@@ -11,16 +11,32 @@ require('../../utils/date');
 
 const defaultQueryDays = 30;
 
-// TODO use param like way, /:dateMin/:dateMax/:dataKinds ...
+router.use('/timeline', function (req, res, next) {
+    // parse date
+    let dateMin = req.query.dateMin;
+    let dateMax = req.query.dateMax;
+    try {
+        dateMax = db.escape(dateFormat(dateMax || new Date(), 'yyyy-mm-dd'));
+        dateMin = db.escape(dateFormat(dateMin || new Date().addDay(-defaultQueryDays), 'yyyy-mm-dd'));
+        req.parsed = {dateMin, dateMax};
+    } catch (err) {
+        res.status(400).render('error', {message: err.message, status: 400});
+        return;
+    }
+    next();
+});
+
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.3.2
+ * @apiVersion 0.4.0
  * @apiGroup Epidemic
  * @apiPermission everyone
  *
  * @apiParam (Query) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query) {none} verbose       return {name:..., value:...} or just the value buffer.
+ * @apiParam (Query) {string}  dateMin    min query date, default: 30 days ago
+ * @apiParam (Query) {string}  dateMax    max query date (INCLUDED), default: today
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/world/?dataKind=confirmedCount,deadCount"
@@ -51,11 +67,10 @@ const defaultQueryDays = 30;
  * @apiSampleRequest /api/retrieve/epidemic/timeline/world
  */
 router.get('/timeline/world', async function (req, res) {
-    //todo
-    let dateMax = db.escape(dateFormat(new Date(), 'yyyy-mm-dd'));
-    let dateMin = db.escape(dateFormat(new Date().addDay(-defaultQueryDays), 'yyyy-mm-dd'));
     let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
+    let dateMin = req.parsed.dateMin;
+    let dateMax = req.parsed.dateMax;
     // type & usage check
     if (dataKinds === undefined || (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
         // handle 400 error
@@ -161,13 +176,15 @@ router.get('/timeline/world', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.3.2
+ * @apiVersion 0.4.0
  * @apiGroup Epidemic
  * @apiPermission everyone
  *
  * @apiParam (Query) {string}  country
  * @apiParam (Query) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query) {none} verbose       return {name:..., value:...} or just the value buffer
+ * @apiParam (Query) {string}  dateMin    min query date, default: 30 days ago
+ * @apiParam (Query) {string}  dateMax    max query date (INCLUDED), default: today
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/country/?country=中国&dataKind=confirmedCount,deadCount"
@@ -199,12 +216,11 @@ router.get('/timeline/world', async function (req, res) {
  * @apiSampleRequest /api/retrieve/epidemic/timeline/country
  */
 router.get('/timeline/country', async function (req, res) {
-    //todo
-    let dateMax = db.escape(dateFormat(new Date(), 'yyyy-mm-dd'));
-    let dateMin = db.escape(dateFormat(new Date().addDay(-defaultQueryDays), 'yyyy-mm-dd'));
     let country = req.query.country;
     let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
+    let dateMin = req.parsed.dateMin;
+    let dateMax = req.parsed.dateMax;
     // type & usage check
     if (country === undefined || dataKinds === undefined ||
         (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
@@ -312,7 +328,7 @@ router.get('/timeline/country', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.3.2
+ * @apiVersion 0.4.0
  * @apiGroup Epidemic
  * @apiPermission everyone
  *
@@ -320,6 +336,8 @@ router.get('/timeline/country', async function (req, res) {
  * @apiParam (Query) {string}  province
  * @apiParam (Query) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query) {none} verbose        return {name:..., value:...} or just the value buffer. see the example 2 for details
+ * @apiParam (Query) {string}  dateMin    min query date, default: 30 days ago
+ * @apiParam (Query) {string}  dateMax    max query date (INCLUDED), default: today
  *
  * @apiExample {curl} Example usage 1:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount"
@@ -379,13 +397,12 @@ router.get('/timeline/country', async function (req, res) {
  * @apiSampleRequest /api/retrieve/epidemic/timeline/province
  */
 router.get('/timeline/province', async function (req, res) {
-    //todo
-    let dateMax = db.escape(dateFormat(new Date(), 'yyyy-mm-dd'));
-    let dateMin = db.escape(dateFormat(new Date().addDay(-defaultQueryDays), 'yyyy-mm-dd'));
     let country = req.query.country;
     let province = req.query.province;
     let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
+    let dateMin = req.parsed.dateMin;
+    let dateMax = req.parsed.dateMax;
     // type & usage check
     if (country === undefined || province === undefined || dataKinds === undefined ||
         (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
