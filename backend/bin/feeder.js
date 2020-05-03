@@ -20,6 +20,9 @@ async function launch() {
         if (process.argv.indexOf('--download') >= 0) {
             await fetcher.fetchAll();
         }
+        if (process.argv.indexOf('--refetch') >= 0) {
+            await fetcher.reFetchEpidemicData();
+        }
         if (process.argv.indexOf('--rebuild') >= 0) { // rebuild all index tables from Articles
             await analyzer.refreshTrends();
             await analyzer.refreshWordIndex();

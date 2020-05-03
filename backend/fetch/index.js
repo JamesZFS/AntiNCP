@@ -15,6 +15,7 @@ const rss = require('./rss');
 const epidemicSource = require('./third-party/epidemic').CHL; // may select other data sources
 const articleSources = require('./third-party/articles').ALL; // may select other article sources
 const {STORY_BEGINS} = require('./config');
+require('../utils/date');
 
 /**
  * Fetch articles related to virus, insert into db (INCREMENTALLY)
@@ -93,7 +94,7 @@ async function fetchEpidemicData(date) {
 async function reFetchEpidemicData() {
     await db.clearTable('Epidemic');
     for (let date = new Date(STORY_BEGINS); date <= new Date(); date = date.addDay()) {
-        await fetcher.fetchEpidemicData(date);
+        await fetchEpidemicData(date);
     }
 }
 
@@ -119,5 +120,5 @@ function initialize() {
 }
 
 module.exports = {
-    fetchAll, fetchEpidemicData, fetchVirusArticlesAndAnalyze, initialize
+    fetchAll, fetchEpidemicData, fetchVirusArticlesAndAnalyze, initialize, reFetchEpidemicData
 };
