@@ -72,8 +72,9 @@ async function fetchVirusArticlesAndAnalyze() {
 // Fetch epidemic data on `date` and store in db **incrementally** (data of the **same day** will be **overwritten**)
 async function fetchEpidemicData(epidemicSource, date) {
     // Download:
-    let dateStr = dateFormat(date, 'yyyy-mm-dd');
-    let api = epidemicSource.dateAPI.replace(':date', dateStr);
+    let APIdateStr = dateFormat(date, epidemicSource.APIdateFormat);//APIdateStr is for dataAPI ;format example CHL: yyyy-mm-dd JHU:mm-dd-yyyy
+    let api = epidemicSource.dateAPI.replace(':date', APIdateStr);
+    let dateForDatabase = dateFormat(date, 'yyyy-mm-dd');//this is for database date column
     let filePath = path.join(epidemicSource.downloadDir, 'tmp.csv');
     debug(`Downloading Epidemic Data from ${api} into ${filePath} ...`);
     try {
@@ -85,8 +86,8 @@ async function fetchEpidemicData(epidemicSource, date) {
     // Load incrementally:
     let oldRowCount = await db.countTableRows('Epidemic');
     await cache.flush();
-    await db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(dateStr)}`); // clear old records of this date
-    await csv.batchReadAndMap(filePath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
+    await db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(dateForDatabase)}`); // clear old records of this date
+    await csv.batchReadAndMap(filePath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000, dateForDatabase);
     await db.refreshAvailablePlaces();
     let newRowCount = await db.countTableRows('Epidemic');
     debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
@@ -96,9 +97,9 @@ async function fetchEpidemicData(epidemicSource, date) {
 // Be cautious of using this.
 async function reFetchEpidemicData() {
     await db.clearTable('Epidemic');
-    for (let date = new Date(CHL.storyBegins); date <= new Date(); date = date.addDay()) {
-        await fetchEpidemicData(CHL, date);
-    }
+    // for (let date = new Date(CHL.storyBegins); date <= new Date(); date = date.addDay()) {
+    //     await fetchEpidemicData(CHL, date);
+    // }
     for (let date = new Date(JHU.storyBegins); date <= new Date(); date = date.addDay()) {
         await fetchEpidemicData(JHU, date);
     }

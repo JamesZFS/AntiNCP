@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS `Epidemic`
     `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `date`           DATE         NOT NULL,
     `country`        CHAR(32)     NOT NULL,
-    `province`       CHAR(32)     NULL,
-    `city`           CHAR(32)     NULL,
+    `province`       CHAR(64)     NULL,
+    `city`           CHAR(64)     NULL,
     `activeCount`    INT GENERATED ALWAYS AS (confirmedCount - curedCount - deadCount),
     `confirmedCount` INT          NOT NULL,
     `curedCount`     INT          NOT NULL,
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS `Places`
 (
     `id`       INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `country`  CHAR(32)     NOT NULL,
-    `province` CHAR(32)     NULL,
-    `city`     CHAR(32)     NULL,
+    `province` CHAR(64)     NULL,
+    `city`     CHAR(64)     NULL,
     PRIMARY KEY (`id`),
     INDEX `index` (`country` ASC, `province` ASC, `city` ASC)
 )
