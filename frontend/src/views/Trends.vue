@@ -256,10 +256,11 @@
         let jobs = [];
         for (let i = 0; i < n_bubble; i++, date.min = date.min.addDay(-timeWindow), date.max = date.max.addDay(-timeWindow)) {
             jobs.push(new Promise(async (resolve, reject) => {
+                let curDate = deepcopy(date);
                 try {
                     var res = await Vue.axios.get(api.GET_TRENDS_TIMELINE
-                        .replace(':dateMin', date.min.format('yyyy-mm-dd'))
-                        .replace(':dateMax', date.max.format('yyyy-mm-dd')), {
+                        .replace(':dateMin', curDate.min.format('yyyy-mm-dd'))
+                        .replace(':dateMax', curDate.max.format('yyyy-mm-dd')), {
                         params: {limit: n_trend}
                     });
                     if (res.data.length === 0) {
@@ -268,14 +269,14 @@
                     }
                     let bubble = {
                         title: (timeWindow === 1
-                            ? `${date.min.format('mm/dd')}`
-                            : `${date.min.format('mm/dd')} - ${date.max.format('mm/dd')}`)
+                            ? `${curDate.min.format('mm/dd')}`
+                            : `${curDate.min.format('mm/dd')} - ${curDate.max.format('mm/dd')}`)
                             + ' 热词',
-                        date: deepcopy(date),
+                        date: curDate,
                         trends: res.data,
                     };
                     { // compute color of bubble, suggested by @Suiyi
-                        let alpha = Math.tanh(today.dayDiff(date.max) / 10.0); // [0, 1)
+                        let alpha = Math.tanh(today.dayDiff(curDate.max) / 10.0); // [0, 1)
                         let color = colorLerp(alpha, colorPrimary, colorAccent);
                         bubble.color = `rgb(${color})`;
                     }
