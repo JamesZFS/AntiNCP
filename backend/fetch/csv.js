@@ -16,7 +16,7 @@ const path = require('path');
  * @param batchSize{int}
  * @return {Promise<int>}
  */
-function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10000, dateForDatabase) {
+function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10000) {
     return new Promise((resolve, reject) => {
         let firstLine = true;
         let columns = []; // column names
@@ -45,7 +45,7 @@ function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10
                 // table data
                 let rowObj = {};
                 columns.forEach((col, idx) => rowObj[col] = newRow[idx]);
-                let entry = row2Entry(rowObj,dateForDatabase);  // convert into db acceptable form
+                let entry = row2Entry(rowObj);  // convert into db acceptable form
                 if (!entry) return; // neglect if return nothing
                 entryBatch.push(entry);
                 if (++count % batchSize === 0) {   // insert batch into db

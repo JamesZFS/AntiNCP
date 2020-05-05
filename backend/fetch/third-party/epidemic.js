@@ -15,7 +15,7 @@ const CHL = {
      * @param row{Object}  row in the csv file, repr in json
      * @return {Object}    entry to insert into db, repr in json
      */
-    parseRow(row,dateForDatabase) {
+    parseRow(row) {
         return {
             date: escape(row.date),
             country: escape(row.country),
@@ -40,14 +40,14 @@ const JHU = {
      * @param row{Object}       row in the csv file, repr in json
      * @return {Object|null}    entry to insert into db, repr in json
      */
-    parseRow(row,dateForDatabase) {
+    parseRow(row) {
         // return;
         // TODO:
         //  Map from row.`Province/State	Country/Region	Last Update	Confirmed	Deaths	Recovered` into:
         //  {date, country, province, city, confirmedCount, curedCount, deadCount}
         //  if the row is not about USA, **just return without any value**
         // TODO YOUR CODE HERE...
-        // debug('row: ',row);
+        let dateForDatabase = dateFormat(row['Last_Update']||row['Last Update'],'yyyy-mm-dd');
         let cur_country = row.Country_Region||row['Country/Region'];
         if(cur_country !== 'US')//filter
             return 0;
