@@ -12,9 +12,8 @@ const cache = require('../routes/retrieve/cache');
 const wget = require('../utils/wget');
 const csv = require('./csv');
 const rss = require('./rss');
-const epidemicSource = require('./third-party/epidemic').CHL; // may select other data sources
+const {CHL, JHU} = require('./third-party/epidemic');
 const articleSources = require('./third-party/articles').ALL; // may select other article sources
-const {STORY_BEGINS} = require('./config');
 require('../utils/date');
 
 /**
@@ -71,13 +70,17 @@ async function fetchVirusArticlesAndAnalyze() {
 }
 
 // Fetch epidemic data on `date` and store in db **incrementally** (data of the **same day** will be **overwritten**)
-async function fetchEpidemicData(date) {
+async function fetchEpidemicData(epidemicSource, date) {
     // Download:
     let dateStr = dateFormat(date, 'yyyy-mm-dd');
     let api = epidemicSource.dateAPI.replace(':date', dateStr);
     let filePath = path.join(epidemicSource.downloadDir, 'tmp.csv');
     debug(`Downloading Epidemic Data from ${api} into ${filePath} ...`);
-    await wget(api, filePath, true, true);
+    try {
+        await wget(api, filePath, true, true);
+    } catch (err) {
+        return; // skip this fetch
+    }
     debug('Download success.');
     // Load incrementally:
     let oldRowCount = await db.countTableRows('Epidemic');
@@ -93,16 +96,21 @@ async function fetchEpidemicData(date) {
 // Be cautious of using this.
 async function reFetchEpidemicData() {
     await db.clearTable('Epidemic');
-    for (let date = new Date(STORY_BEGINS); date <= new Date(); date = date.addDay()) {
-        await fetchEpidemicData(date);
+    for (let date = new Date(CHL.storyBegins); date <= new Date(); date = date.addDay()) {
+        await fetchEpidemicData(CHL, date);
+    }
+    for (let date = new Date(JHU.storyBegins); date <= new Date(); date = date.addDay()) {
+        await fetchEpidemicData(JHU, date);
     }
 }
 
 async function fetchAll() {
+    let today = new Date();
     return Promise.all([
-        fetchEpidemicData(new Date()),
-        fetchVirusArticlesAndAnalyze()]
-    )
+        fetchEpidemicData(CHL, today),
+        fetchEpidemicData(JHU, today),
+        fetchVirusArticlesAndAnalyze()
+    ])
 }
 
 function initialize() {
@@ -120,5 +128,5 @@ function initialize() {
 }
 
 module.exports = {
-    fetchAll, fetchEpidemicData, fetchVirusArticlesAndAnalyze, initialize, reFetchEpidemicData
+    fetchAll, initialize, reFetchEpidemicData
 };

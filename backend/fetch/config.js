@@ -5,5 +5,4 @@ module.exports = {
         'User-Agent': 'rss-parser',
         'Accept': 'application/rss+xml',
     },
-    STORY_BEGINS: '2019/12/1',
 };
