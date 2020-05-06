@@ -88,8 +88,10 @@
         data() {
             return {
                 charts: '',
-                cur_superiorPlace: 'world',
+                cur_superiorProvince:'',
+                cur_superiorCountry: '',
                 cur_superiorLevel: 'world',
+                // cur_superiorPlace: '',
                 cur_dataMap: {},
                 max: 200,
                 maxdic: {
@@ -97,8 +99,27 @@
                     '确诊': 1500,
                     '治愈': 2000,
                     '死亡': 1000
-                },//用于记录当前这个地区四种datakind的max
-                empty_option: {
+                }//用于记录当前这个地区四种datakind的max
+            }
+        },
+        computed: {
+            cur_superiorPlace: function () {
+                if (this.cur_superiorLevel === 'world') {
+                    return 'world';
+                }
+                else if(this.cur_superiorLevel === 'country'){
+                    return this.cur_superiorCountry;
+                }
+                else if(this.cur_superiorLevel === 'province'){
+                    return this.cur_superiorProvince;
+                }
+                else{
+                    console('cur_superiorPlace undefined\n');
+                    return undefined;
+                }
+            },
+            empty_option: function() {
+                return {
                     title: {
                         text: '2020-01-10' + this.cur_superiorPlace + '疫情状况', textStyle: {
                             fontSize: '25'
@@ -217,10 +238,8 @@
                             data: []
                         }
                     ]
-                }
-            }
-        },
-        computed: {
+                };
+            },
             myoption: function () {
                 return {
                     baseOption: {
@@ -322,9 +341,7 @@
                     }
                     if (visualMapMax > 10000) {
                         var tmp_max_log = parseInt(Math.log10(visualMapMax));
-                        // console.log(tmp_max_log);
                         var tmp_pieces = [];
-                        // tmp_suboption.visualMap.piece = [];
                         tmp_pieces[0] = {};
                         tmp_pieces[0]['min'] = Math.pow(10,tmp_max_log);
                         for(var k = 1; k <= tmp_max_log; k++)
@@ -336,32 +353,32 @@
                         tmp_pieces[tmp_max_log+1] = {'min': 0, 'max': 0, 'label': '0', 'color': 'lightskyblue'};
                         tmp_suboption.visualMap.pieces = tmp_pieces;
                     }
-                    // console.log(tmp_suboption);
                     this.myoption.options.push(tmp_suboption);
                 }
                 //时间轴处在最新的时间点
                 this.myoption.baseOption.timeline.currentIndex = time_cnt - 1;
-                // console.log(this.myoption.baseOption.timeline.currentIndex);
             },
             timelineclick(tmp_index) {
                 this.myoption.baseOption.timeline.currentIndex = tmp_index;
-                // console.log(tmp_index);
                 this.drawTimeAxis();
             },
-            placechange(tmp_superiorPlace, tmp_superiorLevel) {
-                // console.log(tmp_superiorPlace);
-                if (tmp_superiorPlace === 'world') {
+            placechange(tmp_superiorCountry, tmp_superiorProvince, tmp_superiorLevel) {
+                if (tmp_superiorLevel === 'world') {
                     echarts.registerMap('world', world);
-                } else if (tmp_superiorPlace === 'USA') {
-                    echarts.registerMap('USA', USA);
-                } else if (tmp_superiorPlace === 'china') {
-                    echarts.registerMap('china', china);
-                } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
-
-                    echarts.registerMap(tmp_superiorPlace, nametojson[tmp_superiorPlace]);
+                }
+                else if(tmp_superiorLevel === 'country')
+                {
+                    if (tmp_superiorCountry === 'USA') {
+                        echarts.registerMap('USA', USA);
+                    } else if (tmp_superiorCountry === 'china') {
+                        echarts.registerMap('china', china);
+                    }
+                } else if (tmp_superiorLevel === 'province'&&tmp_superiorCountry === 'china') {
+                    echarts.registerMap(tmp_superiorProvince, nametojson[tmp_superiorProvince]);
                 }
                 this.cur_superiorLevel = tmp_superiorLevel;
-                this.cur_superiorPlace = tmp_superiorPlace;
+                this.cur_superiorCountry = tmp_superiorCountry;
+                this.cur_superiorProvince = tmp_superiorProvince;
             },
             initechart() {
                 this.charts = echarts.init(document.getElementById('TimelineHeatMap'));
