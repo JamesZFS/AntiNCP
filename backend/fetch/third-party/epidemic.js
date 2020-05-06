@@ -12,7 +12,6 @@ const CHL = {
     expColumns: ['date', 'country', 'province', 'city', 'confirmed', 'cured', 'dead'],
     storyBegins: '2019/12/1',
     hasProvinceData: true,
-    sourceCountry: '中国',
     /**
      * @param row{Object}  row in the csv file, repr in json
      * @return {Object}    entry to insert into db, repr in json
@@ -39,7 +38,7 @@ const JHU = {
     expColumns: ['Confirmed','Deaths','Recovered'],
     storyBegins: '2020/1/22', // TODO
     hasProvinceData: false,
-    sourceCountry: 'US',
+    sourceCountry: '美国',
     /**
      * @param row{Object}       row in the csv file, repr in json
      * @return {Object|null}    entry to insert into db, repr in json
