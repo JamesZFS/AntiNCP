@@ -90,25 +90,47 @@
     >
       没有更多了。
     </v-alert>
-    <v-navigation-drawer
-        v-model="rightDrawer"
-        absolute
-        clipped
-        right
-        width="400"
+
+    <v-dialog
+        v-if="$vuetify.breakpoint.xs"
+        v-model="displayReports"
+        fullscreen
+        transition="dialog-bottom-transition"
     >
-      <v-card-title>
-        <h2>相关报道</h2>
-      </v-card-title>
-      <v-divider/>
-      <v-skeleton-loader v-if="loadingReports" type="list-item-three-line@6"/>
-      <ArticleList
-          v-else
-          style="overflow-y: scroll"
-          :style="this.$vuetify.breakpoint.mdAndDown && 'height: 80vh'"
-          :items="relativeReports"
-      />
-    </v-navigation-drawer>
+      <v-card>
+        <v-app-bar fixed dark>
+          <v-toolbar-title>{{dialogTitle}}</v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-btn icon dark @click="displayReports = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-app-bar>
+        <v-skeleton-loader v-if="loadingReports" type="list-item-three-line@6"/>
+        <ArticleList
+            v-else
+            :items="relativeReports"
+        />
+      </v-card>
+    </v-dialog>
+
+    <v-dialog
+        v-else
+        v-model="displayReports"
+        width="90%"
+    >
+      <v-card>
+        <v-card-title>
+          <span class="headline">{{dialogTitle}}</span>
+        </v-card-title>
+        <v-divider/>
+        <v-skeleton-loader v-if="loadingReports" type="list-item-three-line@6"/>
+        <ArticleList
+            v-else
+            :items="relativeReports"
+        />
+      </v-card>
+    </v-dialog>
+
     <WordCloud ref="MyWorldCloud" class="d-block" style="width: 96%;"></WordCloud>
 
     <!--  Fetch reports top button:  -->
@@ -131,7 +153,7 @@
           </v-btn>
         </v-scale-transition>
       </template>
-      <span>打开/关闭相关报道</span>
+      <span>相关报道</span>
     </v-tooltip>
 
   </v-container>
@@ -154,18 +176,30 @@
     export default {
         name: "Trends",
         components: {ArticleList, WordCloud},
-        data() {
-            return {
-                loading: false,
-                bubbles: [],
-                selectedTrends: [],
-                selectedDate: {min: null, max: null},
-                rightDrawer: false,
-                relativeReports: [],
-                fab: false,
-                loadingReports: false,
-                stillMoreBubbles: true,
-            };
+        data: () => ({
+            loading: false,
+            bubbles: [],
+            selectedTrends: [],
+            selectedDate: {min: null, max: null},
+            displayReports: false,
+            relativeReports: [],
+            fab: false,
+            loadingReports: false,
+            stillMoreBubbles: true,
+        }),
+        computed: {
+            dialogTitle() {
+                let words = this.selectedTrends.map(x => x.name);
+                let ret;
+                if (words.length === 0) {
+                    ret = 'Unselected';
+                } else if (words.length <= 3) {
+                    ret = words.join(',');
+                } else {
+                    ret = words.slice(0, 3).join(',') + '...';
+                }
+                return ret + ' 相关报道';
+            }
         },
         methods: {
             async refresh() {
@@ -181,26 +215,27 @@
                 this.selectedTrends = [];
                 this.selectedDate = {min: null, max: null};
             },
-            loadRelativeReports() {
+            async loadRelativeReports() {
                 let queryWords = this.selectedTrends.map(x => x.name).join(',');
-                this.$nextTick(async () => {
-                    this.loadingReports = true;
-                    this.relativeReports = await fetchArticlesByWords(
-                        queryWords, 'and',
-                        this.selectedDate.min, this.selectedDate.max
-                    );
-                    if (this.relativeReports.length === 0) {
-                        this.relativeReports.push({
-                            header: '未找到相关结果（建议减少查询词）'
-                        })
-                    }
-                    this.loadingReports = false;
-                });
+                this.loadingReports = true;
+                this.relativeReports = await fetchArticlesByWords(
+                    queryWords, 'and',
+                    this.selectedDate.min, this.selectedDate.max
+                );
+                if (this.relativeReports.length === 0) {
+                    this.relativeReports.push({
+                        header: '未找到相关结果（建议减少查询词）'
+                    })
+                }
+                this.loadingReports = false;
             },
             onGenerateWordCloud(curBubble) {
                 this.$refs.MyWorldCloud.drawwordcloud(curBubble);
             },
             onClickSomeTrend(trend, bubble) {
+                // this.selectedTrends = [trend];
+                // this.selectedDate = bubble.date;
+                // return this.onFabClick();
                 if (bubble.date !== this.selectedDate) { // not from the same bubble
                     this.clearCurrentSelection();
                     this.selectedDate = bubble.date;
@@ -216,16 +251,11 @@
                         trend.selected = true;
                     }
                 }
-                this.fab = this.selectedTrends.length > 0 || this.rightDrawer;
+                this.fab = this.selectedTrends.length > 0 || this.displayReports;
             },
-            onFabClick() {
-                if (this.rightDrawer) {
-                    this.rightDrawer = false;
-                } else {
-                    this.rightDrawer = true;
-                    this.$vuetify.goTo(0);
-                    this.loadRelativeReports();
-                }
+            async onFabClick() {
+                await this.loadRelativeReports();
+                this.displayReports = true;
             },
             async onScrollToEnd(entries, observer, isIntersecting) { // load more bubbles
                 if (this.loading || !isIntersecting) return;
