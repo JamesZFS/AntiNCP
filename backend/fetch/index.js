@@ -117,6 +117,7 @@ async function fetchAll() {
     return Promise.all([
         fetchEpidemicData(CHL, today),
         fetchEpidemicData(JHU, today),
+        calculateProvinceData(JHU,today),
         fetchVirusArticlesAndAnalyze()
     ])
 }
