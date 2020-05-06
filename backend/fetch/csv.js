@@ -54,7 +54,7 @@ function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10
                     try {
                         await onBatch(entryBatch);
                     } catch (err) {
-                        debug('parsing error row:', err);
+                        debug('parsing error row:', err.message);
                         parser.end();
                         reject(err);
                         return;
@@ -68,7 +68,7 @@ function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10
                 try {
                     await onBatch(entryBatch);
                 } catch (err) {
-                    debug('parsing error row:', err);
+                    debug('parsing error row:', err.message);
                     reject(err);
                     return;
                 }

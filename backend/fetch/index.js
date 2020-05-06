@@ -72,8 +72,8 @@ async function fetchVirusArticlesAndAnalyze() {
 // Fetch epidemic data on `date` and store in db **incrementally** (data of the **same day** will be **overwritten**)
 async function fetchEpidemicData(epidemicSource, date) {
     // Download:
-    let APIdateStr = dateFormat(date, epidemicSource.APIdateFormat);//APIdateStr is for dataAPI ;format example CHL: yyyy-mm-dd JHU:mm-dd-yyyy
-    let api = epidemicSource.dateAPI.replace(':date', APIdateStr);
+    let apiDateStr = dateFormat(date, epidemicSource.apiDateFormat);
+    let api = epidemicSource.dateAPI.replace(':date', apiDateStr);
     let filePath = path.join(epidemicSource.downloadDir, 'tmp.csv');
     debug(`Downloading Epidemic Data from ${api} into ${filePath} ...`);
     try {
@@ -86,40 +86,63 @@ async function fetchEpidemicData(epidemicSource, date) {
     let oldRowCount = await db.countTableRows('Epidemic');
     await cache.flush();
     await csv.batchReadAndMap(filePath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
-    await db.refreshAvailablePlaces();
     let newRowCount = await db.countTableRows('Epidemic');
     debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
 }
-async function calculateProvinceData(epidemicSource,date)
-{
-    let dateForDatabase = dateFormat(date, 'yyyy-mm-dd');
-    if(!epidemicSource.hasProvinceData)
-    {
-        let province_sum = await db.doSql(`INSERT IGNORE INTO Epidemic (date, country, city, province, confirmedCount, curedCount, deadCount) SELECT date,country,'',province,SUM(confirmedCount) as confirmedCount,SUM(curedCount) as curedCount,SUM(deadCount) as deadCount From Epidemic WHERE date=${db.escape(dateForDatabase)} AND country=${db.escape(epidemicSource.sourceCountry)} GROUP BY province`);
+
+// Compensate provincial data on specified date
+async function calculateProvinceData(epidemicSource, date) {
+    date = dateFormat(date, 'yyyy-mm-dd');
+    if (!epidemicSource.hasProvinceData) {
+        await db.doSql(`
+INSERT IGNORE INTO Epidemic (date, country, city, province, confirmedCount, curedCount, deadCount)
+SELECT date,country,'',province,SUM(confirmedCount),SUM(curedCount),SUM(deadCount)
+From Epidemic WHERE date=${db.escape(date)} AND country=${db.escape(epidemicSource.sourceCountry)} AND province!='' AND city!='' GROUP BY province`);
     }
 }
+
+// Clear and reload available places from source table (should contain field `country`, `province`, and `city`)
+function refreshAvailablePlaces() {
+    return db.doSqls([
+        'TRUNCATE TABLE Places;', // clear
+        'INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM AntiNCP.Epidemic;'
+    ]);
+}
+
+
 // Clear all before fetch.
-// Be cautious of using this.
+// Transaction is not applied here. Be cautious of using this!
 async function reFetchEpidemicData() {
     await db.clearTable('Epidemic');
     for (let date = new Date(CHL.storyBegins); date <= new Date(); date = date.addDay()) {
         await fetchEpidemicData(CHL, date);
     }
+    // await db.doSql(`DELETE FROM Epidemic WHERE country='美国' AND province!=''`);
     for (let date = new Date(JHU.storyBegins); date <= new Date(); date = date.addDay()) {
         await fetchEpidemicData(JHU, date);
-        await calculateProvinceData(JHU,date);
+        await calculateProvinceData(JHU, date);
     }
+    await refreshAvailablePlaces();
+}
+
+async function clearEpidemicOn(date) {
+    return db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(dateFormat(date, 'yyyy-mm-dd'))}`);
 }
 
 async function fetchAll() {
+    // Articles:
+    await fetchVirusArticlesAndAnalyze();
+    // Epidemic:
     let today = new Date();
-    await db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(today)}`);
-    return Promise.all([
+    await db.beginTransaction(); // atomic operations begin
+    await clearEpidemicOn(today);
+    await Promise.all([
         fetchEpidemicData(CHL, today),
         fetchEpidemicData(JHU, today),
-        calculateProvinceData(JHU,today),
-        fetchVirusArticlesAndAnalyze()
-    ])
+    ]);
+    await refreshAvailablePlaces();
+    await calculateProvinceData(JHU, today);
+    await db.commit(); // atomic end
 }
 
 function initialize() {

@@ -11,13 +11,12 @@ CREATE TABLE IF NOT EXISTS `Epidemic`
     `country`        CHAR(32)     NOT NULL,
     `province`       CHAR(64)     NULL,
     `city`           CHAR(64)     NULL,
-    `activeCount`    INT GENERATED ALWAYS AS (confirmedCount - curedCount - deadCount),
+    `activeCount`    INT GENERATED ALWAYS AS (GREATEST(0, confirmedCount - curedCount - deadCount)),
     `confirmedCount` INT          NOT NULL,
     `curedCount`     INT          NOT NULL,
     `deadCount`      INT          NOT NULL,
     PRIMARY KEY (`id`),
-    INDEX `date_idx` (`date` ASC),
-    INDEX `timeline_query_index` (`country` ASC, `province` ASC, `city` ASC)
+    UNIQUE INDEX `index` (`date` ASC, `country` ASC, `province` ASC, `city` ASC)
 )
     COMMENT = 'Epidemic data across the world.';
 -- Available places table, this is a cache for epidemic data
