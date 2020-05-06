@@ -11,6 +11,8 @@ const CHL = {
     downloadDir: 'public/data/chl-area/',
     expColumns: ['date', 'country', 'province', 'city', 'confirmed', 'cured', 'dead'],
     storyBegins: '2019/12/1',
+    hasProvinceData: true,
+    sourceCountry: '中国',
     /**
      * @param row{Object}  row in the csv file, repr in json
      * @return {Object}    entry to insert into db, repr in json
@@ -36,6 +38,8 @@ const JHU = {
     downloadDir: 'public/data/jhu-area/', // TODO
     expColumns: ['Confirmed','Deaths','Recovered'],
     storyBegins: '2020/1/22', // TODO
+    hasProvinceData: false,
+    sourceCountry: 'US',
     /**
      * @param row{Object}       row in the csv file, repr in json
      * @return {Object|null}    entry to insert into db, repr in json
@@ -53,7 +57,7 @@ const JHU = {
             return 0;
         return {
             date: escape(dateForDatabase),
-            country: escape(cur_country),
+            country: escape('美国'),
             province: escape(row.Province_State||row['Province/State']),
             city: escape(row.Admin2||''),
             // active count computed by database

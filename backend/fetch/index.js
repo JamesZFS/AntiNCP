@@ -74,7 +74,6 @@ async function fetchEpidemicData(epidemicSource, date) {
     // Download:
     let APIdateStr = dateFormat(date, epidemicSource.APIdateFormat);//APIdateStr is for dataAPI ;format example CHL: yyyy-mm-dd JHU:mm-dd-yyyy
     let api = epidemicSource.dateAPI.replace(':date', APIdateStr);
-    let dateForDatabase = dateFormat(date, 'yyyy-mm-dd');
     let filePath = path.join(epidemicSource.downloadDir, 'tmp.csv');
     debug(`Downloading Epidemic Data from ${api} into ${filePath} ...`);
     try {
@@ -86,13 +85,19 @@ async function fetchEpidemicData(epidemicSource, date) {
     // Load incrementally:
     let oldRowCount = await db.countTableRows('Epidemic');
     await cache.flush();
-    await db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(dateForDatabase)}`); // clear old records of this date
     await csv.batchReadAndMap(filePath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
     await db.refreshAvailablePlaces();
     let newRowCount = await db.countTableRows('Epidemic');
     debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
 }
-
+async function calculateProvinceData(epidemicSource,date)
+{
+    let dateForDatabase = dateFormat(date, 'yyyy-mm-dd');
+    if(!epidemicSource.hasProvinceData)
+    {
+        let province_sum = await db.doSql(`INSERT IGNORE INTO Epidemic (date, country, city, province, confirmedCount, curedCount, deadCount) SELECT date,country,'',province,SUM(confirmedCount) as confirmedCount,SUM(curedCount) as curedCount,SUM(deadCount) as deadCount From Epidemic WHERE date=${db.escape(dateForDatabase)} AND country=${db.escape(epidemicSource.sourceCountry)} GROUP BY province`);
+    }
+}
 // Clear all before fetch.
 // Be cautious of using this.
 async function reFetchEpidemicData() {
@@ -102,11 +107,13 @@ async function reFetchEpidemicData() {
     }
     for (let date = new Date(JHU.storyBegins); date <= new Date(); date = date.addDay()) {
         await fetchEpidemicData(JHU, date);
+        await calculateProvinceData(JHU,date);
     }
 }
 
 async function fetchAll() {
     let today = new Date();
+    await db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(today)}`);
     return Promise.all([
         fetchEpidemicData(CHL, today),
         fetchEpidemicData(JHU, today),
