@@ -4,6 +4,7 @@
     <v-snackbar
             v-model="snackbar"
             :vertical="vertical"
+            :timeout= 0
             color="white"
             style="width: 50vh;" justify="center" align="center" class="mr-0 pr-0"
     >
