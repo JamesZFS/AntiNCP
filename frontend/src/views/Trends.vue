@@ -36,7 +36,6 @@
                         v-on="on"
                         class="ma-1"
                         filter
-                        :input-value="trend.selected"
                         :color="trend.selected ? '#90CAF9' : trend.color"
                         :class="trend.textColor && `${trend.textColor}--text`"
                         @click="onClickSomeTrend(trend, bubble)"
@@ -54,16 +53,27 @@
                 </span>
                   </div>
                 </v-tooltip>
-                <v-btn
-                    color="orange"
-                    class="d-block mx-auto mt-2 px-5 darken-4"
-                    outlined
-                    small
-                    @click="onGenerateWordCloud(bubble)"
-                >
-                  <v-icon>mdi-hand-pointing-left</v-icon>
-                  &nbsp; 生成词云
-                </v-btn>
+                <v-card-actions class="mb-n3">
+                  <v-spacer></v-spacer>
+                  <v-btn
+                      class="px-1"
+                      color="success darken-2"
+                      text
+                      @click="onMoreTrendsInABubble(bubble)"
+                  >
+                    <v-icon>mdi-tray-plus</v-icon>
+                    &nbsp; 查看更多
+                  </v-btn>
+                  <v-btn
+                      class="px-1"
+                      color="info darken-2"
+                      text
+                      @click="onGenerateWordCloud(bubble)"
+                  >
+                    <v-icon>mdi-blur</v-icon>
+                    &nbsp; 生成词云
+                  </v-btn>
+                </v-card-actions>
               </v-card-text>
             </v-card>
           </template>
@@ -205,7 +215,7 @@
             async refresh() {
                 this.loading = true;
                 const today = new Date();
-                this.bubbles = await fetchTrendBubbles(today, 1, 7, 40);
+                this.bubbles = await fetchTrendBubbles(today, 1, 7, 30);
                 this.loading = false;
             },
             clearCurrentSelection() {
@@ -260,10 +270,15 @@
             async onScrollToEnd(entries, observer, isIntersecting) { // load more bubbles
                 if (this.loading || !isIntersecting) return;
                 let lastDay = this.bubbles[this.bubbles.length - 1].date.min.addDay(-1);
-                let newBubbles = await fetchTrendBubbles(lastDay, 1, 7, 40);
+                let newBubbles = await fetchTrendBubbles(lastDay, 1, 7, 30);
                 if (newBubbles.length > 0) this.bubbles = this.bubbles.concat(newBubbles);
                 else this.stillMoreBubbles = false; // no more
-            }
+            },
+            async onMoreTrendsInABubble(bubble) {
+                let temp = await fetchTrendBubbles(bubble.date.max, 1, 1, bubble.trends.length + 30);
+                Object.assign(bubble, temp[0]);
+                this.clearCurrentSelection();
+            },
         },
         created() {
             colorPrimary = hexToRgb(this.$vuetify.theme.themes.light.primary);
