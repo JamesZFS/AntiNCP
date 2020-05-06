@@ -101,6 +101,7 @@
       没有更多了。
     </v-alert>
 
+    <!--  Mobile view of Reports:  -->
     <v-dialog
         v-if="$vuetify.breakpoint.xs"
         v-model="displayReports"
@@ -109,7 +110,7 @@
     >
       <v-card>
         <v-app-bar fixed dark>
-          <v-toolbar-title>{{dialogTitle}}</v-toolbar-title>
+          <v-toolbar-title>{{dialogTitle}} 相关报道</v-toolbar-title>
           <v-spacer></v-spacer>
           <v-btn icon dark @click="displayReports = false">
             <v-icon>mdi-close</v-icon>
@@ -123,6 +124,7 @@
       </v-card>
     </v-dialog>
 
+    <!--  PC view of Reports:  -->
     <v-dialog
         v-else
         v-model="displayReports"
@@ -130,7 +132,7 @@
     >
       <v-card>
         <v-card-title>
-          <span class="headline">{{dialogTitle}}</span>
+          <span class="headline">{{dialogTitle}} 相关报道</span>
         </v-card-title>
         <v-divider/>
         <v-skeleton-loader v-if="loadingReports" type="list-item-three-line@6"/>
@@ -141,9 +143,36 @@
       </v-card>
     </v-dialog>
 
+    <!--  PC view of Curve:  -->
+    <v-dialog
+        v-model="displayCurve"
+        width="90%"
+    >
+      <v-card>
+        <v-card-title>
+          <span class="headline">{{dialogTitle}} 热度趋势</span>
+        </v-card-title>
+        <v-divider/>
+        <v-skeleton-loader v-if="loadingCurve" type="list-item-three-line@5"/>
+        <!--    Todo fetch from backend    -->
+        <MultiAxisChart
+            :labels="['1-1', '1-2', '1-3']"
+            :legends="['epidemic', 'corona', '3', '4', '5', '6']"
+            :series="[
+                [1, 2, 3],
+                [5, 4, 3],
+                [6, 7, 8],
+                [6, 6.5, 7],
+                [5, 5, 5],
+                [1, 0.1, 0.6],
+            ]"
+        />
+      </v-card>
+    </v-dialog>
+
     <WordCloud ref="MyWorldCloud" class="d-block" style="width: 96%;"></WordCloud>
 
-    <!--  Fetch reports top button:  -->
+    <!--  Fetch reports button:  -->
     <v-tooltip left>
       <template v-slot:activator="{ on }">
         <v-scale-transition>
@@ -157,7 +186,7 @@
               right
               color="cyan"
               style="margin-bottom: 80px"
-              @click="onFabClick"
+              @click="onReportsFabClick"
           >
             <v-icon>mdi-pencil-box-outline</v-icon>
           </v-btn>
@@ -166,12 +195,36 @@
       <span>相关报道</span>
     </v-tooltip>
 
+    <!--  Display curve button:  -->
+    <v-tooltip left>
+      <template v-slot:activator="{ on }">
+        <v-scale-transition>
+          <v-btn
+              v-show="fab"
+              v-on="on"
+              fab
+              dark
+              fixed
+              bottom
+              right
+              color="yellow darken-2"
+              style="margin-bottom: 160px"
+              @click="onCurveFabClick"
+          >
+            <v-icon>mdi-chart-bell-curve</v-icon>
+          </v-btn>
+        </v-scale-transition>
+      </template>
+      <span>热度趋势</span>
+    </v-tooltip>
+
   </v-container>
 </template>
 
 <script>
     import WordCloud from '../components/WordCloud';
     import ArticleList from "../components/ArticleList";
+    import MultiAxisChart from "../components/MultiAxisChart";
     import Vue from "vue";
     import api from "../api";
     import deepcopy from 'deepcopy';
@@ -185,30 +238,30 @@
 
     export default {
         name: "Trends",
-        components: {ArticleList, WordCloud},
+        components: {ArticleList, WordCloud, MultiAxisChart},
         data: () => ({
             loading: false,
             bubbles: [],
             selectedTrends: [],
             selectedDate: {min: null, max: null},
             displayReports: false,
+            displayCurve: false,
             relativeReports: [],
             fab: false,
             loadingReports: false,
+            loadingCurve: false,
             stillMoreBubbles: true,
         }),
         computed: {
             dialogTitle() {
                 let words = this.selectedTrends.map(x => x.name);
-                let ret;
                 if (words.length === 0) {
-                    ret = 'Unselected';
+                    return 'Unselected';
                 } else if (words.length <= 3) {
-                    ret = words.join(',');
+                    return words.join(', ');
                 } else {
-                    ret = words.slice(0, 3).join(',') + '...';
+                    return words.slice(0, 3).join(', ') + '...';
                 }
-                return ret + ' 相关报道';
             }
         },
         methods: {
@@ -245,7 +298,7 @@
             onClickSomeTrend(trend, bubble) {
                 // this.selectedTrends = [trend];
                 // this.selectedDate = bubble.date;
-                // return this.onFabClick();
+                // return this.onReportsFabClick();
                 if (bubble.date !== this.selectedDate) { // not from the same bubble
                     this.clearCurrentSelection();
                     this.selectedDate = bubble.date;
@@ -263,9 +316,13 @@
                 }
                 this.fab = this.selectedTrends.length > 0 || this.displayReports;
             },
-            async onFabClick() {
+            async onReportsFabClick() {
                 await this.loadRelativeReports();
                 this.displayReports = true;
+            },
+            async onCurveFabClick() {
+                /// todo load curve data
+                this.displayCurve = true;
             },
             async onScrollToEnd(entries, observer, isIntersecting) { // load more bubbles
                 if (this.loading || !isIntersecting) return;
@@ -346,6 +403,7 @@
             }));
         }
         await Promise.all(jobs);
+        bubbles = bubbles.filter(x => x.trends && x.trends.length > 0);
         return bubbles;
     }
 
