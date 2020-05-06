@@ -256,6 +256,7 @@
         let jobs = [];
         for (let i = 0; i < n_bubble; i++, date.min = date.min.addDay(-timeWindow), date.max = date.max.addDay(-timeWindow)) {
             jobs.push(new Promise(async (resolve, reject) => {
+                let curIdx = i;
                 let curDate = deepcopy(date);
                 try {
                     var res = await Vue.axios.get(api.GET_TRENDS_TIMELINE
@@ -291,7 +292,7 @@
                     }
                     // star the first
                     Object.assign(bubble.trends[0], {star: true, color: 'orange', textColor: 'white'});
-                    bubbles.push(bubble);
+                    bubbles[curIdx] = bubble;
                     resolve();
                 } catch (err) {
                     console.error(`Cannot fetch trends timeline data from backend with ${err}`);
