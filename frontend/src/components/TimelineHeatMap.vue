@@ -292,6 +292,7 @@
                 //活跃、确诊、治愈、死亡数据依次导入，由于时间戳的个数相同，所以只需要一个循环
                 //首先从活跃顺便导入时间戳，初始化option的个数
                 var time_cnt = 0;
+                var visualMapMax = 10000;
                 for (var time_index in res.data.timeline['activeCount']) {
                     time_cnt += 1;
                     this.myoption.baseOption.timeline.data.push(time_index);
@@ -309,18 +310,32 @@
                     for (var i = 0; i < tmp_suboption.series[3].data.length; i++) {
                         for (var j = 0; j < 4; j++) {
                             //用name_filter进行地名修正
-                            if (name_filter[tmp_suboption.series[j].data[i].name] !== undefined) {
-                                tmp_suboption.series[j].data[i].name = name_filter[tmp_suboption.series[j].data[i].name];
+                            let tmp_data = tmp_suboption.series[j].data[i];
+                            if (name_filter[tmp_data.name] !== undefined) {
+                                tmp_suboption.series[j].data[i].name = name_filter[tmp_data.name];
                             }
-                            // if (tmp_suboption.series[j].data[i].value > tmp_suboption.visualMap.max) {
-                            //     tmp_suboption.visualMap.max = tmp_suboption.series[j].data[i].value;
-                            // }
+                            if (tmp_data.value > visualMapMax) {
+                                visualMapMax = tmp_data.value;
+                            }
 
                         }
                     }
-                    // if (tmp_suboption.visualMap.max >= 5000) {
-                    //     tmp_suboption.visualMap.max = 5000;
-                    // }
+                    if (visualMapMax > 10000) {
+                        var tmp_max_log = parseInt(Math.log10(visualMapMax));
+                        // console.log(tmp_max_log);
+                        var tmp_pieces = [];
+                        // tmp_suboption.visualMap.piece = [];
+                        tmp_pieces[0] = {};
+                        tmp_pieces[0]['min'] = Math.pow(10,tmp_max_log);
+                        for(var k = 1; k <= tmp_max_log; k++)
+                        {
+                            tmp_pieces[k] = {};
+                            tmp_pieces[k]['min'] = Math.pow(10,tmp_max_log-k);
+                            tmp_pieces[k]['max'] = Math.pow(10,tmp_max_log-k+1) - 1;
+                        }
+                        tmp_pieces[tmp_max_log+1] = {'min': 0, 'max': 0, 'label': '0', 'color': 'lightskyblue'};
+                        tmp_suboption.visualMap.pieces = tmp_pieces;
+                    }
                     // console.log(tmp_suboption);
                     this.myoption.options.push(tmp_suboption);
                 }

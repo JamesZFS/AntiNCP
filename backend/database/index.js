@@ -8,6 +8,8 @@ const dbCfg = process.env.REMOTE_DB
     : require('./config').LOCAL_MYSQL_CFG; // you may choose a different mysql server
 const initializingScriptPath = path.resolve(__dirname, './initialize.sql');
 
+var connection;
+
 /**
  * Insist reconnecting until connection is make, throw unrecoverable error if fails
  * @return {Promise<void>}
@@ -150,11 +152,12 @@ function insertEntry(table, entry, extra = '') {
  * @param table{string}
  * @param entries{Object[]} have to make sure they have **the same keys**
  * @param extra{string}
+ * @param allowDuplicate{boolean}
  * @return {Promise<Object>}
  */
-function insertEntries(table, entries, extra = '') {
+function insertEntries(table, entries, extra = '', allowDuplicate = false) {
     if (entries.length === 0) return Promise.resolve();
-    let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
+    let sql = `INSERT ${allowDuplicate ? 'IGNORE ' : ''}INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {
         vals.push(`(${Object.values(entry).join(',')})`);
@@ -190,12 +193,12 @@ function insertEpidemicEntry(entry) {
 }
 
 /**
- * Insert multiple epidemic data entries into 'Epidemic' table
+ * Insert multiple epidemic data entries into 'Epidemic' table, ignore by default!
  * @param entries{Object[]}
  * @return {Promise<Object>}
  */
 function insertEpidemicEntries(entries) {
-    return insertEntries('Epidemic', entries);
+    return insertEntries('Epidemic', entries, '', true);
 }
 
 /**
@@ -260,17 +263,6 @@ function selectAvailableProvinces(country) {
 
 function selectAvailableCountries() {
     return selectInTable('Places', 'country', null, true, 'ORDER BY country ASC');
-}
-
-/**
- * Clear and reload available places from source table (should contain field `country`, `province`, and `city`)
- * @return {Promise<Object>}
- */
-function refreshAvailablePlaces() {
-    return doSqls([
-        'TRUNCATE TABLE Places;', // clear
-        `INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM AntiNCP.Epidemic;`
-    ]);
 }
 
 /**
@@ -354,13 +346,30 @@ function escape(value) {
     return mysql.escape(value);
 }
 
+async function beginTransaction() {
+    return new Promise((resolve, reject) => {
+        connection.beginTransaction(err => {
+            if (err) reject(err);
+            else resolve();
+        })
+    });
+}
+
+async function commit() {
+    return new Promise((resolve, reject) => {
+        connection.commit(err => {
+            if (err) reject(err);
+            else resolve();
+        })
+    });
+}
 
 module.exports = {
     initialize, finalize, escapeId, escape,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
     clearTable, countTableRows, selectInTable, selectEpidemicData,
-    selectAvailableCities, selectAvailableProvinces, selectAvailableCountries, refreshAvailablePlaces,
+    selectAvailableCities, selectAvailableProvinces, selectAvailableCountries,
     insertArticleEntry, insertArticleEntries, selectArticles,
     updateClientInfo, getClientInfo,
-    doSql, doSqls,
+    doSql, doSqls, beginTransaction, commit,
 };

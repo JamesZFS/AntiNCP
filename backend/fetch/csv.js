@@ -10,7 +10,8 @@ const path = require('path');
  * This takes countable seconds to finish
  * @param csvPath{string}
  * @param expColumns{string[]} expected columns in the csv, throw if not meet
- * @param row2Entry{callback} a function that converts a map from csv header to db field
+ * @param row2Entry{callback} a function that converts a map from csv header to db field, **takes a csv row object**,
+ *  **returns a database row object**, returns nothing | undefined | false to **filter out** the row
  * @param onBatch{callback} a function that takes a batch of entries, eg. `db.insertEpidemicEntries` method
  * @param batchSize{int}
  * @return {Promise<int>}
@@ -45,6 +46,7 @@ function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10
                 let rowObj = {};
                 columns.forEach((col, idx) => rowObj[col] = newRow[idx]);
                 let entry = row2Entry(rowObj);  // convert into db acceptable form
+                if (!entry) return; // neglect if return nothing
                 entryBatch.push(entry);
                 if (++count % batchSize === 0) {   // insert batch into db
                     debug(`parsed ${count} rows.`);
@@ -52,7 +54,7 @@ function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10
                     try {
                         await onBatch(entryBatch);
                     } catch (err) {
-                        debug('parsing error row:', err);
+                        debug('parsing error row:', err.message);
                         parser.end();
                         reject(err);
                         return;
@@ -66,7 +68,7 @@ function batchReadAndMap(csvPath, expColumns, row2Entry, onBatch, batchSize = 10
                 try {
                     await onBatch(entryBatch);
                 } catch (err) {
-                    debug('parsing error row:', err);
+                    debug('parsing error row:', err.message);
                     reject(err);
                     return;
                 }

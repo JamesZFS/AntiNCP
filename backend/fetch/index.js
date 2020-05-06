@@ -12,9 +12,8 @@ const cache = require('../routes/retrieve/cache');
 const wget = require('../utils/wget');
 const csv = require('./csv');
 const rss = require('./rss');
-const epidemicSource = require('./third-party/epidemic').CHL; // may select other data sources
+const {CHL, JHU} = require('./third-party/epidemic');
 const articleSources = require('./third-party/articles').ALL; // may select other article sources
-const {STORY_BEGINS} = require('./config');
 require('../utils/date');
 
 /**
@@ -71,38 +70,79 @@ async function fetchVirusArticlesAndAnalyze() {
 }
 
 // Fetch epidemic data on `date` and store in db **incrementally** (data of the **same day** will be **overwritten**)
-async function fetchEpidemicData(date) {
+async function fetchEpidemicData(epidemicSource, date) {
     // Download:
-    let dateStr = dateFormat(date, 'yyyy-mm-dd');
-    let api = epidemicSource.dateAPI.replace(':date', dateStr);
+    let apiDateStr = dateFormat(date, epidemicSource.apiDateFormat);
+    let api = epidemicSource.dateAPI.replace(':date', apiDateStr);
     let filePath = path.join(epidemicSource.downloadDir, 'tmp.csv');
     debug(`Downloading Epidemic Data from ${api} into ${filePath} ...`);
-    await wget(api, filePath, true, true);
+    try {
+        await wget(api, filePath, true, true);
+    } catch (err) {
+        return; // skip this fetch
+    }
     debug('Download success.');
     // Load incrementally:
     let oldRowCount = await db.countTableRows('Epidemic');
     await cache.flush();
-    await db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(dateStr)}`); // clear old records of this date
     await csv.batchReadAndMap(filePath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
-    await db.refreshAvailablePlaces();
     let newRowCount = await db.countTableRows('Epidemic');
     debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
 }
 
-// Clear all before fetch.
-// Be cautious of using this.
-async function reFetchEpidemicData() {
-    await db.clearTable('Epidemic');
-    for (let date = new Date(STORY_BEGINS); date <= new Date(); date = date.addDay()) {
-        await fetchEpidemicData(date);
+// Compensate provincial data on specified date
+async function calculateProvinceData(epidemicSource, date) {
+    date = dateFormat(date, 'yyyy-mm-dd');
+    if (!epidemicSource.hasProvinceData) {
+        await db.doSql(`
+INSERT IGNORE INTO Epidemic (date, country, city, province, confirmedCount, curedCount, deadCount)
+SELECT date,country,'',province,SUM(confirmedCount),SUM(curedCount),SUM(deadCount)
+From Epidemic WHERE date=${db.escape(date)} AND country=${db.escape(epidemicSource.sourceCountry)} AND province!='' AND city!='' GROUP BY province`);
     }
 }
 
+// Clear and reload available places from source table (should contain field `country`, `province`, and `city`)
+function refreshAvailablePlaces() {
+    return db.doSqls([
+        'TRUNCATE TABLE Places;', // clear
+        'INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM AntiNCP.Epidemic;'
+    ]);
+}
+
+
+// Clear all before fetch.
+// Transaction is not applied here. Be cautious of using this!
+async function reFetchEpidemicData() {
+    await db.clearTable('Epidemic');
+    for (let date = new Date(CHL.storyBegins); date <= new Date(); date = date.addDay()) {
+        await fetchEpidemicData(CHL, date);
+    }
+    // await db.doSql(`DELETE FROM Epidemic WHERE country='美国' AND province!=''`);
+    for (let date = new Date(JHU.storyBegins); date <= new Date(); date = date.addDay()) {
+        await fetchEpidemicData(JHU, date);
+        await calculateProvinceData(JHU, date);
+    }
+    await refreshAvailablePlaces();
+}
+
+async function clearEpidemicOn(date) {
+    return db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(dateFormat(date, 'yyyy-mm-dd'))}`);
+}
+
 async function fetchAll() {
-    return Promise.all([
-        fetchEpidemicData(new Date()),
-        fetchVirusArticlesAndAnalyze()]
-    )
+    // Articles:
+    await fetchVirusArticlesAndAnalyze();
+    // Epidemic:
+    let today = new Date();
+    await db.beginTransaction(); // atomic operations begin
+    await clearEpidemicOn(today);
+    await Promise.all([
+        fetchEpidemicData(CHL, today),
+        fetchEpidemicData(JHU, today),
+    ]);
+    await refreshAvailablePlaces();
+    await calculateProvinceData(JHU, today);
+    await db.commit(); // atomic end
 }
 
 function initialize() {
@@ -120,5 +160,5 @@ function initialize() {
 }
 
 module.exports = {
-    fetchAll, fetchEpidemicData, fetchVirusArticlesAndAnalyze, initialize, reFetchEpidemicData
+    fetchAll, initialize, reFetchEpidemicData
 };
