@@ -123,22 +123,19 @@
     methods: {
       more_epidemic_data(){
         this.timeline_len += 7;
-        // console.log('level: ',this.cur_superiorLevel);
-        //
-        // if(this.cur_superiorLevel === 'province')
-        // {
-        //   if(this.cur_superiorCountry === 'USA')
-        //   {
-        //     this.cur_superiorLevel = 'country';
-        //   }
-        //   console.log('provincelevel: ',this.cur_superiorProvince);
-        //   this.placechange(this.cur_superiorProvince);
-        // }
+        this.map_changed = false;
+        if(this.cur_superiorLevel === 'province')
+        {
+          if(this.cur_superiorCountry === 'USA')
+          {
+            this.cur_superiorLevel = 'country';
+          }
+        }
         this.passPlaceandLevel();
         this.get_epidemic_data();
+        this.map_changed = true;
       },
       returnWorldMap() {
-        this.timeline_len = 30;
         this.cur_superiorCountry = '';
         this.cur_superiorProvince= '';
         this.cur_superiorLevel = 'world';
@@ -146,7 +143,6 @@
         this.get_epidemic_data();
       },
       returnCountryMap(tmp_country) {
-        this.timeline_len = 30;
         this.cur_superiorCountry = tmp_country;
         this.cur_superiorProvince= '';
         this.cur_superiorLevel = 'country';
@@ -156,6 +152,7 @@
       passPlaceandLevel() {//传递this.cur_superiorPlace,this.cur_superiorLevel给子组件
         if (this.map_changed) {
           //热度图切换
+          this.timeline_len = 30;
           this.$refs.myheatmap.placechange(this.cur_superiorCountry,this.cur_superiorProvince, this.cur_superiorLevel);
         }
         //以及折线图的切换

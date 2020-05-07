@@ -307,6 +307,7 @@
                                 }
                             }
                         },
+                        tooltip:{},
                         legend: {
                             left: 'right',
                             top: "10%",
