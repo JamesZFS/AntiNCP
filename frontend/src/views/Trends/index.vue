@@ -112,6 +112,9 @@
         <v-app-bar fixed dark>
           <v-toolbar-title>{{dialogTitle}} 相关报道</v-toolbar-title>
           <v-spacer></v-spacer>
+          <v-btn dark text @click="onClickGoToReports">
+            详情<v-icon>mdi-chevron-double-right</v-icon>
+          </v-btn>
           <v-btn icon dark @click="displayReports = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -133,6 +136,10 @@
       <v-card>
         <v-card-title>
           <span class="headline">{{dialogTitle}} 相关报道</span>
+          <v-spacer/>
+          <v-btn text @click="onClickGoToReports">
+            详情<v-icon>mdi-chevron-double-right</v-icon>
+          </v-btn>
         </v-card-title>
         <v-divider/>
         <v-skeleton-loader v-if="loadingReports" type="list-item-three-line@6"/>
@@ -323,6 +330,16 @@
                 Object.assign(bubble, temp[0]);
                 this.clearCurrentSelection();
             },
+            onClickGoToReports() {
+                this.$router.push({
+                    path: 'reports',
+                    query: {
+                        words: this.selectedTrends.map(x => x.name).join(','),
+                        dateMin: this.selectedDate.min.format('yyyy-mm-dd'),
+                        dateMax: this.selectedDate.max.format('yyyy-mm-dd'),
+                    }
+                })
+            }
         },
         created() {
             window.colorPrimary = hexToRgb(this.$vuetify.theme.themes.light.primary);
