@@ -143,7 +143,7 @@
       </v-card>
     </v-dialog>
 
-    <!--  PC view of Curve:  -->
+    <!--  PC & Mobile view of Curve:  -->
     <v-dialog
         v-model="displayCurve"
         width="90%"

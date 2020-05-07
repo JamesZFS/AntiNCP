@@ -2,21 +2,21 @@
   <v-list three-line>
     <template v-for="(item, index) in items">
       <v-subheader
-              v-if="item.header"
-              :key="index"
-              v-text="item.header"
-              :class="item.bold && 'font-weight-bold'"
+          v-if="item.header"
+          :key="index"
+          v-text="item.header"
+          :class="item.bold && 'font-weight-bold'"
       ></v-subheader>
 
       <v-divider
-              v-else-if="item.divider"
-              :key="index"
-              :inset="item.inset"
+          v-else-if="item.divider"
+          :key="index"
+          :inset="item.inset"
       ></v-divider>
 
       <v-list-item
-              v-else
-              :key="index"
+          v-else
+          :key="index"
       >
         <v-list-item-avatar>
           <!--suppress HtmlUnknownTarget -->
@@ -24,15 +24,27 @@
         </v-list-item-avatar>
 
         <v-list-item-content>
-          <v-list-item-title class="d-inline-flex mr-2">
+          <v-list-item-action-text style="font-size: medium">
             <a
-                    :href="item.link"
-                    target="_blank"
+                :href="item.link"
+                target="_blank"
             >
               {{item.title}}
             </a>
-          </v-list-item-title>
-          <v-list-item-subtitle v-html="item.content"></v-list-item-subtitle>
+          </v-list-item-action-text>
+          <div>
+            <v-list-item-action-text
+                v-if="viewMore[index]"
+                style="font-size: small"
+                v-html="item.content"
+            />
+            <v-list-item-subtitle
+                v-else
+                style="font-size: small"
+                @click="onClickItemContent(index)"
+                v-html="item.content"
+            />
+          </div>
         </v-list-item-content>
 
       </v-list-item>
@@ -41,10 +53,19 @@
 </template>
 
 <script>
-  export default {
-    name: "ArticleList",
-    props: ['items']
-  }
+    export default {
+        name: "ArticleList",
+        props: {items: Array},
+        data: () => ({
+            viewMore: [],
+        }),
+        methods: {
+            onClickItemContent(index) {
+                this.viewMore[index] = true;
+                this.$forceUpdate();
+            }
+        }
+    }
 </script>
 
 <style scoped>

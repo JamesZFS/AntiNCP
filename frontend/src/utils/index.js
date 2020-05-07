@@ -41,7 +41,7 @@ export function processArticles(articles) {
             if (i > 0) res.push({divider: true, inset: false});  // add separator
             res.push({header: curDate, bold: true}); // date
         }
-        if (Math.abs(prevTime - d.valueOf()) >= timeDisplayInterval) {
+        if (Math.abs(prevTime - d.valueOf()) >= timeDisplayInterval) { // significant time change
             prevTime = d.valueOf();
             res.push({header: d.toLocaleTimeString()});
         }
