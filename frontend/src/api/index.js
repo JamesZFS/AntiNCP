@@ -8,5 +8,6 @@ export default {
   GET_ARTICLES_POST: '/api/retrieve/articles',
   GET_ARTICLES_WITHIN_TIME: '/api/retrieve/articles/timeRange/:dateMin/:dateMax',
   GET_TRENDS_TIMELINE: '/api/retrieve/trends/timeline/:dateMin/:dateMax',
+  GET_TRENDS_CURVE: '/api/retrieve/trends/curve/:dateMin/:dateMax',
   GET_TRENDS_ARTICLE_IDS: '/api/retrieve/trends/articleId/:dateMin/:dateMax',
 }
