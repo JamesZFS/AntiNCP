@@ -2,7 +2,7 @@
 <!--suppress NonAsciiCharacters -->
 <template>
     <div>
-        <v-container id="TimelineHeatMap" style="width: 90%;height: 80vh;"
+        <v-container id="TimelineHeatMap" style="width: 100%;height: 80vh;"
                      class="mx-auto font-weight-light"></v-container>
     </div>
 </template>
@@ -103,6 +103,36 @@
             }
         },
         computed: {
+            timelineleft: function() {
+                if(this.$vuetify.breakpoint.xs)
+                {
+                    return '10%';
+                }
+                else
+                {
+                    return '5%';
+                }
+            },
+            toolbox_itemSize: function() {
+                if(this.$vuetify.breakpoint.xs)
+                {
+                    return 30;
+                }
+                else
+                {
+                    return 23;
+                }
+            },
+            toolbox_top: function() {
+                if(this.$vuetify.breakpoint.xs)
+                {
+                    return '88%';
+                }
+                else
+                {
+                    return '89%';
+                }
+            },
             cur_superiorPlace: function () {
                 if (this.cur_superiorLevel === 'world') {
                     return 'world';
@@ -127,6 +157,7 @@
                         left: '2%',
                     },
                     visualMap: {
+                        left: 'right',
                         show: true,
                         type: 'piecewise',
                         bottom: "15%",
@@ -247,8 +278,8 @@
                             axisType: 'category',
                             realtime: true,
                             // loop: false,
-                            right: '10%',
-                            left: '10%',
+                            right: '0',
+                            left: this.timelineleft,
                             autoPlay: false,
                             currentIndex: 0,
                             playInterval: 1000,
@@ -259,7 +290,23 @@
                                 // width: '100'
                             },
                         },
-                        tooltip: {},
+                        toolbox: {
+                            left: 'left',
+                            show: true,
+                            itemSize: this.toolbox_itemSize,
+                            orient: 'horizontal',
+                            top: this.toolbox_top,
+                            feature: {
+                                myTool1:{
+                                    show: true,
+                                    title: '显示更多',
+                                    icon: 'M4 2V8H2V2H4M2 22V16H4V22H2M5 12C5 13.11 4.11 14 3 14C1.9 14 1 13.11 1 12C1 10.9 1.9 10 3 10C4.11 10 5 10.9 5 12M20 11V13H17V16H15V13H12V11H15V8H17V11H20M24 6V18C24 19.11 23.11 20 22 20H10C8.9 20 8 19.11 8 18V14L6 12L8 10V6C8 4.89 8.9 4 10 4H22C23.11 4 24 4.89 24 6M10 6V18H22V6H10Z',
+                                    onclick: () => {
+                                       this.moreEpidemicData();
+                                    }
+                                }
+                            }
+                        },
                         legend: {
                             left: 'right',
                             top: "10%",
@@ -276,10 +323,6 @@
                         grid: {
                             top: 80,
                             bottom: 100
-                            // left: '3%',
-                            // right: '4%',
-                            // bottom: '3%',
-                            // containLabel: true
                         },
                         series: [
                             {name: '活跃', type: 'map', map: this.cur_superiorPlace, showSymbol: false},
@@ -293,6 +336,10 @@
             }
         },
         methods: {
+            moreEpidemicData(){
+                console.log('123454');
+                this.$emit('get_more_data');
+            },
             async drawTimeAxis() {
                 //切换每个时间点的visualMap
                 // 切换legend

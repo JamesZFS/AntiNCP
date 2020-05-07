@@ -127,6 +127,7 @@ import ecStat from "echarts-stat";
                 } else if (this.cur_superiorLevel === 'province') {
                     tmp_dataset = res.data.provinceTimeline
                 }
+                console.log('this.cur_superiorLevel: ',this.cur_superiorLevel);
                 this.labels = tmp_dataset.labels;
                 this.activeCount = tmp_dataset.datasets.activeCount;
                 this.confirmedCount = tmp_dataset.datasets.confirmedCount;
