@@ -16,6 +16,7 @@
         data: () => ({chart: null}),
         methods: {
             draw(labels, legends, series, borderWidth = 2) {
+                if (this.chart) this.chart.destroy();
                 let datasets = [];
                 const colors = Object.values(chartColors);
                 for (let i = 0; i < legends.length; ++i) {

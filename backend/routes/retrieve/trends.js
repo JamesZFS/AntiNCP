@@ -96,7 +96,7 @@ router.get('/curve/:dateMin/:dateMax', async function (req, res) {
     const dateMinStr = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     const dateMaxStr = db.escape(dateFormat(dateMax, 'yyyy-mm-dd'));
     let labels = [], series = [];
-    for (let day = dateMin; day <= dateMax; day = day.addDay()) labels.push(dateFormat(day, 'yyyy-mm-dd'));
+    for (let day = dateMin; day <= dateMax; day = day.addDay()) labels.push(dateFormat(day, 'mm-dd'));
     try {
         for (let word of words) {
             let result = await db.doSql(`SELECT date, ROUND(freq, 6) as freq FROM Trends WHERE stem=${db.escape(word)} AND date BETWEEN ${dateMinStr} AND ${dateMaxStr} ORDER BY date`);

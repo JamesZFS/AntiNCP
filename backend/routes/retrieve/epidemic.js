@@ -98,7 +98,7 @@ router.get('/timeline/world', async function (req, res) {
             for (let dataKind of dataKinds) {
                 worldTimeline.datasets[dataKind] = [];
             }
-            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds.map(val => `SUM(${val}) AS ${val}`));
+            let fields = [`DATE_FORMAT(date,'%m-%d') AS date`].concat(dataKinds.map(val => `SUM(${val}) AS ${val}`));
             let condition = `province='' AND date BETWEEN ${dateMin} AND ${dateMax}`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
@@ -249,7 +249,7 @@ router.get('/timeline/country', async function (req, res) {
             for (let dataKind of dataKinds) {
                 countryTimeline.datasets[dataKind] = [];
             }
-            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
+            let fields = [`DATE_FORMAT(date,'%m-%d') AS date`].concat(dataKinds);
             let condition = `country=${db.escape(country)} AND province='' AND date BETWEEN ${dateMin} AND ${dateMax}`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
@@ -431,7 +431,7 @@ router.get('/timeline/province', async function (req, res) {
             for (let dataKind of dataKinds) {
                 provinceTimeline.datasets[dataKind] = [];
             }
-            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
+            let fields = [`DATE_FORMAT(date,'%m-%d') AS date`].concat(dataKinds);
             let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city='' AND date BETWEEN ${dateMin} AND ${dateMax}`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
