@@ -2,8 +2,8 @@
 const dateFormat = require('dateformat');
 const router = require('express').Router();
 const debug = require('debug')('backend:retrieve:trends');
-const wi = require('../../analyze/word-index');
 const db = require('../../database');
+require('../../analyze/preprocess');
 require('../../utils/date');
 
 /**
@@ -63,6 +63,74 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
 
 
 /**
+ * @api {get} /api/retrieve/trends/curve/:dateMin/:dateMax  Get trends curve
+ * @apiName GetTrendsCurve
+ * @apiVersion 1.0.0
+ * @apiGroup Trends
+ * @apiPermission everyone
+ *
+ * @apiParam (Param) {string}  dateMin    date string in host's timezone, lower query bound(included)
+ * @apiParam (Param) {string}  dateMax    date string in host's timezone, upper query bound(included), should be no lesser than `dateMin`
+ * @apiParam (Query) {string}  words      words to query for article ids,
+ *  better not be stop words, no more than 20 words each query, or **a 400 response** will be returned
+ *
+ * @apiExample {curl} Example usage:
+ *     curl "http://localhost/api/retrieve/trends/curve/2020-4-1/2020-4-4?words=China,quarantine"
+ *
+ * @apiExample Response (example):
+ {
+    "labels": ["2020-1-1", "2020-1-2", "2020-1-3"],
+    "stems": ["China", "quarantine"],
+    "series": [
+        [0.1, 0, 0.2],
+        [0.2, 0.1, 0.9]
+    ]
+ }
+ * @apiSampleRequest /api/retrieve/trends/curve/:dateMin/:dateMax
+ */
+router.get('/curve/:dateMin/:dateMax', async function (req, res) {
+    // Validate date & words:
+    let params = parseStemsAndDates(req, res);
+    if (!params) return;
+    let {dateMin, dateMax, words} = params; // words are stemmed
+    const dateMinStr = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
+    const dateMaxStr = db.escape(dateFormat(dateMax, 'yyyy-mm-dd'));
+    let labels = [], series = [];
+    for (let day = dateMin; day <= dateMax; day = day.addDay()) labels.push(dateFormat(day, 'yyyy-mm-dd'));
+    try {
+        for (let word of words) {
+            let result = await db.doSql(`SELECT date, ROUND(freq, 6) as freq FROM Trends WHERE stem=${db.escape(word)} AND date BETWEEN ${dateMinStr} AND ${dateMaxStr} ORDER BY date`);
+            // normalize result:
+            let curSeries = [];
+            let expDate = dateMin;
+            for (let {date, freq} of result) {
+                while (expDate < date) { // some dates missing
+                    curSeries.push(0);
+                    expDate = expDate.addDay();
+                }
+                curSeries.push(freq);
+                expDate = expDate.addDay();
+            }
+            while (expDate <= dateMax) { // rear missing
+                curSeries.push(0);
+                expDate = expDate.addDay();
+            }
+            series.push(curSeries);
+        }
+    } catch (e) {
+        res.status(500).end();
+        debug('Unconfirmed error:', e);
+        return;
+    }
+    res.status(200).json({
+        labels,
+        stems: words,
+        series
+    })
+});
+
+
+/**
  * @api {get} /api/retrieve/trends/articleId/:dateMin/:dateMax  Get article id via words api
  * @apiName GetTrendsArticleIds
  * @apiVersion 1.0.0
@@ -98,19 +166,10 @@ router.get('/timeline/:dateMin/:dateMax', async function (req, res) {
  * @apiSampleRequest /api/retrieve/trends/articleId/:dateMin/:dateMax
  */
 router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
-    let dateMin = new Date(req.params.dateMin), dateMax = new Date(req.params.dateMax), words = req.query.words;
     // Validate date & words:
-    try {
-        if (isNaN(dateMin.valueOf()) || isNaN(dateMax.valueOf())) throw new Error('`dateMin` or `dateMax` invalid!');
-        if (dateMin > dateMax) throw new Error('`dateMin` should be no greater than `dateMax`!');
-        if (words === undefined) throw new Error('Query `words` missing!');
-        words = words.tokenizeAndStem();
-        if (words.length === 0) throw new Error('Bad `words` param! (You may be missing the param or using stop words)');
-        if (words.length > 20) throw new Error('Don\'t query for more than 20 words each time!');
-    } catch (err) {
-        res.status(400).render('error', {message: err.message, status: 400});
-        return;
-    }
+    let params = parseStemsAndDates(req, res);
+    if (!params) return;
+    let {dateMin, dateMax, words} = params;
     let modeOr = typeof req.query.mode === 'string' && req.query.mode.toLowerCase() === 'or'; // default: 'and'
     // debug(`dateMin: ${dateMin}, dateMax: ${dateMax}, words: ${JSON.stringify(words)}, mode: ${mode}`);
     try {
@@ -224,6 +283,22 @@ FROM (SELECT a.stem                                               AS stem,
       LIMIT ${limit}) tmp
          LEFT JOIN Trends prev ON tmp.stem = prev.stem AND prev.date = ${prevDay}
          INNER JOIN Stem2Word c on c.stem = tmp.stem`);
+}
+
+function parseStemsAndDates(req, res) {
+    let dateMin = new Date(req.params.dateMin), dateMax = new Date(req.params.dateMax), words = req.query.words;
+    try {
+        if (isNaN(dateMin.valueOf()) || isNaN(dateMax.valueOf())) throw new Error('`dateMin` or `dateMax` invalid!');
+        if (dateMin > dateMax) throw new Error('`dateMin` should be no greater than `dateMax`!');
+        if (words === undefined) throw new Error('Query `words` missing!');
+        words = words.tokenizeAndStem();
+        if (words.length === 0) throw new Error('Bad `words` param! (You may be missing the param or using stop words)');
+        if (words.length > 20) throw new Error('Don\'t query for more than 20 words each time!');
+    } catch (err) {
+        res.status(400).render('error', {message: err.message, status: 400});
+        return;
+    }
+    return {dateMin, dateMax, words};
 }
 
 module.exports = router;
