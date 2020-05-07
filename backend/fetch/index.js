@@ -118,7 +118,7 @@ async function reFetchEpidemicData() {
         await fetchEpidemicData(CHL, date);
     }
     // await db.doSql(`DELETE FROM Epidemic WHERE country='美国' AND province!=''`);
-    for (let date = new Date(JHU.storyBegins); date <= new Date(); date = date.addDay()) {
+    for (let date = new Date(JHU.storyBegins); date <= new Date().addDay(-1); date = date.addDay()) {
         await fetchEpidemicData(JHU, date);
         await calculateProvinceData(JHU, date);
     }
@@ -138,7 +138,7 @@ async function fetchAll() {
     await clearEpidemicOn(today);
     await Promise.all([
         fetchEpidemicData(CHL, today),
-        fetchEpidemicData(JHU, today),
+        fetchEpidemicData(JHU, today.addDay(-1)), // this source updates only to yesterday
     ]);
     await refreshAvailablePlaces();
     await calculateProvinceData(JHU, today);
