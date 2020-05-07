@@ -159,8 +159,8 @@
                                 normal: {
                                     show: false,
                                     position: 'inside',
-                                    formatter: function (params) {
-                                        return params.name + "\n" + params.value;    //地图上展示文字 + 数值
+                                    formatter: function () {
+                                        return '';    //地图上展示文字 + 数值
                                     },
 
                                 }
@@ -180,8 +180,8 @@
                                 normal: {
                                     show: false,
                                     position: 'inside',
-                                    formatter: function (params) {
-                                        return params.name + "\n" + params.value;    //地图上展示文字 + 数值
+                                    formatter: function () {
+                                        return '';    //地图上展示文字 + 数值
                                     },
 
                                 }
@@ -201,8 +201,8 @@
                                 normal: {
                                     show: false,
                                     position: 'inside',
-                                    formatter: function (params) {
-                                        return params.name + "\n" + params.value;    //地图上展示文字 + 数值
+                                    formatter: function () {
+                                        return '';    //地图上展示文字 + 数值
                                     },
 
                                 }
@@ -222,8 +222,8 @@
                                 normal: {
                                     show: false,
                                     position: 'inside',
-                                    formatter: function (params) {
-                                        return params.name + "\n" + params.value;    //地图上展示文字 + 数值
+                                    formatter: function () {
+                                        return '';    //地图上展示文字 + 数值
                                     },
 
                                 }
