@@ -198,168 +198,190 @@
 </template>
 
 <script>
-  import Vue from 'vue';
-  import api from '../api';
-  import ArticleList from "../components/ArticleList";
-  import ChipTextInput from "../components/ChipTextInput";
-  import {processArticles} from '../utils';
+    import Vue from 'vue';
+    import api from '../api';
+    import ArticleList from "../components/ArticleList";
+    import ChipTextInput from "../components/ChipTextInput";
+    import {processArticles} from '../utils';
 
-  const defaultChips = ['coronavirus', 'COVID', 'Wuhan', 'China', 'quarantine', '...'];
-  const notFoundMsg = '没有找到相关结果';
-  const unknownMsg = '未知错误';
-  const longAgo = '2020/1/1';
-  const tipMsg = '（请勿使用停用词查询，一次查询的查询词别输入太多哦~）';
+    const defaultChips = ['coronavirus', 'COVID', 'Wuhan', 'China', 'quarantine', '...'];
+    const notFoundMsg = '没有找到相关结果';
+    const unknownMsg = '未知错误';
+    const longAgo = '2020/1/1';
+    const tipMsg = '（请勿使用停用词查询，一次查询的查询词别输入太多哦~）';
 
-  export default {
-    name: "Reports",
-    created() {
-      this.refresh();
-      let history = Vue.$cookies.get('searchHistory');
-      this.candidateChips = history ? JSON.parse(history) : defaultChips;
-    },
-    methods: {
-      // on clicking refresh btn or created()
-      async refresh() {
-        this.loading = true;
-        this.articleIds = await this.fetchArticleIdsWithinTime();
-        this.setPage(1);
-        this.loading = false;
-        // console.log('refreshed');
-      },
-      async onSearchBtn() {
-        let query = this.$refs.textInput.chips.join();
-        console.log('on search:', query);
-        this.loading = true;
-        if (query === '') { // search only via date
-          this.articleIds = await this.fetchArticleIdsWithinTime(this.date.min, this.date.max);
-        } else { // fetch by words
-          this.articleIds = await this.fetchArticleIdsByWords(query, this.mode, this.date.min, this.date.max);
-        }
-        this.setPage(1);
-        this.loading = false;
-        if (this.articleIds.length > 0 && query !== '') { // update search history, if success
-          this.candidateChips.unshift(...query.split(','));
-          this.candidateChips = this.candidateChips.slice(0, 6);
-          Vue.$cookies.set('searchHistory', JSON.stringify(this.candidateChips));
-        }
-      },
-      // Will change `this.articles`
-      async setPage(input) {
-        this.curPage = input;
-        // load article details when page changes
-        let ids = this.articleIds.slice((this.curPage - 1) * this.articlesPerPage, this.curPage * this.articlesPerPage);
-        // console.log('set page:', (this.curPage - 1) * this.articlesPerPage, this.curPage * this.articlesPerPage);
-        this.loading = true;
-        try {
-          this.articles = await this.fetchArticlesViaIds(ids);
-          this.curPageCount = this.articles.length;
-          this.articles = processArticles(this.articles);
-        } catch (e) {
-          this.error = true;
-          this.errorMessage = unknownMsg;
-          console.error('cannot fetch articles via ids:', e)
-        }
-        this.loading = false;
-      },
-      /**
-       * @param ids{int[]}
-       * @return {Promise<Object[]>} article array
-       */
-      async fetchArticlesViaIds(ids) {
-        try {
-          var res = await this.axios.post(api.GET_ARTICLES_POST, {ids});
-        } catch (e) {
-          this.error = true;
-          this.errorMessage = unknownMsg;
-          console.error('error fetching articles via ids:', e);
-          return [];
-        }
-        if (res.data.count === 0) {
-          this.error = true;
-          this.errorMessage = notFoundMsg;
-        }
-        return res.data.articles;
-      },
-      /**
-       * @return {Promise<int[]>}  array of article ids
-       */
-      async fetchArticleIdsWithinTime(dateMin, dateMax) {
-        // console.log(dateMin, dateMax);
-        dateMin = dateMin ? new Date(dateMin) : new Date(longAgo);
-        dateMax = dateMax ? new Date(dateMax) : new Date();
-        try {
-          var res = await Vue.axios.get(api.GET_ARTICLES_WITHIN_TIME
-            .replace(':dateMin', dateMin.format('yyyy-mm-dd'))
-            .replace(':dateMax', dateMax.format('yyyy-mm-dd')));
-        } catch (e) {
-          this.error = true;
-          this.errorMessage = unknownMsg;
-          console.error('error fetching article ids within time:', e);
-          return [];
-        }
-        if (res.data.count === 0) {
-          this.error = true;
-          this.errorMessage = notFoundMsg;
-        }
-        return res.data.articleIds;
-      },
-      /**
-       * @param words{string[]}
-       * @param mode{string}
-       * @param dateMin{Date}
-       * @param dateMax{Date}
-       * @return {Promise<int[]>}  array of article ids
-       */
-      async fetchArticleIdsByWords(words, mode, dateMin, dateMax) {
-        // console.log(dateMin, dateMax);
-        dateMin = dateMin ? new Date(dateMin) : new Date(longAgo);
-        dateMax = dateMax ? new Date(dateMax) : new Date();
-        try {
-          var res = await Vue.axios.get(api.GET_TRENDS_ARTICLE_IDS
-            .replace(':dateMin', dateMin.toISOString())
-            .replace(":dateMax", dateMax.toISOString()), {
-            params: {words, mode}
-          });
-        } catch (e) {
-          this.error = true;
-          this.errorMessage = tipMsg;
-          console.error('error fetching articles ids by words:', e);
-          return [];
-        }
-        if (res.data.count === 0) {
-          this.error = true;
-          this.errorMessage = notFoundMsg;
-        } else {
-          this.success = true;
-          this.successMessage = `共找到 ${res.data.count} 条结果，已按相关顺序排序`;
-        }
-        return res.data.articleIds;
-      }
-    },
-    data: () => ({
-      loading: null,
-      articleIds: [],  // cached article ids after search / refresh
-      articles: [],  // articles of current page
-      curPage: 0,
-      curPageCount: 0,
-      articlesPerPage: 30,
-      advanced: false,
-      candidateChips: [],
-      mode: 'and',
-      success: false,
-      successMessage: '',
-      error: false,
-      errorMessage: '',
-      dialog: {min: false, max: false},
-      date: {min: null, max: null},
-    }),
-    computed: {
-      pageCount() {
-        return Math.ceil(this.articleIds.length / this.articlesPerPage);
-      }
-    },
-    components: {ArticleList, ChipTextInput}
-  }
+    export default {
+        name: "Reports",
+        mounted() {
+            let history = Vue.$cookies.get('searchHistory');
+            this.candidateChips = history ? JSON.parse(history) : defaultChips;
+            let query = this.$route.query;
+            console.log(query);
+            if (query.hasOwnProperty('words') || query.hasOwnProperty('dateMin') || query.hasOwnProperty('dateMax')) {
+                // parse query from route and do search
+                this.queryWords = query.words || '';
+                this.$refs.textInput.chips.push(...this.queryWords.split(','));
+                this.date.min = query.dateMin;
+                this.date.max = query.dateMax;
+                this.mode = query.mode || 'and';
+                this.doSearch();
+            } else {
+                // show default layout
+                this.refresh();
+            }
+        },
+        methods: {
+            // on clicking refresh btn or created()
+            async refresh() {
+                this.loading = true;
+                this.articleIds = await this.fetchArticleIdsWithinTime();
+                this.setPage(1);
+                this.loading = false;
+                // console.log('refreshed');
+            },
+            onSearchBtn() {
+                this.queryWords = this.$refs.textInput.chips.join();
+                let query = {words: this.queryWords};
+                if (this.date.min) query.dateMin = this.date.min;
+                if (this.date.max) query.dateMax = this.date.max;
+                query.mode = this.mode;
+                this.$router.push({query});  // dump search query to route
+                this.doSearch();
+            },
+            async doSearch() {
+                console.log('do search:', this.queryWords);
+                this.loading = true;
+                if (this.queryWords === '') { // search only via date
+                    this.articleIds = await this.fetchArticleIdsWithinTime(this.date.min, this.date.max);
+                } else { // fetch by words
+                    this.articleIds = await this.fetchArticleIdsByWords(this.queryWords, this.mode, this.date.min, this.date.max);
+                }
+                this.setPage(1);
+                this.loading = false;
+                if (this.articleIds.length > 0 && this.queryWords !== '') { // update search history, if success
+                    this.candidateChips.unshift(...this.queryWords.split(','));
+                    this.candidateChips = this.candidateChips.slice(0, 6);
+                    Vue.$cookies.set('searchHistory', JSON.stringify(this.candidateChips));
+                }
+            },
+            // Will change `this.articles`
+            async setPage(input) {
+                this.curPage = input;
+                // load article details when page changes
+                let ids = this.articleIds.slice((this.curPage - 1) * this.articlesPerPage, this.curPage * this.articlesPerPage);
+                // console.log('set page:', (this.curPage - 1) * this.articlesPerPage, this.curPage * this.articlesPerPage);
+                this.loading = true;
+                try {
+                    this.articles = await this.fetchArticlesViaIds(ids);
+                    this.curPageCount = this.articles.length;
+                    this.articles = processArticles(this.articles);
+                } catch (e) {
+                    this.error = true;
+                    this.errorMessage = unknownMsg;
+                    console.error('cannot fetch articles via ids:', e)
+                }
+                this.loading = false;
+            },
+            /**
+             * @param ids{int[]}
+             * @return {Promise<Object[]>} article array
+             */
+            async fetchArticlesViaIds(ids) {
+                try {
+                    var res = await this.axios.post(api.GET_ARTICLES_POST, {ids});
+                } catch (e) {
+                    this.error = true;
+                    this.errorMessage = unknownMsg;
+                    console.error('error fetching articles via ids:', e);
+                    return [];
+                }
+                if (res.data.count === 0) {
+                    this.error = true;
+                    this.errorMessage = notFoundMsg;
+                }
+                return res.data.articles;
+            },
+            /**
+             * @return {Promise<int[]>}  array of article ids
+             */
+            async fetchArticleIdsWithinTime(dateMin, dateMax) {
+                // console.log(dateMin, dateMax);
+                dateMin = dateMin ? new Date(dateMin) : new Date(longAgo);
+                dateMax = dateMax ? new Date(dateMax) : new Date();
+                try {
+                    var res = await Vue.axios.get(api.GET_ARTICLES_WITHIN_TIME
+                        .replace(':dateMin', dateMin.format('yyyy-mm-dd'))
+                        .replace(':dateMax', dateMax.format('yyyy-mm-dd')));
+                } catch (e) {
+                    this.error = true;
+                    this.errorMessage = unknownMsg;
+                    console.error('error fetching article ids within time:', e);
+                    return [];
+                }
+                if (res.data.count === 0) {
+                    this.error = true;
+                    this.errorMessage = notFoundMsg;
+                }
+                return res.data.articleIds;
+            },
+            /**
+             * @param words{string[]}
+             * @param mode{string}
+             * @param dateMin{Date}
+             * @param dateMax{Date}
+             * @return {Promise<int[]>}  array of article ids
+             */
+            async fetchArticleIdsByWords(words, mode, dateMin, dateMax) {
+                // console.log(dateMin, dateMax);
+                dateMin = dateMin ? new Date(dateMin) : new Date(longAgo);
+                dateMax = dateMax ? new Date(dateMax) : new Date();
+                try {
+                    var res = await Vue.axios.get(api.GET_TRENDS_ARTICLE_IDS
+                        .replace(':dateMin', dateMin.toISOString())
+                        .replace(":dateMax", dateMax.toISOString()), {
+                        params: {words, mode}
+                    });
+                } catch (e) {
+                    this.error = true;
+                    this.errorMessage = tipMsg;
+                    console.error('error fetching articles ids by words:', e);
+                    return [];
+                }
+                if (res.data.count === 0) {
+                    this.error = true;
+                    this.errorMessage = notFoundMsg;
+                } else {
+                    this.success = true;
+                    this.successMessage = `共找到 ${res.data.count} 条结果，已按相关顺序排序`;
+                }
+                return res.data.articleIds;
+            }
+        },
+        data: () => ({
+            loading: null,
+            articleIds: [],  // cached article ids after search / refresh
+            articles: [],  // articles of current page
+            curPage: 0,
+            curPageCount: 0,
+            articlesPerPage: 30,
+            advanced: false,
+            candidateChips: [],
+            mode: 'and',
+            success: false,
+            successMessage: '',
+            error: false,
+            errorMessage: '',
+            dialog: {min: false, max: false},
+            queryWords: '',
+            date: {min: null, max: null},
+        }),
+        computed: {
+            pageCount() {
+                return Math.ceil(this.articleIds.length / this.articlesPerPage);
+            }
+        },
+        components: {ArticleList, ChipTextInput}
+    }
 
 </script>
 
