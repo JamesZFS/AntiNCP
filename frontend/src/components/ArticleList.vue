@@ -35,12 +35,12 @@
           <div>
             <v-list-item-action-text
                 v-if="viewMore[index]"
-                style="font-size: small"
+                style="font-size: medium"
                 v-html="item.content"
             />
             <v-list-item-subtitle
                 v-else
-                style="font-size: small"
+                style="font-size: medium"
                 @click="onClickItemContent(index)"
                 v-html="item.content"
             />

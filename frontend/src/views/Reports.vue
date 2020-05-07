@@ -220,7 +220,7 @@
             if (query.hasOwnProperty('words') || query.hasOwnProperty('dateMin') || query.hasOwnProperty('dateMax')) {
                 // parse query from route and do search
                 this.queryWords = query.words || '';
-                this.$refs.textInput.chips.push(...this.queryWords.split(','));
+                if (this.queryWords) this.$refs.textInput.chips.push(...this.queryWords.split(','));
                 this.date.min = query.dateMin;
                 this.date.max = query.dateMax;
                 this.mode = query.mode || 'and';
