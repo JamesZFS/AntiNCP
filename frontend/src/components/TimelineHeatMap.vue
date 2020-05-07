@@ -338,7 +338,6 @@
         },
         methods: {
             moreEpidemicData(){
-                console.log('123454');
                 this.$emit('get_more_data');
             },
             async drawTimeAxis() {

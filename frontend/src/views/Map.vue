@@ -160,15 +160,11 @@
       },
       async get_epidemic_data() {//只在这个父页面获取一次数据即可
         //get datemin datemax
-        console.log('cur_level: ',this.cur_superiorLevel);
-        console.log('cur_country: ',this.cur_superiorCountry);
-        console.log('cur_province: ',this.cur_superiorProvince);
         const today = new Date();
         let date = {
           max: today.format('yyyy-mm-dd'),
           min: today.addDay(-this.timeline_len + 1).format('yyyy-mm-dd'),
         };
-        // console.log('date:',date);
         if (this.map_changed) {
           this.loading = true;
         }
@@ -227,14 +223,12 @@
             console.error(` Cannot fetch world timeline data from backend with ${err}`);
           }
         }
-        // console.log('res:',res);
         this.dataImport(res);
         this.drawTimeAxis();
         this.map_changed = true;
         this.loading = false;
         this.chartloading = false;
         this.first = false;
-        // console.log('level0: ',this.cur_superiorLevel);
       },
       dataImport(res) {//统一调用两个子组件的数据导入
         if (this.map_changed) {
