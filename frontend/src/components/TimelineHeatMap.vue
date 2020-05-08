@@ -113,16 +113,6 @@
                     return '5%';
                 }
             },
-            toolbox_itemSize: function() {
-                if(this.$vuetify.breakpoint.xs)
-                {
-                    return 30;
-                }
-                else
-                {
-                    return 23;
-                }
-            },
             toolbox_top: function() {
                 if(this.$vuetify.breakpoint.xs)
                 {
@@ -277,9 +267,8 @@
                         timeline: {
                             axisType: 'category',
                             realtime: true,
-                            // loop: false,
                             right: '0',
-                            left: this.timelineleft,
+                            left: '0',
                             autoPlay: false,
                             currentIndex: 0,
                             playInterval: 1000,
@@ -291,16 +280,17 @@
                             },
                         },
                         toolbox: {
-                            left: 'left',
+                            left: '0',
                             show: true,
-                            itemSize: this.toolbox_itemSize,
+                            itemSize: 30,
                             orient: 'horizontal',
-                            top: this.toolbox_top,
+                            bottom: "13%",
                             feature: {
                                 myTool1:{
                                     show: true,
                                     title: '显示更多',
                                     icon: 'M4 2V8H2V2H4M2 22V16H4V22H2M5 12C5 13.11 4.11 14 3 14C1.9 14 1 13.11 1 12C1 10.9 1.9 10 3 10C4.11 10 5 10.9 5 12M20 11V13H17V16H15V13H12V11H15V8H17V11H20M24 6V18C24 19.11 23.11 20 22 20H10C8.9 20 8 19.11 8 18V14L6 12L8 10V6C8 4.89 8.9 4 10 4H22C23.11 4 24 4.89 24 6M10 6V18H22V6H10Z',
+                                    //icon is svg formate
                                     onclick: () => {
                                        this.moreEpidemicData();
                                     }
