@@ -122,7 +122,7 @@
     },
     methods: {
       more_epidemic_data(){
-        this.timeline_len += 30;
+        this.timeline_len = this.timeline_len * 2;
         this.map_changed = false;
         if(this.cur_superiorLevel === 'province')
         {
