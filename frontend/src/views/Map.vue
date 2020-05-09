@@ -10,9 +10,9 @@
     >
       <v-system-bar/>
       <v-card-text justify="center" align="center">
-        <v-btn @click="returnWorldMap()"  class="font-weight-light">全球疫情地图</v-btn>
-        <v-btn @click="returnCountryMap('china')"  class="font-weight-light">中国疫情地图</v-btn>
-        <v-btn @click="returnCountryMap('USA')"  class="font-weight-light">美国疫情地图</v-btn>
+        <v-btn @click="returnWorldMap()"  class="font-weight-light" :width="buttonwidth">全球疫情地图</v-btn>
+        <v-btn @click="returnCountryMap('china')"  class="font-weight-light" :width="buttonwidth">中国疫情地图</v-btn>
+        <v-btn @click="returnCountryMap('USA')"  class="font-weight-light" :width="buttonwidth">美国疫情地图</v-btn>
       </v-card-text>
       <v-skeleton-loader
               v-if="first && loading"
@@ -23,6 +23,7 @@
       <TimelineHeatMap
               ref="myheatmap"
               class="mx-auto"
+              @get_more_data="more_epidemic_data"
               :style="first && loading && `visibility: hidden`"
       />
 
@@ -93,6 +94,7 @@
     data() {
       return {
         count: 0,
+        timeline_len: 30,
         first: true,
         loading: false,
         chartloading: false,
@@ -100,12 +102,39 @@
         cur_superiorProvince: '',
         cur_superiorLevel: 'world',
         map_changed: true, //标记当前鼠标点击事件发生之后，地图是否改变，如果发生了改变则该变量为true，响应事件结束之后此变量变回false
+        tmieline_change: true,//时间轴是否发生变化
         place_changed: true,//如果这个变量为true，那么两个图都需要变化，否则都维持原样
         notify: false,
         notifyMessage: '',
       }
     },
+    computed:{
+      buttonwidth: function() {
+        if(this.$vuetify.breakpoint.xs)
+        {
+          return '30%';
+        }
+        else
+        {
+          return '';
+        }
+      }
+    },
     methods: {
+      more_epidemic_data(){
+        this.timeline_len = this.timeline_len * 2;
+        this.map_changed = false;
+        if(this.cur_superiorLevel === 'province')
+        {
+          if(this.cur_superiorCountry === 'USA')
+          {
+            this.cur_superiorLevel = 'country';
+          }
+        }
+        this.passPlaceandLevel();
+        this.get_epidemic_data();
+        this.map_changed = true;
+      },
       returnWorldMap() {
         this.cur_superiorCountry = '';
         this.cur_superiorProvince= '';
@@ -123,12 +152,19 @@
       passPlaceandLevel() {//传递this.cur_superiorPlace,this.cur_superiorLevel给子组件
         if (this.map_changed) {
           //热度图切换
+          this.timeline_len = 30;
           this.$refs.myheatmap.placechange(this.cur_superiorCountry,this.cur_superiorProvince, this.cur_superiorLevel);
         }
         //以及折线图的切换
         this.$refs.mypredictionchart.placechange(this.cur_superiorCountry,this.cur_superiorProvince, this.cur_superiorLevel);
       },
       async get_epidemic_data() {//只在这个父页面获取一次数据即可
+        //get datemin datemax
+        const today = new Date();
+        let date = {
+          max: today.format('yyyy-mm-dd'),
+          min: today.addDay(-this.timeline_len + 1).format('yyyy-mm-dd'),
+        };
         if (this.map_changed) {
           this.loading = true;
         }
@@ -146,7 +182,9 @@
               params: {
                 dataKind: 'activeCount,confirmedCount,curedCount,deadCount',
                 country: request_country,
-                verbose: ''
+                verbose: '',
+                dateMin: date.min,
+                dateMax: date.max
               }
             });
           } catch (err) {
@@ -163,7 +201,9 @@
                 dataKind: 'activeCount,confirmedCount,curedCount,deadCount',
                 country: request_filter[this.cur_superiorCountry],
                 province: (this.cur_superiorCountry === 'china')?request_filter[this.cur_superiorProvince]:this.cur_superiorProvince,
-                verbose: ''
+                verbose: '',
+                dateMin: date.min,
+                dateMax: date.max
               }
             });
           } catch (err) {
@@ -174,7 +214,9 @@
             res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_WORLD, {
               params: {
                 dataKind: 'activeCount,confirmedCount,curedCount,deadCount',
-                verbose: ''
+                verbose: '',
+                dateMin: date.min,
+                dateMax: date.max
               }
             })
           } catch (err) {
