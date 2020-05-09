@@ -25,7 +25,7 @@
   export default {
     name: "About",
     async created() {
-      this.clientCount = (await this.axios.get(api.GET_CLIENT_COUNT)).data;
+      this.clientCount = (await this.axios.get(api.GET_CLIENT_COUNT)).data.count;
     },
     data() {
       return {
