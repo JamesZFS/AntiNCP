@@ -34,7 +34,7 @@ async function launch() {
     try { // initialize db and reload data
         await db.initialize();
         await cache.initialize();
-        // await cache.flush();
+        await cache.flush();
     } catch (err) {
         console.error(chalk.red('Caught fatal error in server!'));
         console.error(err);
