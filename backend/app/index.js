@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(clientMonitor); // monitor client's behavior
-app.use('/', express.static(path.resolve(__dirname, '../../frontend/dist'))); // host frontend as static pages
+// frontend is hosted by Nginx now
 app.use('/doc', express.static(path.join(__dirname, '../doc'))); 		   // show api document
 app.use('/public', express.static(path.join(__dirname, '../public')));
 app.get('/code', function(req, res) {

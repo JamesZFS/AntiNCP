@@ -1,10 +1,11 @@
 'use strict';
 const express = require('express');
 const router = express.Router();
+const port = require('../app/port');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
-    res.render('index', {title: 'AntiNCP Backend', content: 'See our `/doc` for api usage.'});
+    res.render('index', {title: `AntiNCP Backend (port=${port})`, content: 'See our `/doc` for api usage.'});
 });
 
 router.use('/retrieve', require('./retrieve'));
