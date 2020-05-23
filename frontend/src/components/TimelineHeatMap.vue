@@ -91,6 +91,9 @@
                 cur_superiorProvince:'',
                 cur_superiorCountry: '',
                 cur_superiorLevel: 'world',
+                add_more_data: false,
+                backup_option: [],
+                backup_timeline_data: [],
                 // cur_superiorPlace: '',
                 cur_dataMap: {},
                 max: 200,
@@ -328,7 +331,21 @@
         },
         methods: {
             moreEpidemicData(){
+                this.backup_option =  [];
+                this.backup_timeline_data = [];
+                //拷贝一下当备份
+                for(var timeindex in this.myoption.baseOption.timeline.data)
+                {
+                    this.backup_timeline_data.push(this.myoption.baseOption.timeline.data[timeindex]);
+                }
+                for(var tmp_suboption in this.myoption.options)
+                {
+                    this.backup_option.push(this.myoption.options[tmp_suboption]);
+                }
+                console.log('timelinedata:',this.backup_timeline_data);
                 this.$emit('get_more_data');
+                this.add_more_data = true;//说明此时点击了显示更多，我们需要做增量变化而不是替代
+                // console.log('add_more_data:',this.add_more_data);
             },
             async drawTimeAxis() {
                 //切换每个时间点的visualMap
@@ -393,7 +410,24 @@
                     this.myoption.options.push(tmp_suboption);
                 }
                 //时间轴处在最新的时间点
-                this.myoption.baseOption.timeline.currentIndex = time_cnt - 1;
+                if(this.add_more_data)
+                {
+                    this.dataImport_backup();
+                    this.add_more_data = false;
+                }
+                else{
+                    this.myoption.baseOption.timeline.currentIndex = time_cnt - 1;
+                }
+            },
+            dataImport_backup(){
+                for(var timeindex in this.backup_timeline_data)
+                {
+                    this.myoption.baseOption.timeline.data.push(this.backup_timeline_data[timeindex]);
+                }
+                for(var tmp_suboption in this.backup_option)
+                {
+                    this.myoption.options.push(this.backup_option[tmp_suboption]);
+                }
             },
             timelineclick(tmp_index) {
                 this.myoption.baseOption.timeline.currentIndex = tmp_index;

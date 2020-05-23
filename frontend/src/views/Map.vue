@@ -98,6 +98,7 @@
         first: true,
         loading: false,
         chartloading: false,
+        show_more: false,
         cur_superiorCountry: '',
         cur_superiorProvince: '',
         cur_superiorLevel: 'world',
@@ -123,6 +124,7 @@
     methods: {
       more_epidemic_data(){
         this.timeline_len = this.timeline_len * 2;
+        this.show_more = true;
         this.map_changed = false;
         if(this.cur_superiorLevel === 'province')
         {
@@ -131,9 +133,11 @@
             this.cur_superiorLevel = 'country';
           }
         }
+        this.$refs.mypredictionchart.backup_data();
         this.passPlaceandLevel();
         this.get_epidemic_data();
         this.map_changed = true;
+        this.show_more = false;
       },
       returnWorldMap() {
         this.cur_superiorCountry = '';
@@ -165,6 +169,10 @@
           max: today.format('yyyy-mm-dd'),
           min: today.addDay(-this.timeline_len + 1).format('yyyy-mm-dd'),
         };
+        if(this.show_more)
+        {
+          date.max = today.addDay(-this.timeline_len/2).format('yyyy-mm-dd');
+        }
         if (this.map_changed) {
           this.loading = true;
         }
