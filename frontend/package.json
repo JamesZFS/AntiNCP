@@ -1,10 +1,12 @@
 {
   "name": "antincp-frontend",
   "version": "0.1.0",
+  "homepage": "https://JamesZFS.github.io/AntiNCP",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
+    "gh-pages": "REPO=GH_PAGES build && vue-cli-ghpages --repo=https://github.com/JamesZFS/AntiNCP",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
@@ -19,6 +21,7 @@
     "jquery": "^3.4.1",
     "vue": "^2.6.10",
     "vue-axios": "^2.1.5",
+    "vue-cli-ghpages": "^1.0.0",
     "vue-cookies": "^1.7.0",
     "vue-router": "^3.1.6",
     "vuetify": "^2.2.22"

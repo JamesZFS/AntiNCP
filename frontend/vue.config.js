@@ -2,6 +2,9 @@ module.exports = {
   transpileDependencies: [
     "vuetify"
   ],
+  publicPath: process.env.REPO === 'GH_PAGES'
+      ? '/AntiNCP/'
+      : '/',
   devServer: {
     proxy: {
       '/api': {
