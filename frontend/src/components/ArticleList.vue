@@ -32,9 +32,9 @@
               {{item.title}}
             </a>
             <v-chip
-                label
                 x-small
-                class="ml-1 lighten-2"
+                class="ml-1 lighten-3"
+                @click="$emit('click-topic', item.topic)"
                 :color="topicColors[item.topic]"
             >
               {{ topicNames[item.topic] }}

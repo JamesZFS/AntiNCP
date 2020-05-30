@@ -8,7 +8,7 @@ require('../../utils/date');
 /**
  * @api {post} /api/retrieve/articles  Get articles via ids
  * @apiName GetArticles
- * @apiVersion 0.2.0
+ * @apiVersion 0.2.1
  * @apiGroup Articles
  * @apiPermission everyone
  *
@@ -72,7 +72,7 @@ router.post('/', async function (req, res) {
 /**
  * @api {get} /api/retrieve/articles/timeRange/:dateMin/:dateMax  Get article ids within time range
  * @apiName GetArticleIdsWithinTime
- * @apiVersion 0.3.0
+ * @apiVersion 0.4.0
  * @apiGroup Articles
  * @apiPermission everyone
  *

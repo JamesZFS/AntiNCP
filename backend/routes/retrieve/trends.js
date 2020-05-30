@@ -133,7 +133,7 @@ router.get('/curve/:dateMin/:dateMax', async function (req, res) {
 /**
  * @api {get} /api/retrieve/trends/articleId/:dateMin/:dateMax  Get article id via words api
  * @apiName GetTrendsArticleIds
- * @apiVersion 1.0.0
+ * @apiVersion 1.1.0
  * @apiGroup Trends
  * @apiPermission everyone
  *

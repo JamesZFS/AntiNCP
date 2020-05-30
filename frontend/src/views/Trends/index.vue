@@ -113,7 +113,8 @@
           <v-toolbar-title>{{dialogTitle}} 相关报道</v-toolbar-title>
           <v-spacer></v-spacer>
           <v-btn dark text @click="onClickGoToReports">
-            详情<v-icon>mdi-chevron-double-right</v-icon>
+            详情
+            <v-icon>mdi-chevron-double-right</v-icon>
           </v-btn>
           <v-btn icon dark @click="displayReports = false">
             <v-icon>mdi-close</v-icon>
@@ -122,6 +123,7 @@
         <v-skeleton-loader v-if="loadingReports" type="list-item-three-line@6"/>
         <ArticleList
             v-else
+            @click-topic="onClickTopic"
             :items="relativeReports"
         />
       </v-card>
@@ -138,13 +140,15 @@
           <span class="headline">{{dialogTitle}} 相关报道</span>
           <v-spacer/>
           <v-btn text @click="onClickGoToReports">
-            详情<v-icon>mdi-chevron-double-right</v-icon>
+            详情
+            <v-icon>mdi-chevron-double-right</v-icon>
           </v-btn>
         </v-card-title>
         <v-divider/>
         <v-skeleton-loader v-if="loadingReports" type="list-item-three-line@6"/>
         <ArticleList
             v-else
+            @click-topic="onClickTopic"
             :items="relativeReports"
         />
       </v-card>
@@ -335,9 +339,16 @@
                     path: 'reports',
                     query: {
                         words: this.selectedTrends.map(x => x.name).join(','),
+                        mode: 'and',
                         dateMin: this.selectedDate.min.format('yyyy-mm-dd'),
                         dateMax: this.selectedDate.max.format('yyyy-mm-dd'),
                     }
+                })
+            },
+            onClickTopic(topic) {
+                this.$router.push({
+                    path: 'reports',
+                    query: {topics: [topic].join(',')}
                 })
             }
         },

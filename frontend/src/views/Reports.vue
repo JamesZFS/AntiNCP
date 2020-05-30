@@ -158,6 +158,7 @@
       <!--   Article list view   -->
       <ArticleList
           :items="articles"
+          @click-topic="onClickTopic"
           v-else
       />
 
@@ -372,6 +373,12 @@
                     this.successMessage = `共找到 ${res.data.count} 条结果，已按相关顺序排序`;
                 }
                 return res.data.articleIds;
+            },
+            onClickTopic(topic) {
+                this.advanced = true;
+                topic = this.topicNames[topic];
+                if (this.$refs.topicInput.chips.indexOf(topic) >= 0) return;
+                this.$refs.topicInput.chips.push(topic);
             }
         },
         data: () => ({
