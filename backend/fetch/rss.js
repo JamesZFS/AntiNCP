@@ -81,7 +81,8 @@ function article2Entry(article) {
         creator: (article['creator'] || article['author'] || article['dc:creator'] || article.articleSource.name).slice(0, 500),
         content: stripHtml(article['content'] || article['contentSnippet'] || article['description'] || article['title']).replace(URL_REG, ''),
         sourceName: article.articleSource.name.slice(0, 500),
-        sourceShort: article.articleSource.short.slice(0, 500)
+        sourceShort: article.articleSource.short.slice(0, 500),
+        // topic field will be filled in batch later
     };
     let missingColumns = Object.entries(result).filter(([_k, val]) => !val);
     if (missingColumns.length > 0) throw new Error(`Columns ${chalk.red(missingColumns.toString())} missing.`);

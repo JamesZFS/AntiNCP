@@ -54,11 +54,20 @@ def analyze(n_preview=10):
 
 
 def re_tag():
-    logger.info('Re-tagging all articles...')
+    tag_within(1, 1e10)
+    with common.DB() as db:
+        cursor = db.cursor()
+        cursor.execute('SELECT COUNT(*) FROM AntiNCP.Articles WHERE topic=-1')
+        assert cursor.fetchone()[0] == 0  # no more untagged
+
+
+def tag_within(start_id: int, end_id: int):
+    logger.info(f'Tagging topics with articles in [{start_id}, {end_id})...')
+    assert 0 < start_id < end_id
     with common.DB() as db:
         cursor = db.cursor()
         ids, docs = [], []
-        cursor.execute('SELECT id, content FROM AntiNCP.Articles')
+        cursor.execute(f'SELECT id, content FROM AntiNCP.Articles WHERE {start_id}<=id and id<{end_id}')
         for row in cursor.fetchall():
             ids.append(row[0])
             docs.append(row[1])
@@ -66,8 +75,6 @@ def re_tag():
         for i, topic in zip(ids, topics):
             cursor.execute(f'UPDATE AntiNCP.Articles SET topic={topic} WHERE id={i}')
         db.commit()
-        cursor.execute('SELECT COUNT(*) FROM AntiNCP.Articles WHERE topic=-1')
-        assert cursor.fetchone()[0] == 0  # no more untagged
 
 
 def predict(docs: [str]) -> [int]:

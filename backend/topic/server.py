@@ -42,6 +42,20 @@ def init_clf():
     return 'OK', 200
 
 
+@app.route('/re_tag')
+def re_tag():
+    kmeans.re_tag()
+    return 'OK', 200
+
+
+@app.route('/tag/<int:start_id>/<int:end_id>/')
+def tag(start_id: int, end_id: int):
+    if not (0 < start_id < end_id):
+        return 'Bad id bound', 400
+    kmeans.tag_within(start_id, end_id)
+    return 'OK', 200
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     """

@@ -2,6 +2,7 @@
 // Auto data fetching system
 const dateFormat = require('dateformat');
 const debug = require('debug')('backend:fetcher');
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
@@ -14,6 +15,7 @@ const csv = require('./csv');
 const rss = require('./rss');
 const {CHL, JHU} = require('./third-party/epidemic');
 const articleSources = require('./third-party/articles').ALL; // may select other article sources
+const conf = require('./config');
 require('../utils/date');
 
 /**
@@ -58,9 +60,26 @@ async function fetchVirusArticles() {
     return {startId, endId};
 }
 
+async function pingFlask() {
+    try {
+        var resp = (await axios.get(conf.TOPIC_PING_API)).data;
+    } catch (e) {
+        throw new Error('Ping flask failed, maybe it has not started. ' + e.message);
+    }
+    if (!resp || resp.toLowerCase() !== 'pong') {
+        throw new Error(`Ping flask got response ${resp}`)
+    } else {
+        debug('Ping flask success.')
+    }
+}
+
 async function fetchVirusArticlesAndAnalyze() {
     let {startId, endId} = await fetchVirusArticles();
     if (startId < endId) { // has update
+        // call flask api to fill in the topics:
+        await axios.get(conf.TOPIC_TAG_API
+            .replace(':start_id', String(startId))
+            .replace(':end_id', String(endId)));
         // update index tables incrementally
         await analyzer.updateWordIndex(startId, endId - 1);
         // let dateMin = (await db.doSql(`SELECT date FROM Articles WHERE id = ${startId}`))[0].date;
@@ -117,7 +136,6 @@ async function reFetchEpidemicData() {
     for (let date = new Date(CHL.storyBegins); date <= new Date(); date = date.addDay()) {
         await fetchEpidemicData(CHL, date);
     }
-    // await db.doSql(`DELETE FROM Epidemic WHERE country='美国' AND province!=''`);
     for (let date = new Date(JHU.storyBegins); date <= new Date().addDay(-1); date = date.addDay()) {
         await fetchEpidemicData(JHU, date);
         await calculateProvinceData(JHU, date);
@@ -160,5 +178,5 @@ function initialize() {
 }
 
 module.exports = {
-    fetchAll, initialize, reFetchEpidemicData
+    fetchAll, initialize, reFetchEpidemicData, pingFlask
 };

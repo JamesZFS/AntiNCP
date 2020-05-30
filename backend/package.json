@@ -30,9 +30,9 @@
     "progress": "^2.0.3",
     "pug": "^2.0.4",
     "redis": "^3.0.2",
+    "request": "^2.88.2",
     "rss-parser": "^3.7.6",
     "string-strip-html": "^4.3.19",
-    "utf8": "^3.0.0",
-    "request": "^2.88.2"
+    "utf8": "^3.0.0"
   }
 }

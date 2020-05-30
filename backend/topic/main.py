@@ -3,8 +3,8 @@ import kmeans
 import lda_analyze
 import visualize
 
-kmeans.init()
-kmeans.re_tag()
+# kmeans.init()
+# kmeans.re_tag()
 # common.load_doc()
 # common.load_analyze_result()
 # print(kmeans.predict(common.doc_texts))

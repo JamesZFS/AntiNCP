@@ -17,6 +17,7 @@ async function launch() {
     try {
         await db.initialize();
         await cache.initialize();
+        await fetcher.pingFlask();
         if (process.argv.indexOf('--download') >= 0) {
             await fetcher.fetchAll();
         }

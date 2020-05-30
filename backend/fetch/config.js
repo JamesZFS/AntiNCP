@@ -5,4 +5,6 @@ module.exports = {
         'User-Agent': 'rss-parser',
         'Accept': 'application/rss+xml',
     },
+    TOPIC_TAG_API: 'http://localhost:5000/tag/:start_id/:end_id/',
+    TOPIC_PING_API: 'http://localhost:5000/ping'
 };
