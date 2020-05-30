@@ -1,5 +1,3 @@
-import pickle
-
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans, KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -7,23 +5,20 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import common
 from pre_clustering import init_centroids
 
+vectorizer: TfidfVectorizer
+km: KMeans
 
-def load() -> KMeans:
-    with open('out/km.pickle', 'rb') as f:
-        return pickle.load(f)
-
-
-def save(model: KMeans):
-    with open('out/km.pickle', 'wb') as f:
-        pickle.dump(model, f)
+logger = common.Logger('kmeans')
 
 
 def analyze(n_preview=10):
+    global vectorizer, km
     # Encode:
     print('Encoding...')
     vectorizer = TfidfVectorizer(max_df=0.5, max_features=common.n_features,
                                  min_df=2, stop_words='english')
     common.X = vectorizer.fit_transform(common.doc_texts)
+    common.save_pickle(vectorizer, 'vectorizer.pickle')
     common.vocab = np.array(vectorizer.get_feature_names())
     print(f'X: {common.X.shape}')
     print()
@@ -39,7 +34,7 @@ def analyze(n_preview=10):
     common.doc_topics = km.fit_transform(common.X)  # the smaller, the closer
     common.doc_topics_reduced = np.argmin(common.doc_topics, axis=1)
     common.topics = km.cluster_centers_
-    save(km)
+    common.save_pickle(km, 'km.pickle')
     print(f'doc_topics: {common.doc_topics.shape}')
     print(f'topics: {common.topics.shape}')
     print()
@@ -57,3 +52,20 @@ def analyze(n_preview=10):
 
     print()
     common.save_analyze_result()
+
+
+def predict(docs: [str]) -> [int]:
+    """
+    Classify a doc to a most likely topic
+    :param docs: documents to classify
+    :return: topic ids
+    """
+    X = vectorizer.transform(docs)
+    return km.predict(X)
+
+
+def init():
+    global vectorizer, km
+    vectorizer = common.load_pickle('vectorizer.pickle')
+    km = common.load_pickle('km.pickle')
+    logger.info('Initialized')

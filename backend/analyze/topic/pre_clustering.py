@@ -4,7 +4,6 @@ import common
 import numpy as np
 import nltk
 
-
 topic_tags = [
     ({'china', 'chinese', 'hong', 'kong', 'wuhan'}, 10.),
     ({'us', 'states', 'trump', 'donald', 'america', 'american', 'york', 'california'}, 2.),
@@ -13,6 +12,8 @@ topic_tags = [
     ({'global', 'spread', 'uk', 'italy', 'russia', 'singapore', 'france', 'germany', 'australia', 'japan'}, 1.),
     # .. others
 ]
+
+topic_names = ['China', 'US', 'Cases', 'Lockdown', 'Global']
 
 
 def matched_topic(doc: str) -> int:

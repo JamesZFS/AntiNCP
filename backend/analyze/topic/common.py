@@ -1,4 +1,5 @@
 import csv
+import pickle
 
 import numpy as np
 from scipy.sparse import csr_matrix, save_npz, load_npz
@@ -17,6 +18,16 @@ n_topics = 5
 random_seed = 2
 
 np.random.seed(random_seed)
+
+
+def load_pickle(filename):
+    with open(f'out/{filename}', 'rb') as f:
+        return pickle.load(f)
+
+
+def save_pickle(data, filename):
+    with open(f'out/{filename}', 'wb') as f:
+        pickle.dump(data, f)
 
 
 def save_encoded_vocab():
@@ -66,3 +77,20 @@ def load_analyze_result():
     print(f'doc_topics: {doc_topics.shape}')
     print(f'topics: {topics.shape}')
     print()
+
+
+class Logger(object):
+    def __init__(self, module_name):
+        self.module_name = module_name
+
+    def log(self, level, msg):
+        print(f'<{self.module_name}> [{level}]', msg)
+
+    def info(self, msg):
+        self.log('Info', msg)
+
+    def warn(self, msg):
+        self.log('\033[34mWarn\033[0m', msg)
+
+    def error(self, msg):
+        self.log('\033[31mError\033[0m', msg)
