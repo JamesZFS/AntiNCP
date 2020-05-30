@@ -53,6 +53,23 @@ def analyze(n_preview=10):
     common.save_analyze_result()
 
 
+def re_tag():
+    logger.info('Re-tagging all articles...')
+    with common.DB() as db:
+        cursor = db.cursor()
+        ids, docs = [], []
+        cursor.execute('SELECT id, content FROM AntiNCP.Articles')
+        for row in cursor.fetchall():
+            ids.append(row[0])
+            docs.append(row[1])
+        topics = predict(docs)
+        for i, topic in zip(ids, topics):
+            cursor.execute(f'UPDATE AntiNCP.Articles SET topic={topic} WHERE id={i}')
+        db.commit()
+        cursor.execute('SELECT COUNT(*) FROM AntiNCP.Articles WHERE topic=-1')
+        assert cursor.fetchone()[0] == 0  # no more untagged
+
+
 def predict(docs: [str]) -> [int]:
     """
     Classify a doc to a most likely topic

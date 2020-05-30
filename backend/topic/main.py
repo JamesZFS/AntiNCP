@@ -4,10 +4,11 @@ import lda_analyze
 import visualize
 
 kmeans.init()
-common.load_doc()
-common.load_analyze_result()
-print(kmeans.predict(common.doc_texts))
-print(common.doc_topics_reduced)
+kmeans.re_tag()
+# common.load_doc()
+# common.load_analyze_result()
+# print(kmeans.predict(common.doc_texts))
+# print(common.doc_topics_reduced)
 # lda_analyze.analyze()
 # kmeans.analyze()
 # visualize.doc_topic_pie()

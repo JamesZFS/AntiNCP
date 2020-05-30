@@ -19,10 +19,10 @@ app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 app.use(cookieParser());
 app.use(clientMonitor); // monitor client's behavior
-// frontend is hosted by Nginx now
+app.use('/', express.static(path.join(__dirname, '../../frontend/dist')));
 app.use('/doc', express.static(path.join(__dirname, '../doc'))); 		   // show api document
 app.use('/public', express.static(path.join(__dirname, '../public')));
-app.get('/code', function(req, res) {
+app.get('/code', function (req, res) {
     res.status(403).render('error', {message: 'Code coming soon!', status: 403});
 });
 
@@ -41,7 +41,7 @@ app.use(function (err, req, res, next) {
     res.render('error', {message: err.message, status: err.status});
 });
 
-function clientMonitor (req, res, next) {
+function clientMonitor(req, res, next) {
     db.updateClientInfo(db.escape(req.ip)); // not waiting for db
     next();
 }

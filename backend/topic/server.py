@@ -1,4 +1,5 @@
 from flask import Flask, request
+
 import common
 import kmeans
 import visualize
@@ -6,6 +7,7 @@ import os
 import pre_clustering
 
 app = Flask('Topic Server')
+
 logger = common.Logger(__name__)
 if 'INIT_CLF' in os.environ:
     kmeans.init()
@@ -66,3 +68,7 @@ def predict():
 @app.route('/topic_names')
 def topic_names():
     return {'topic_names': pre_clustering.topic_names}, 200
+
+
+if __name__ == '__main__':
+    app.run()

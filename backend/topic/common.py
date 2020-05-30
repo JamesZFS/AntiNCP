@@ -1,8 +1,8 @@
 import pickle
 
+import MySQLdb.connections
 import numpy as np
 from scipy.sparse import csr_matrix, save_npz, load_npz
-import MySQLdb
 
 db_host = 'localhost'
 db_user = 'root'
@@ -42,6 +42,17 @@ class Logger(object):
 logger = Logger(__name__)
 
 
+class DB(MySQLdb.connections.Connection):
+    def __init__(self):
+        super().__init__(db_host, user=db_user, port=db_port, password=db_password, charset='utf8')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
 def load_pickle(filename):
     with open(f'out/{filename}', 'rb') as f:
         return pickle.load(f)
@@ -70,21 +81,20 @@ def load_doc():
     global doc_titles, doc_texts
     doc_titles, doc_texts = [], []
     logger.info('Loading doc texts and titles...')
-    db = MySQLdb.connect(db_host, user=db_user, port=db_port, password=db_password, charset='utf8')
-    cursor = db.cursor()
-    logger.info('Connected to db')
-    try:
-        cursor.execute('SELECT title, content FROM AntiNCP.Articles')
-        results = cursor.fetchall()
-        for row in results:
-            doc_titles.append(row[0])
-            doc_texts.append(row[1])
-        cursor.close()
-    except MySQLdb.DatabaseError as err:
-        logger.error('Fail to execute sql')
-        raise err
-    logger.info(f'# doc: {len(doc_texts)}')
-    db.close()
+    with DB() as db:
+        cursor = db.cursor()
+        logger.info('Connected to db')
+        try:
+            cursor.execute('SELECT title, content FROM AntiNCP.Articles')
+            results = cursor.fetchall()
+            for row in results:
+                doc_titles.append(row[0])
+                doc_texts.append(row[1])
+            cursor.close()
+        except MySQLdb.DatabaseError as err:
+            logger.error('Fail to execute sql')
+            raise err
+        logger.info(f'# doc: {len(doc_texts)}')
 
 
 def load_encoded_vocab():

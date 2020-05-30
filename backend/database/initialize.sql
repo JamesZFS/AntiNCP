@@ -51,11 +51,12 @@ CREATE TABLE IF NOT EXISTS `Articles`
     `content`     LONGTEXT      NOT NULL,                -- or contentSnippet or description
     `sourceName`  VARCHAR(512)  NOT NULL,
     `sourceShort` VARCHAR(512)  NOT NULL,
-    -- TODO add interactive `likes` attribute
+    `topic`       INT           NOT NULL DEFAULT -1,     -- -1 for untagged
     PRIMARY KEY (`id`),
     INDEX `date_idx` (`date` ASC),
     INDEX `source_idx` (`sourceShort`(8) ASC),
-    INDEX `url_idx` (`link`(32) ASC)
+    INDEX `url_idx` (`link`(32) ASC),
+    INDEX `topic_idx` (`topic` ASC )
 )
     COMMENT = 'Articles related to COVID-19.';
 -- Trend timeline: when - which word(id) - frequency

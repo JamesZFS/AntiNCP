@@ -3,4 +3,5 @@
 __pycache__
 backend/node_modules
 frontend/node_modules
-backend/public
+backend/public/data/*
+backend/topic/out/*

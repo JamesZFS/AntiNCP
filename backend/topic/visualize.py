@@ -1,10 +1,14 @@
+import matplotlib as mpl
 import numpy as np
+
 from matplotlib import pyplot as plt
 from sklearn.decomposition import TruncatedSVD
 from tqdm import tqdm
 from wordcloud import WordCloud
 
 import common
+
+mpl.use('Agg')
 
 
 def make_freq_dict(topic_dist: np.ndarray) -> dict:  # str -> freq
