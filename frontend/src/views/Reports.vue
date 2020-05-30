@@ -32,7 +32,7 @@
                 :items="candidateChips"
             />
 
-            <v-radio-group v-if="advanced" v-model="mode" row class="mt-3 mx-2">
+            <v-radio-group v-show="advanced" v-model="mode" row class="mt-3 mx-2">
               <v-radio
                   label="AND"
                   value="and"
@@ -64,67 +64,75 @@
             </v-tooltip>
           </v-row>
 
-          <!--    Date Picker    -->
-          <v-row v-if="advanced" class="mt-3">
-            <v-dialog
-                ref="dialog1"
-                v-model="dialog.min"
-                :return-value.sync="date"
-                width="290px"
-            >
-              <template v-slot:activator="{ on }">
-                <v-text-field
+          <v-row v-show="advanced" class="my-n2">
+            <!--    Topic picker    -->
+            <v-col cols="4">
+              <ChipTextInput
+                  ref="topicInput"
+                  prompt="主题..."
+                  :items="topicNames"
+              />
+            </v-col>
+            <!--    Date Picker    -->
+            <v-col cols="4">
+              <v-dialog
+                  ref="dialog1"
+                  v-model="dialog.min"
+                  width="290px"
+                  :return-value.sync="date"
+              >
+                <template v-slot:activator="{ on }">
+                  <v-text-field
+                      v-model="date.min"
+                      label="起始日期"
+                      readonly
+                      solo-inverted
+                      hide-details
+                      v-on="on"
+                  ></v-text-field>
+                </template>
+                <v-date-picker
                     v-model="date.min"
-                    label="起始日期"
-                    prepend-icon="mdi-calendar"
-                    readonly
-                    solo-inverted
-                    hide-details
-                    class="mr-2"
-                    v-on="on"
-                ></v-text-field>
-              </template>
-              <v-date-picker
-                  v-model="date.min"
-                  color="success"
-                  scrollable
-                  no-title
-                  show-current
-                  :allowed-dates="x => new Date(x) <= new Date(date.max || Date())"
-                  @input="$refs.dialog1.save(date)"
-              >
-              </v-date-picker>
-            </v-dialog>
+                    color="success"
+                    scrollable
+                    no-title
+                    show-current
+                    :allowed-dates="x => new Date(x) <= new Date(date.max || Date())"
+                    @input="$refs.dialog1.save(date)"
+                >
+                </v-date-picker>
+              </v-dialog>
+            </v-col>
 
-            <v-dialog
-                ref="dialog2"
-                v-model="dialog.max"
-                :return-value.sync="date"
-                width="290px"
-            >
-              <template v-slot:activator="{ on }">
-                <v-text-field
-                    v-model="date.max"
-                    label="截止日期"
-                    prepend-icon="mdi-calendar"
-                    readonly
-                    solo-inverted
-                    hide-details
-                    class="mr-2"
-                    v-on="on"
-                ></v-text-field>
-              </template>
-              <v-date-picker
-                  v-model="date.max"
-                  color="primary"
-                  scrollable
-                  no-title
-                  show-current
-                  :allowed-dates="x => new Date(x) >= new Date(date.min || Date())"
-                  @input="$refs.dialog2.save(date)"
+            <v-col cols="4">
+              <v-dialog
+                  ref="dialog2"
+                  v-model="dialog.max"
+                  width="290px"
+                  :return-value.sync="date"
               >
-              </v-date-picker>
-            </v-dialog>
+                <template v-slot:activator="{ on }">
+                  <v-text-field
+                      v-model="date.max"
+                      label="截止日期"
+                      readonly
+                      solo-inverted
+                      hide-details
+                      v-on="on"
+                  ></v-text-field>
+                </template>
+                <v-date-picker
+                    v-model="date.max"
+                    color="primary"
+                    scrollable
+                    no-title
+                    show-current
+                    :allowed-dates="x => new Date(x) >= new Date(date.min || Date())"
+                    @input="$refs.dialog2.save(date)"
+                >
+                </v-date-picker>
+              </v-dialog>
+            </v-col>
           </v-row>
           <!--    Date picker end    -->
         </v-col>
@@ -212,18 +220,25 @@
 
     export default {
         name: "Reports",
+        async created() {
+            this.topicNames = (await this.axios.get(api.GET_TOPIC_NAMES)).data['topic_names'];
+        },
         mounted() {
             let history = Vue.$cookies.get('searchHistory');
             this.candidateChips = history ? JSON.parse(history) : defaultChips;
             let query = this.$route.query;
-            console.log(query);
-            if (query.hasOwnProperty('words') || query.hasOwnProperty('dateMin') || query.hasOwnProperty('dateMax')) {
+            // console.log(query);
+            if (query.hasOwnProperty('words') || query.hasOwnProperty('topics') ||
+                query.hasOwnProperty('dateMin') || query.hasOwnProperty('dateMax')) {
                 // parse query from route and do search
                 this.queryWords = query.words || '';
+                this.queryTopics = query.topics || '';
                 if (this.queryWords) this.$refs.textInput.chips.push(...this.queryWords.split(','));
+                if (this.queryTopics) this.$refs.topicInput.chips.push(...this.queryTopics.split(','));
                 this.date.min = query.dateMin;
                 this.date.max = query.dateMax;
                 this.mode = query.mode || 'and';
+                if (query.dateMin || query.dateMax || query.mode || query.topics) this.advanced = true;
                 this.doSearch();
             } else {
                 // show default layout
@@ -241,7 +256,8 @@
             },
             onSearchBtn() {
                 this.queryWords = this.$refs.textInput.chips.join();
-                let query = {words: this.queryWords};
+                this.queryTopics = this.$refs.topicInput.chips.join();
+                let query = {words: this.queryWords, topics: this.queryTopics};
                 if (this.date.min) query.dateMin = this.date.min;
                 if (this.date.max) query.dateMax = this.date.max;
                 query.mode = this.mode;
@@ -252,9 +268,9 @@
                 console.log('do search:', this.queryWords);
                 this.loading = true;
                 if (this.queryWords === '') { // search only via date
-                    this.articleIds = await this.fetchArticleIdsWithinTime(this.date.min, this.date.max);
+                    this.articleIds = await this.fetchArticleIdsWithinTime(this.date.min, this.date.max, this.queryTopics);
                 } else { // fetch by words
-                    this.articleIds = await this.fetchArticleIdsByWords(this.queryWords, this.mode, this.date.min, this.date.max);
+                    this.articleIds = await this.fetchArticleIdsByWords(this.queryWords, this.mode, this.date.min, this.date.max, this.queryTopics);
                 }
                 this.setPage(1);
                 this.loading = false;
@@ -304,14 +320,16 @@
             /**
              * @return {Promise<int[]>}  array of article ids
              */
-            async fetchArticleIdsWithinTime(dateMin, dateMax) {
+            async fetchArticleIdsWithinTime(dateMin, dateMax, topics) {
                 // console.log(dateMin, dateMax);
                 dateMin = dateMin ? new Date(dateMin) : new Date(longAgo);
                 dateMax = dateMax ? new Date(dateMax) : new Date();
                 try {
                     var res = await Vue.axios.get(api.GET_ARTICLES_WITHIN_TIME
                         .replace(':dateMin', dateMin.format('yyyy-mm-dd'))
-                        .replace(':dateMax', dateMax.format('yyyy-mm-dd')));
+                        .replace(':dateMax', dateMax.format('yyyy-mm-dd')), {
+                        params: {topics}
+                    });
                 } catch (e) {
                     this.error = true;
                     this.errorMessage = unknownMsg;
@@ -325,13 +343,14 @@
                 return res.data.articleIds;
             },
             /**
-             * @param words{string[]}
+             * @param words{string}
              * @param mode{string}
              * @param dateMin{Date}
              * @param dateMax{Date}
+             * @param topics{string}
              * @return {Promise<int[]>}  array of article ids
              */
-            async fetchArticleIdsByWords(words, mode, dateMin, dateMax) {
+            async fetchArticleIdsByWords(words, mode, dateMin, dateMax, topics) {
                 // console.log(dateMin, dateMax);
                 dateMin = dateMin ? new Date(dateMin) : new Date(longAgo);
                 dateMax = dateMax ? new Date(dateMax) : new Date();
@@ -339,7 +358,7 @@
                     var res = await Vue.axios.get(api.GET_TRENDS_ARTICLE_IDS
                         .replace(':dateMin', dateMin.toISOString())
                         .replace(":dateMax", dateMax.toISOString()), {
-                        params: {words, mode}
+                        params: {words, mode, topics}
                     });
                 } catch (e) {
                     this.error = true;
@@ -373,7 +392,9 @@
             errorMessage: '',
             dialog: {min: false, max: false},
             queryWords: '',
+            queryTopics: '',
             date: {min: null, max: null},
+            topicNames: [], // map id -> str
         }),
         computed: {
             pageCount() {
