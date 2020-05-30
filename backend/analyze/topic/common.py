@@ -39,7 +39,7 @@ class Logger(object):
         self.log('\033[31mError\033[0m', msg)
 
 
-logger = Logger('common')
+logger = Logger(__name__)
 
 
 def load_pickle(filename):
@@ -67,6 +67,8 @@ def save_analyze_result():
 
 
 def load_doc():
+    global doc_titles, doc_texts
+    doc_titles, doc_texts = [], []
     logger.info('Loading doc texts and titles...')
     db = MySQLdb.connect(db_host, user=db_user, port=db_port, password=db_password, charset='utf8')
     cursor = db.cursor()

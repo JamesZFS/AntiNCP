@@ -8,7 +8,7 @@ from pre_clustering import init_centroids
 vectorizer: TfidfVectorizer
 km: KMeans
 
-logger = common.Logger('kmeans')
+logger = common.Logger(__name__)
 
 
 def analyze(n_preview=10):
