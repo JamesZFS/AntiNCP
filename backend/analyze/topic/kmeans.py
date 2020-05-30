@@ -14,17 +14,16 @@ logger = common.Logger('kmeans')
 def analyze(n_preview=10):
     global vectorizer, km
     # Encode:
-    print('Encoding...')
+    logger.info('Encoding...')
     vectorizer = TfidfVectorizer(max_df=0.5, max_features=common.n_features,
                                  min_df=2, stop_words='english')
     common.X = vectorizer.fit_transform(common.doc_texts)
     common.save_pickle(vectorizer, 'vectorizer.pickle')
     common.vocab = np.array(vectorizer.get_feature_names())
-    print(f'X: {common.X.shape}')
-    print()
+    logger.info(f'X: {common.X.shape}')
     common.save_encoded_vocab()
 
-    print('Clustering...')
+    logger.info('Clustering...')
     # km = MiniBatchKMeans(n_clusters=common.n_topics, init=init_centroids(), init_size=1000, batch_size=1000,
     #                      verbose=0, random_state=common.random_seed)
     # km = MiniBatchKMeans(n_clusters=common.n_topics, verbose=1, random_state=1)
@@ -35,8 +34,8 @@ def analyze(n_preview=10):
     common.doc_topics_reduced = np.argmin(common.doc_topics, axis=1)
     common.topics = km.cluster_centers_
     common.save_pickle(km, 'km.pickle')
-    print(f'doc_topics: {common.doc_topics.shape}')
-    print(f'topics: {common.topics.shape}')
+    logger.info(f'doc_topics: {common.doc_topics.shape}')
+    logger.info(f'topics: {common.topics.shape}')
     print()
 
     print('----------------')
