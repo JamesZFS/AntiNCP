@@ -23,7 +23,13 @@ import ecStat from "echarts-stat";
                 activeCount: [],
                 confirmedCount: [],
                 curedCount: [],
-                deadCount: []
+                deadCount: [],
+                backup_activeCount: [],
+                backup_confirmedCount: [],
+                backup_curedCount: [],
+                backup_deadCount: [],
+                backup_labels: [],
+                add_more_data: false
             }
         },
         computed: {
@@ -118,6 +124,25 @@ import ecStat from "echarts-stat";
                 this.cur_superiorCountry = tmp_superiorCountry;
                 this.cur_superiorProvince = tmp_superiorProvince;
             },
+            backup_data(){
+                this.add_more_data = true;
+                this.backup_activeCount = [];
+                this.backup_confirmedCount = [];
+                this.backup_curedCount = [];
+                this.backup_deadCount = [];
+                this.backup_labels = [];
+                for(var index in this.activeCount)
+                {
+                    this.backup_activeCount.push(this.activeCount[index]);
+                    this.backup_confirmedCount.push(this.confirmedCount[index]);
+                    this.backup_curedCount.push(this.curedCount[index]);
+                    this.backup_deadCount.push(this.deadCount[index]);
+                }
+                for(var labels_index in this.labels)
+                {
+                    this.backup_labels.push(this.labels[labels_index]);
+                }
+            },
             dataImport(res) {
                 var tmp_dataset = res;
                 if (this.cur_superiorLevel === 'country') {
@@ -132,8 +157,25 @@ import ecStat from "echarts-stat";
                 this.confirmedCount = tmp_dataset.datasets.confirmedCount;
                 this.curedCount = tmp_dataset.datasets.curedCount;
                 this.deadCount = tmp_dataset.datasets.deadCount;
+                if(this.add_more_data){
+                    this.dataImport_backup();
+                    this.add_more_data = false;
+                }
                 window.myChart.destroy();
                 window.myChart = new Chart(document.getElementById('myChart'), this.myoption);
+            },
+            dataImport_backup(){
+                for(var index in this.backup_activeCount)
+                {
+                    this.activeCount.push(this.backup_activeCount[index]);
+                    this.confirmedCount.push(this.backup_confirmedCount[index]);
+                    this.curedCount.push(this.backup_curedCount[index]);
+                    this.deadCount.push(this.backup_deadCount[index]);
+                }
+                for(var labels_index in this.backup_labels)
+                {
+                    this.labels.push(this.backup_labels[labels_index]);
+                }
             },
             drawTimeAxis() {
                 // window.myChart.update();
