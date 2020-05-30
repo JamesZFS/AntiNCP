@@ -8,7 +8,6 @@ import pre_clustering
 
 app = Flask('Topic Server')
 
-logger = common.Logger(__name__)
 if 'INIT_CLF' in os.environ:
     kmeans.init()
 

@@ -31,6 +31,14 @@
             >
               {{item.title}}
             </a>
+            <v-chip
+                label
+                x-small
+                class="ml-1 lighten-2"
+                :color="topicColors[item.topic]"
+            >
+              {{ topicNames[item.topic] }}
+            </v-chip>
           </v-list-item-action-text>
           <div>
             <v-list-item-action-text
@@ -53,12 +61,19 @@
 </template>
 
 <script>
+    import api from '../api';
+
     export default {
         name: "ArticleList",
         props: {items: Array},
         data: () => ({
             viewMore: [],
+            topicNames: [], // map id -> str
+            topicColors: ['red', 'blue', 'yellow', 'grey', 'green']
         }),
+        async created() {
+            this.topicNames = (await this.axios.get(api.GET_TOPIC_NAMES)).data['topic_names'];
+        },
         methods: {
             onClickItemContent(index) {
                 this.viewMore[index] = true;

@@ -10,4 +10,5 @@ export default {
   GET_TRENDS_TIMELINE: '/api/retrieve/trends/timeline/:dateMin/:dateMax',
   GET_TRENDS_CURVE: '/api/retrieve/trends/curve/:dateMin/:dateMax',
   GET_TRENDS_ARTICLE_IDS: '/api/retrieve/trends/articleId/:dateMin/:dateMax',
+  GET_TOPIC_NAMES: '/api/topicNames'
 }

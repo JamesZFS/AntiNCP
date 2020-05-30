@@ -30,7 +30,8 @@ require('../../utils/date');
             "creator": "Yahoo Singapore",
             "content": "KUALA LUMPUR, April 4 â Veteran politician Lim Kit Siang has identified three main prongs of how the government can possibly overcome the Covid-19 pandemic, one of them involving mass testing of...",
             "sourceName": "Yahoo Singapore",
-            "sourceShort": "Yahoo Singapore"
+            "sourceShort": "Yahoo Singapore",
+            "topic": 4
         },
     ]
  }
