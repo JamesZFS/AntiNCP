@@ -220,10 +220,8 @@
 
     export default {
         name: "Reports",
-        async created() {
+        async mounted() {
             this.topicNames = (await this.axios.get(api.GET_TOPIC_NAMES)).data['topic_names'];
-        },
-        mounted() {
             let history = Vue.$cookies.get('searchHistory');
             this.candidateChips = history ? JSON.parse(history) : defaultChips;
             let query = this.$route.query;
@@ -234,7 +232,7 @@
                 this.queryWords = query.words || '';
                 this.queryTopics = query.topics || '';
                 if (this.queryWords) this.$refs.textInput.chips.push(...this.queryWords.split(','));
-                if (this.queryTopics) this.$refs.topicInput.chips.push(...this.queryTopics.split(','));
+                if (this.queryTopics) this.$refs.topicInput.chips.push(...this.queryTopics.split(',').map(i => this.topicNames[i]));
                 this.date.min = query.dateMin;
                 this.date.max = query.dateMax;
                 this.mode = query.mode || 'and';
@@ -256,7 +254,7 @@
             },
             onSearchBtn() {
                 this.queryWords = this.$refs.textInput.chips.join();
-                this.queryTopics = this.$refs.topicInput.chips.join();
+                this.queryTopics = this.$refs.topicInput.chips.map(x => this.topicNames.indexOf(x)).join();
                 let query = {words: this.queryWords, topics: this.queryTopics};
                 if (this.date.min) query.dateMin = this.date.min;
                 if (this.date.max) query.dateMax = this.date.max;

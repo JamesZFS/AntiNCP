@@ -143,6 +143,7 @@ router.get('/curve/:dateMin/:dateMax', async function (req, res) {
  *  better not be stop words, no more than 20 words each query, or **a 400 response** will be returned
  * @apiParam (Query) {string}   mode      'or' | 'and', default 'and', to specify how the corresponding ids should be merged
  *  (and - intersect, or - union)
+ * @apiParam (Query) {string}   topics   topics(as id) to query for article ids
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost/api/retrieve/trends/articleId/2020-4-1/2020-4-4?words=China,quarantine&mode=and"
@@ -171,7 +172,17 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
     if (!params) return;
     let {dateMin, dateMax, words} = params;
     let modeOr = typeof req.query.mode === 'string' && req.query.mode.toLowerCase() === 'or'; // default: 'and'
-    // debug(`dateMin: ${dateMin}, dateMax: ${dateMax}, words: ${JSON.stringify(words)}, mode: ${mode}`);
+    let topics = [];
+    { // check topics
+        if (req.query.topics) for (let id of req.query.topics.split(',')) {
+            let i = parseInt(id);
+            if (isNaN(i)) {
+                res.status(400).render('error', {message: 'Topic id parsing failed!', status: 400});
+                return;
+            }
+            topics.push(i)
+        }
+    }
     try {
         let idsByStems = await searchIdsByStems(words, modeOr);
         if (idsByStems.size === 0) { // not found
@@ -189,7 +200,7 @@ router.get('/articleId/:dateMin/:dateMax', async function (req, res) {
                 sortedIds = [...idsByStems.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
                 resolve();
             }),
-            searchIdsByDate(dateMin, dateMax).then(res => idsByDate = res),
+            searchIdsByDate(dateMin, dateMax, topics).then(res => idsByDate = res),
         ]);
         let filteredIds = sortedIds.filter(id => idsByDate.has(id));
         // debug(sortedIds.length - filteredIds.length);
@@ -244,12 +255,15 @@ FROM WordIndex a, WordIndexSumUp b WHERE a.stem = ${stem} AND b.stem = ${stem} O
 /**
  * @param dateMin{Date}
  * @param dateMax{Date}
+ * @param topics{int[]}
  * @return {Promise<Set<int>>}
  */
-async function searchIdsByDate(dateMin, dateMax) {
+async function searchIdsByDate(dateMin, dateMax, topics) {
     dateMin = db.escape(dateFormat(dateMin, 'yyyy-mm-dd'));
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
-    let res = await db.doSql(`SELECT id FROM Articles WHERE date BETWEEN ${dateMin} AND ${dateMax}`);
+    let sql = `SELECT id FROM Articles WHERE date BETWEEN ${dateMin} AND ${dateMax}`;
+    if (topics.length > 0) sql += ` AND topic in (${topics.slice(0, 10).join(',')})`;
+    let res = await db.doSql(sql);
     return new Set(res.map(x => x.id));
 }
 

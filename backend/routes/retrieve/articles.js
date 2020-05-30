@@ -42,11 +42,9 @@ router.post('/', async function (req, res) {
     let ids = req.body.ids;
     try {
         if (!(ids instanceof Array)) throw new Error('Body field `ids` missing!');
-        ids = ids.map(x => {
-            let i = parseInt(x);
-            if (isNaN(i) || i < 0) throw new Error('`ids` parsing failed!');
-            return i;
-        });
+        for (let id of ids) {
+            if (typeof id !== 'number' || !Number.isInteger(id)) throw new Error('`ids` parsing failed!');
+        }
         if (ids.length < 0) throw new Error('Query `ids` missing!');
         if (ids.length > 100) throw new Error('Cannot query for more than 100 results once!');
     } catch (err) {
@@ -82,6 +80,7 @@ router.post('/', async function (req, res) {
  * @apiParam (Param) {string}   dateMax  query date string upper bound (INCLUDED)
  * @apiParam (Query) {string}   order    'asc' or 'desc' - return the result in time ascending order or descending order.
  *  By default 'desc'
+ * @apiParam (Query) {string}   topics   topics(as id) to query for article ids
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost/api/retrieve/articles/timeRange/2020-4-4,10:00:00/2020-4.4.11:00:00?order=desc"
@@ -100,9 +99,15 @@ router.post('/', async function (req, res) {
  */
 router.get('/timeRange/:dateMin/:dateMax', async function (req, res) {
     let dateMin = new Date(req.params.dateMin), dateMax = new Date(req.params.dateMax);
+    let topics = [];
     try {
         if (isNaN(dateMin.valueOf()) || isNaN(dateMax.valueOf())) throw new Error('`dateMin` or `dateMax` invalid!');
         if (dateMin > dateMax) throw new Error('`dateMin` should be no greater than `dateMax`!');
+        if (req.query.topics) for (let id of req.query.topics.split(',')) {
+            let i = parseInt(id);
+            if (isNaN(i)) throw new Error('Topic id parsing failed!');
+            topics.push(i)
+        }
     } catch (err) {
         res.status(400).render('error', {message: err.message, status: 400});
         return;
@@ -112,7 +117,9 @@ router.get('/timeRange/:dateMin/:dateMax', async function (req, res) {
     dateMax = db.escape(dateFormat(dateMax.addDay(), 'yyyy-mm-dd'));
     // debug(dateMin, dateMax);
     try {
-        let result = await db.selectArticles('id', `date BETWEEN ${dateMin} AND ${dateMax}`,
+        let conditions = [`date BETWEEN ${dateMin} AND ${dateMax}`];
+        if (topics.length > 0) conditions.push(`topic in (${topics.slice(0, 10).join(',')})`);
+        let result = await db.selectArticles('id', conditions,
             false, `ORDER BY date ${order}`);
         result = result.map(x => x.id);
         res.status(200).json({
