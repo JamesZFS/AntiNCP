@@ -32,7 +32,7 @@ const CHL = {
 
 // For USA data only
 const JHU = {
-    dateAPI: 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/:date.csv', // TODO
+    dateAPI: 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/:date.csv',
     apiDateFormat: 'mm-dd-yyyy',
     downloadDir: 'public/data/jhu-area/',
     expColumns: ['Confirmed', 'Deaths', 'Recovered'],

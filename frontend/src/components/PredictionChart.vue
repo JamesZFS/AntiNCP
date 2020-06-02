@@ -53,7 +53,7 @@
       myoption: function () {
         return {
           title: {
-            text: this.cur_superiorPlace + '新冠疫情走势图',
+            text: this.cur_superiorPlace + ' 疫情走势图',
             subtext: 'Epidemic trends of COVID-19 in ' + this.cur_superiorPlace,
             left: 'left',
             top: 'top',

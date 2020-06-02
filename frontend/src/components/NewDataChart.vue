@@ -93,7 +93,7 @@ import ecStat from "echarts-stat";
                     options: {
                         title: {
                             display: true,
-                            text: this.cur_superiorPlace + '新冠疫情走势图',
+                            text: this.cur_superiorPlace + ' 疫情走势图',
                             fontStyle: "normal",
                             fontSize: 25
                         },

@@ -144,7 +144,7 @@
             empty_option: function() {
                 return {
                     title: {
-                        text: '2020-01-10' + this.cur_superiorPlace + '疫情状况', textStyle: {
+                        text: '2020-01-10 ' + this.cur_superiorPlace + ' 疫情状况', textStyle: {
                             fontSize: '25'
                         },
                         left: '2%',
@@ -370,7 +370,7 @@
                     time_cnt += 1;
                     this.myoption.baseOption.timeline.data.push(time_index);
                     var tmp_suboption = $.extend(true, {}, this.empty_option);//不引用赋值
-                    tmp_suboption.title.text = time_index + this.cur_superiorPlace + '疫情状况';
+                    tmp_suboption.title.text = time_index + ' ' + this.cur_superiorPlace + ' 疫情状况';
                     //活跃数据导入
                     tmp_suboption.series[0].data = res.data.timeline['activeCount'][time_index];
                     //确诊数据导入
