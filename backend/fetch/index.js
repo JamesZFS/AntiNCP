@@ -1,6 +1,8 @@
 'use strict';
 // Auto data fetching system
+const dateFormat = require('dateformat');
 const debug = require('debug')('backend:fetcher');
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
@@ -11,59 +13,10 @@ const cache = require('../routes/retrieve/cache');
 const wget = require('../utils/wget');
 const csv = require('./csv');
 const rss = require('./rss');
-const {WGET_TIMEOUT} = require('./config');
-const epidemicSource = require('./third-party/epidemic').CHL; // may select other data sources
+const {CHL, JHU} = require('./third-party/epidemic');
 const articleSources = require('./third-party/articles').ALL; // may select other article sources
-
-/**
- * Reload epidemic data in the db, auto-selecting the newest csv file
- * auto download if no csv is found
- */
-async function reloadEpidemicData() {
-    try {
-        let csvPath = csv.selectNewestFile(epidemicSource.downloadDir);
-        if (csvPath === null) { // if no csv found
-            await downloadEpidemicData(); // download data from source and then reload
-            return reloadEpidemicData();
-        }
-        let oldRowCount = await db.countTableRows('Epidemic');
-        cache.flush();
-        await db.clearTable('Epidemic');
-        await csv.batchReadAndMap(csvPath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
-        await db.refreshAvailablePlaces('Epidemic');
-        let newRowCount = await db.countTableRows('Epidemic');
-        debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
-    } catch (err) {
-        console.error(chalk.red('Fail to reload epidemic data.'), err.message);
-        throw new Error('Fail to reload epidemic data.');
-    }
-}
-
-/**
- * Download epidemic data from source api, save it to downloadDir
- */
-async function downloadEpidemicData() {
-    const url = epidemicSource.areaAPI;
-    const filePath = path.join(epidemicSource.downloadDir, Date.now() + '.csv');
-    debug(`Downloading Epidemic Data from ${url} into ${filePath} ... (Be patient, this may take a while)`);
-    let trial = scheduler.fetchingPolicy.maxTrials;
-    while (true) {
-        try {
-            await wget(url, filePath, true, {timeout: WGET_TIMEOUT});
-        } catch (err) {
-            debug(`Fail to downlaod, retry in ${scheduler.fetchingPolicy.interval / 60000} mins.`);
-            if (--trial > 0) {
-                await scheduler.sleep(scheduler.fetchingPolicy.interval);
-                continue;
-            } else {  // give up
-                console.error(chalk.red('Fail to download from csv epidemic source. Skip this download.'), err.message);
-                throw err;
-            }
-        }
-        break; // success
-    }
-    debug('Download success.');
-}
+const conf = require('./config');
+require('../utils/date');
 
 /**
  * Fetch articles related to virus, insert into db (INCREMENTALLY)
@@ -93,7 +46,7 @@ async function fetchVirusArticles() {
         }
         debug('Fetching success.');
         let backupFile = path.resolve(__dirname, '../public/data/rss/RSS-backup.txt');
-        if (!fs.existsSync(backupFile)) fs.mkdirSync(path.dirname(backupFile), { recursive: true });
+        if (!fs.existsSync(backupFile)) fs.mkdirSync(path.dirname(backupFile), {recursive: true});
         // let entries = JSON.parse(fs.readFileSync(backupFile));
         fs.writeFileSync(backupFile, JSON.stringify(entries, null, 4)); // backup
         debug(`Articles backed up into ${backupFile}`);
@@ -107,28 +60,115 @@ async function fetchVirusArticles() {
     return {startId, endId};
 }
 
-// Scheduler: download newest csv and update db once a day
+async function pingFlask() {
+    try {
+        var resp = (await axios.get(conf.TOPIC_PING_API)).data;
+    } catch (e) {
+        throw new Error('Ping flask failed, maybe it has not started. ' + e.message);
+    }
+    if (!resp || resp.toLowerCase() !== 'pong') {
+        throw new Error(`Ping flask got response ${resp}`)
+    } else {
+        debug('Ping flask success.')
+    }
+}
+
+async function fetchVirusArticlesAndAnalyze() {
+    let {startId, endId} = await fetchVirusArticles();
+    if (startId < endId) { // has update
+        // call flask api to fill in the topics:
+        await axios.get(conf.TOPIC_TAG_API
+            .replace(':start_id', String(startId))
+            .replace(':end_id', String(endId)));
+        // update index tables incrementally
+        await analyzer.updateWordIndex(startId, endId - 1);
+        // let dateMin = (await db.doSql(`SELECT date FROM Articles WHERE id = ${startId}`))[0].date;
+        // let dateMax = (await db.doSql(`SELECT date FROM Articles WHERE id = ${endId - 1}`))[0].date;
+        await analyzer.refreshTrends(); // refresh for convenience
+    }
+}
+
+// Fetch epidemic data on `date` and store in db **incrementally** (data of the **same day** will be **overwritten**)
+async function fetchEpidemicData(epidemicSource, date) {
+    // Download:
+    let apiDateStr = dateFormat(date, epidemicSource.apiDateFormat);
+    let api = epidemicSource.dateAPI.replace(':date', apiDateStr);
+    let filePath = path.join(epidemicSource.downloadDir, 'tmp.csv');
+    debug(`Downloading Epidemic Data from ${api} into ${filePath} ...`);
+    try {
+        await wget(api, filePath, true, true);
+    } catch (err) {
+        return; // skip this fetch
+    }
+    debug('Download success.');
+    // Load incrementally:
+    let oldRowCount = await db.countTableRows('Epidemic');
+    await cache.flush();
+    await csv.batchReadAndMap(filePath, epidemicSource.expColumns, epidemicSource.parseRow, db.insertEpidemicEntries, 10000);
+    let newRowCount = await db.countTableRows('Epidemic');
+    debug(chalk.green(`[+] ${newRowCount - oldRowCount} rows`), ` ${newRowCount} rows of epidemic data in total.`);
+}
+
+// Compensate provincial data on specified date
+async function calculateProvinceData(epidemicSource, date) {
+    date = dateFormat(date, 'yyyy-mm-dd');
+    if (!epidemicSource.hasProvinceData) {
+        await db.doSql(`
+INSERT IGNORE INTO Epidemic (date, country, city, province, confirmedCount, curedCount, deadCount)
+SELECT date,country,'',province,SUM(confirmedCount),SUM(curedCount),SUM(deadCount)
+From Epidemic WHERE date=${db.escape(date)} AND country=${db.escape(epidemicSource.sourceCountry)} AND province!='' AND city!='' GROUP BY province`);
+    }
+}
+
+// Clear and reload available places from source table (should contain field `country`, `province`, and `city`)
+function refreshAvailablePlaces() {
+    return db.doSqls([
+        'TRUNCATE TABLE Places;', // clear
+        'INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM AntiNCP.Epidemic;'
+    ]);
+}
+
+
+// Clear all before fetch.
+// Transaction is not applied here. Be cautious of using this!
+async function reFetchEpidemicData() {
+    await db.clearTable('Epidemic');
+    for (let date = new Date(CHL.storyBegins); date <= new Date(); date = date.addDay()) {
+        await fetchEpidemicData(CHL, date);
+    }
+    for (let date = new Date(JHU.storyBegins); date <= new Date().addDay(-1); date = date.addDay()) {
+        await fetchEpidemicData(JHU, date);
+        await calculateProvinceData(JHU, date);
+    }
+    await refreshAvailablePlaces();
+}
+
+async function clearEpidemicOn(date) {
+    return db.doSql(`DELETE FROM Epidemic WHERE date=${db.escape(dateFormat(date, 'yyyy-mm-dd'))}`);
+}
+
+async function fetchAll() {
+    // Articles:
+    await fetchVirusArticlesAndAnalyze();
+    // Epidemic:
+    let today = new Date();
+    await db.beginTransaction(); // atomic operations begin
+    await clearEpidemicOn(today);
+    await Promise.all([
+        fetchEpidemicData(CHL, today),
+        fetchEpidemicData(JHU, today.addDay(-1)), // this source updates only to yesterday
+    ]);
+    await refreshAvailablePlaces();
+    await calculateProvinceData(JHU, today);
+    await db.commit(); // atomic end
+}
+
 function initialize() {
-    // Update epidemic data daily:
-    scheduler.scheduleJob(scheduler.onceADay, async function (time) {
-        debug('Auto update begins at', chalk.bgGreen(`${time}`));
-        try {
-            await downloadEpidemicData();
-            await reloadEpidemicData();
-            csv.cleanDirectoryExceptNewest(epidemicSource.downloadDir);
-            debug('Auto update finished.');
-        } catch (err) {
-            debug(`Auto update aborted.`);
-        }
-    });
-    // Update virus articles incrementally
+    // Update epidemic data and virus articles incrementally
     scheduler.scheduleJob(scheduler.every.Hour, async function (time) {
         debug('Auto update begins at', chalk.bgGreen(`${time}`));
         try {
-            let {startId, endId} = await fetchVirusArticles();
-            // TODO: analyze data incr
-            await analyzer.refreshWordIndex();
-            await analyzer.refreshTrends();
+            await fetchAll();
             debug('Auto update finished.');
         } catch (err) {
             debug('Auto update aborted.');
@@ -138,5 +178,5 @@ function initialize() {
 }
 
 module.exports = {
-    reloadEpidemicData, downloadEpidemicData, fetchVirusArticles, initialize
+    fetchAll, initialize, reFetchEpidemicData, pingFlask
 };

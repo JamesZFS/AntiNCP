@@ -2,7 +2,7 @@
 <!--suppress NonAsciiCharacters -->
 <template>
     <div>
-        <v-container id="TimelineHeatMap" style="width: 90%;height: 80vh;"
+        <v-container id="TimelineHeatMap" style="width: 100%;height: 80vh;"
                      class="mx-auto font-weight-light"></v-container>
     </div>
 </template>
@@ -10,9 +10,9 @@
 <script>
     import echarts from 'echarts'
     import $ from 'jquery'
-    import USA from '@/assets/worldcountryjson/USA.json'
+    import USA from '../assets/worldcountryjson/USA.json'
     import china from 'echarts/map/json/china'
-    import world from '@/assets/world.json'
+    import world from '../assets/world.json'
     import sichuan from 'echarts/map/json/province/sichuan'
     import shanxi1 from 'echarts/map/json/province/shanxi1'
     import xinjiang from 'echarts/map/json/province/xinjiang'
@@ -88,8 +88,13 @@
         data() {
             return {
                 charts: '',
-                cur_superiorPlace: 'world',
+                cur_superiorProvince:'',
+                cur_superiorCountry: '',
                 cur_superiorLevel: 'world',
+                add_more_data: false,
+                backup_option: [],
+                backup_timeline_data: [],
+                // cur_superiorPlace: '',
                 cur_dataMap: {},
                 max: 200,
                 maxdic: {
@@ -97,15 +102,55 @@
                     '确诊': 1500,
                     '治愈': 2000,
                     '死亡': 1000
-                },//用于记录当前这个地区四种datakind的max
-                empty_option: {
+                }//用于记录当前这个地区四种datakind的max
+            }
+        },
+        computed: {
+            timelineleft: function() {
+                if(this.$vuetify.breakpoint.xs)
+                {
+                    return '10%';
+                }
+                else
+                {
+                    return '5%';
+                }
+            },
+            toolbox_top: function() {
+                if(this.$vuetify.breakpoint.xs)
+                {
+                    return '88%';
+                }
+                else
+                {
+                    return '89%';
+                }
+            },
+            cur_superiorPlace: function () {
+                if (this.cur_superiorLevel === 'world') {
+                    return 'world';
+                }
+                else if(this.cur_superiorLevel === 'country'){
+                    return this.cur_superiorCountry;
+                }
+                else if(this.cur_superiorLevel === 'province'){
+                    return this.cur_superiorProvince;
+                }
+                else{
+                    console('cur_superiorPlace undefined\n');
+                    return undefined;
+                }
+            },
+            empty_option: function() {
+                return {
                     title: {
-                        text: '2020-01-10' + this.cur_superiorPlace + '疫情状况', textStyle: {
+                        text: '2020-01-10 ' + this.cur_superiorPlace + ' 疫情状况', textStyle: {
                             fontSize: '25'
                         },
                         left: '2%',
                     },
                     visualMap: {
+                        left: 'right',
                         show: true,
                         type: 'piecewise',
                         bottom: "15%",
@@ -138,8 +183,8 @@
                                 normal: {
                                     show: false,
                                     position: 'inside',
-                                    formatter: function (params) {
-                                        return params.name + "\n" + params.value;    //地图上展示文字 + 数值
+                                    formatter: function () {
+                                        return '';    //地图上展示文字 + 数值
                                     },
 
                                 }
@@ -159,8 +204,8 @@
                                 normal: {
                                     show: false,
                                     position: 'inside',
-                                    formatter: function (params) {
-                                        return params.name + "\n" + params.value;    //地图上展示文字 + 数值
+                                    formatter: function () {
+                                        return '';    //地图上展示文字 + 数值
                                     },
 
                                 }
@@ -180,8 +225,8 @@
                                 normal: {
                                     show: false,
                                     position: 'inside',
-                                    formatter: function (params) {
-                                        return params.name + "\n" + params.value;    //地图上展示文字 + 数值
+                                    formatter: function () {
+                                        return '';    //地图上展示文字 + 数值
                                     },
 
                                 }
@@ -201,8 +246,8 @@
                                 normal: {
                                     show: false,
                                     position: 'inside',
-                                    formatter: function (params) {
-                                        return params.name + "\n" + params.value;    //地图上展示文字 + 数值
+                                    formatter: function () {
+                                        return '';    //地图上展示文字 + 数值
                                     },
 
                                 }
@@ -217,19 +262,16 @@
                             data: []
                         }
                     ]
-                }
-            }
-        },
-        computed: {
+                };
+            },
             myoption: function () {
                 return {
                     baseOption: {
                         timeline: {
                             axisType: 'category',
                             realtime: true,
-                            // loop: false,
-                            right: '10%',
-                            left: '10%',
+                            right: '0',
+                            left: '0',
                             autoPlay: false,
                             currentIndex: 0,
                             playInterval: 1000,
@@ -240,7 +282,25 @@
                                 // width: '100'
                             },
                         },
-                        tooltip: {},
+                        toolbox: {
+                            left: '0',
+                            show: true,
+                            itemSize: 30,
+                            orient: 'horizontal',
+                            bottom: "13%",
+                            feature: {
+                                myTool1:{
+                                    show: true,
+                                    title: '显示更多',
+                                    icon: 'M4 2V8H2V2H4M2 22V16H4V22H2M5 12C5 13.11 4.11 14 3 14C1.9 14 1 13.11 1 12C1 10.9 1.9 10 3 10C4.11 10 5 10.9 5 12M20 11V13H17V16H15V13H12V11H15V8H17V11H20M24 6V18C24 19.11 23.11 20 22 20H10C8.9 20 8 19.11 8 18V14L6 12L8 10V6C8 4.89 8.9 4 10 4H22C23.11 4 24 4.89 24 6M10 6V18H22V6H10Z',
+                                    //icon is svg formate
+                                    onclick: () => {
+                                       this.moreEpidemicData();
+                                    }
+                                }
+                            }
+                        },
+                        tooltip:{},
                         legend: {
                             left: 'right',
                             top: "10%",
@@ -257,10 +317,6 @@
                         grid: {
                             top: 80,
                             bottom: 100
-                            // left: '3%',
-                            // right: '4%',
-                            // bottom: '3%',
-                            // containLabel: true
                         },
                         series: [
                             {name: '活跃', type: 'map', map: this.cur_superiorPlace, showSymbol: false},
@@ -274,6 +330,23 @@
             }
         },
         methods: {
+            moreEpidemicData(){
+                this.backup_option =  [];
+                this.backup_timeline_data = [];
+                //拷贝一下当备份
+                for(var timeindex in this.myoption.baseOption.timeline.data)
+                {
+                    this.backup_timeline_data.push(this.myoption.baseOption.timeline.data[timeindex]);
+                }
+                for(var tmp_suboption in this.myoption.options)
+                {
+                    this.backup_option.push(this.myoption.options[tmp_suboption]);
+                }
+                console.log('timelinedata:',this.backup_timeline_data);
+                this.$emit('get_more_data');
+                this.add_more_data = true;//说明此时点击了显示更多，我们需要做增量变化而不是替代
+                // console.log('add_more_data:',this.add_more_data);
+            },
             async drawTimeAxis() {
                 //切换每个时间点的visualMap
                 // 切换legend
@@ -292,11 +365,12 @@
                 //活跃、确诊、治愈、死亡数据依次导入，由于时间戳的个数相同，所以只需要一个循环
                 //首先从活跃顺便导入时间戳，初始化option的个数
                 var time_cnt = 0;
+                var visualMapMax = 10000;
                 for (var time_index in res.data.timeline['activeCount']) {
                     time_cnt += 1;
                     this.myoption.baseOption.timeline.data.push(time_index);
                     var tmp_suboption = $.extend(true, {}, this.empty_option);//不引用赋值
-                    tmp_suboption.title.text = time_index + this.cur_superiorPlace + '疫情状况';
+                    tmp_suboption.title.text = time_index + ' ' + this.cur_superiorPlace + ' 疫情状况';
                     //活跃数据导入
                     tmp_suboption.series[0].data = res.data.timeline['activeCount'][time_index];
                     //确诊数据导入
@@ -309,44 +383,73 @@
                     for (var i = 0; i < tmp_suboption.series[3].data.length; i++) {
                         for (var j = 0; j < 4; j++) {
                             //用name_filter进行地名修正
-                            if (name_filter[tmp_suboption.series[j].data[i].name] !== undefined) {
-                                tmp_suboption.series[j].data[i].name = name_filter[tmp_suboption.series[j].data[i].name];
+                            let tmp_data = tmp_suboption.series[j].data[i];
+                            if (name_filter[tmp_data.name] !== undefined) {
+                                tmp_suboption.series[j].data[i].name = name_filter[tmp_data.name];
                             }
-                            // if (tmp_suboption.series[j].data[i].value > tmp_suboption.visualMap.max) {
-                            //     tmp_suboption.visualMap.max = tmp_suboption.series[j].data[i].value;
-                            // }
+                            if (tmp_data.value > visualMapMax) {
+                                visualMapMax = tmp_data.value;
+                            }
 
                         }
                     }
-                    // if (tmp_suboption.visualMap.max >= 5000) {
-                    //     tmp_suboption.visualMap.max = 5000;
-                    // }
-                    // console.log(tmp_suboption);
+                    if (visualMapMax > 10000) {
+                        var tmp_max_log = parseInt(Math.log10(visualMapMax));
+                        var tmp_pieces = [];
+                        tmp_pieces[0] = {};
+                        tmp_pieces[0]['min'] = Math.pow(10,tmp_max_log);
+                        for(var k = 1; k <= tmp_max_log; k++)
+                        {
+                            tmp_pieces[k] = {};
+                            tmp_pieces[k]['min'] = Math.pow(10,tmp_max_log-k);
+                            tmp_pieces[k]['max'] = Math.pow(10,tmp_max_log-k+1) - 1;
+                        }
+                        tmp_pieces[tmp_max_log+1] = {'min': 0, 'max': 0, 'label': '0', 'color': 'lightskyblue'};
+                        tmp_suboption.visualMap.pieces = tmp_pieces;
+                    }
                     this.myoption.options.push(tmp_suboption);
                 }
                 //时间轴处在最新的时间点
-                this.myoption.baseOption.timeline.currentIndex = time_cnt - 1;
-                // console.log(this.myoption.baseOption.timeline.currentIndex);
+                if(this.add_more_data)
+                {
+                    this.dataImport_backup();
+                    this.add_more_data = false;
+                }
+                else{
+                    this.myoption.baseOption.timeline.currentIndex = time_cnt - 1;
+                }
+            },
+            dataImport_backup(){
+                for(var timeindex in this.backup_timeline_data)
+                {
+                    this.myoption.baseOption.timeline.data.push(this.backup_timeline_data[timeindex]);
+                }
+                for(var tmp_suboption in this.backup_option)
+                {
+                    this.myoption.options.push(this.backup_option[tmp_suboption]);
+                }
             },
             timelineclick(tmp_index) {
                 this.myoption.baseOption.timeline.currentIndex = tmp_index;
-                // console.log(tmp_index);
                 this.drawTimeAxis();
             },
-            placechange(tmp_superiorPlace, tmp_superiorLevel) {
-                // console.log(tmp_superiorPlace);
-                if (tmp_superiorPlace === 'world') {
+            placechange(tmp_superiorCountry, tmp_superiorProvince, tmp_superiorLevel) {
+                if (tmp_superiorLevel === 'world') {
                     echarts.registerMap('world', world);
-                } else if (tmp_superiorPlace === 'USA') {
-                    echarts.registerMap('USA', USA);
-                } else if (tmp_superiorPlace === 'china') {
-                    echarts.registerMap('china', china);
-                } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
-
-                    echarts.registerMap(tmp_superiorPlace, nametojson[tmp_superiorPlace]);
+                }
+                else if(tmp_superiorLevel === 'country')
+                {
+                    if (tmp_superiorCountry === 'USA') {
+                        echarts.registerMap('USA', USA);
+                    } else if (tmp_superiorCountry === 'china') {
+                        echarts.registerMap('china', china);
+                    }
+                } else if (tmp_superiorLevel === 'province'&&tmp_superiorCountry === 'china') {
+                    echarts.registerMap(tmp_superiorProvince, nametojson[tmp_superiorProvince]);
                 }
                 this.cur_superiorLevel = tmp_superiorLevel;
-                this.cur_superiorPlace = tmp_superiorPlace;
+                this.cur_superiorCountry = tmp_superiorCountry;
+                this.cur_superiorProvince = tmp_superiorProvince;
             },
             initechart() {
                 this.charts = echarts.init(document.getElementById('TimelineHeatMap'));

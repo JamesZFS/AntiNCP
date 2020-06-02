@@ -175,8 +175,8 @@
         items: [
           {text: '主页', icon: 'mdi-home', path: '/'},
           {text: '疫情地图', icon: 'mdi-map-marker-radius-outline', path: '/map'},
-          {text: '热点关注', icon: 'mdi-view-dashboard-variant', path: '/trends'},
-          {text: '疫情报道', icon: 'mdi-timeline-text-outline', path: '/reports'},
+          {text: '热点关注', icon: 'mdi-timeline-text-outline', path: '/trends'},
+          {text: '疫情报道', icon: 'mdi-view-dashboard-variant', path: '/reports'},
           {text: '关于我们', icon: 'mdi-account-group', path: '/about'},
         ],
       }

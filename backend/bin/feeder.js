@@ -9,7 +9,7 @@ const debug = require('debug')('backend:Feeder');
 const fetcher = require('../fetch');
 const db = require('../database');
 const cache = require('../routes/retrieve/cache');
-
+const analyzer = require('../analyze');
 
 async function launch() {
     // Connect to mysql and redis where `www` runs
@@ -17,13 +17,17 @@ async function launch() {
     try {
         await db.initialize();
         await cache.initialize();
+        await fetcher.pingFlask();
         if (process.argv.indexOf('--download') >= 0) {
-            await Promise.all([
-                fetcher.downloadEpidemicData(),
-                fetcher.fetchVirusArticles()
-            ]);
+            await fetcher.fetchAll();
         }
-        if (process.argv.indexOf('--reload') >= 0) await fetcher.reloadEpidemicData();
+        if (process.argv.indexOf('--refetch') >= 0) {
+            await fetcher.reFetchEpidemicData();
+        }
+        if (process.argv.indexOf('--rebuild') >= 0) { // rebuild all index tables from Articles
+            await analyzer.refreshTrends();
+            await analyzer.refreshWordIndex();
+        }
         await fetcher.initialize(); // scheduler
     } catch (err) {
         console.error(chalk.red('Caught fatal error in feeder!'));

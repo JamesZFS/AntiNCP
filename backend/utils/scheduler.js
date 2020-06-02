@@ -13,8 +13,8 @@ const every = {
 };
 
 const fetchingPolicy = {
-    maxTrials: 4, // maximum times of fetching if download fails
-    interval: 5 * 60 * 1000, // interval between each trial in ms, 5mins
+    maxTrials: 3, // maximum times of fetching if download fails
+    interval: 10 * 1000, // interval between each trial in ms
 };
 
 async function sleep(milliseconds) {

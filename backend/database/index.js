@@ -8,6 +8,8 @@ const dbCfg = process.env.REMOTE_DB
     : require('./config').LOCAL_MYSQL_CFG; // you may choose a different mysql server
 const initializingScriptPath = path.resolve(__dirname, './initialize.sql');
 
+var connection;
+
 /**
  * Insist reconnecting until connection is make, throw unrecoverable error if fails
  * @return {Promise<void>}
@@ -137,10 +139,11 @@ async function finalize() {
  * Insert a data entry into a given table
  * @param table{string}
  * @param entry{Object}
+ * @param extra{string}
  * @return {Promise<Object>}
  */
-function insertEntry(table, entry) {
-    let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES (${Object.values(entry).join(',')});`;
+function insertEntry(table, entry, extra = '') {
+    let sql = `INSERT INTO ${table} (${Object.keys(entry).join(',')}) VALUES (${Object.values(entry).join(',')}); ${extra}`;
     return doSql(sql); // error unhandled
 }
 
@@ -148,16 +151,18 @@ function insertEntry(table, entry) {
  * Insert a data entry batch into a given table
  * @param table{string}
  * @param entries{Object[]} have to make sure they have **the same keys**
+ * @param extra{string}
+ * @param allowDuplicate{boolean}
  * @return {Promise<Object>}
  */
-function insertEntries(table, entries) {
+function insertEntries(table, entries, extra = '', allowDuplicate = false) {
     if (entries.length === 0) return Promise.resolve();
-    let sql = `INSERT INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
+    let sql = `INSERT ${allowDuplicate ? 'IGNORE ' : ''}INTO ${table} (${Object.keys(entries[0]).join(',')}) VALUES `;
     let vals = [];
     for (let entry of entries) {
         vals.push(`(${Object.values(entry).join(',')})`);
     }
-    sql += vals.join(',') + ';';
+    sql += vals.join(',') + ' ' + extra + ';';
     return doSql(sql); // error unhandled
 }
 
@@ -188,12 +193,12 @@ function insertEpidemicEntry(entry) {
 }
 
 /**
- * Insert multiple epidemic data entries into 'Epidemic' table
+ * Insert multiple epidemic data entries into 'Epidemic' table, ignore by default!
  * @param entries{Object[]}
  * @return {Promise<Object>}
  */
 function insertEpidemicEntries(entries) {
-    return insertEntries('Epidemic', entries);
+    return insertEntries('Epidemic', entries, '', true);
 }
 
 /**
@@ -203,16 +208,6 @@ function insertEpidemicEntries(entries) {
  */
 function clearTable(table) {
     let sql = `TRUNCATE TABLE ${table};`;
-    return doSql(sql);
-}
-
-/**
- * Fetch the whole table
- * @param table{string}
- * @return {Promise}
- */
-function fetchTable(table) {
-    let sql = `SELECT * FROM ${table};`;
     return doSql(sql);
 }
 
@@ -233,7 +228,7 @@ async function countTableRows(table) {
  * @param conditions{undefined|string|string[]}
  * @param distinct{boolean} whether to de-duplicate
  * @param extra{string} as sql suffix
- * @return Promise<Object>
+ * @return Promise<Object[]>
  */
 function selectInTable(table, fields, conditions, distinct = false, extra = '') {
     if (typeof fields === 'string') fields = [fields];
@@ -252,7 +247,7 @@ function selectInTable(table, fields, conditions, distinct = false, extra = '') 
  * @param conditions{undefined|string|string[]}
  * @param distinct{undefined|boolean} whether to de-duplicate
  * @param extra{undefined|string} as sql suffix
- * @return Promise<Object>
+ * @return Promise<Object[]>
  */
 function selectEpidemicData(fields, conditions, distinct, extra) {
     return selectInTable('Epidemic', fields, conditions, distinct, extra);
@@ -268,18 +263,6 @@ function selectAvailableProvinces(country) {
 
 function selectAvailableCountries() {
     return selectInTable('Places', 'country', null, true, 'ORDER BY country ASC');
-}
-
-/**
- * Clear and reload available places from source table (should contain field `country`, `province`, and `city`)
- * @param sourceTable{string}
- * @return {Promise<Object>}
- */
-function refreshAvailablePlaces(sourceTable = 'Epidemic') {
-    return doSqls([
-        'TRUNCATE TABLE Places;', // clear
-        `INSERT INTO Places (country, province, city) SELECT DISTINCT country, province, city FROM ${sourceTable};`
-    ]);
 }
 
 /**
@@ -339,9 +322,9 @@ async function insertArticleEntries(entries) {
  * @param conditions{undefined|string|string[]}
  * @param distinct{undefined|boolean} whether to de-duplicate
  * @param extra{undefined|string} as sql suffix
- * @return Promise<Object>
+ * @return Promise<Object[]>
  */
-function selectArticles(fields, conditions, distinct, extra) {
+function selectArticles(fields, conditions = undefined, distinct = undefined, extra = undefined) {
     return selectInTable('Articles', fields, conditions, distinct, extra);
 }
 
@@ -356,19 +339,37 @@ function escapeId(id) {
 
 /**
  * Call mysql escape
- * @param value{string}
+ * @param value{*}
  * @return {string}
  */
 function escape(value) {
     return mysql.escape(value);
 }
 
+async function beginTransaction() {
+    return new Promise((resolve, reject) => {
+        connection.beginTransaction(err => {
+            if (err) reject(err);
+            else resolve();
+        })
+    });
+}
+
+async function commit() {
+    return new Promise((resolve, reject) => {
+        connection.commit(err => {
+            if (err) reject(err);
+            else resolve();
+        })
+    });
+}
 
 module.exports = {
     initialize, finalize, escapeId, escape,
     insertEntry, insertEpidemicEntry, insertEntries, insertEpidemicEntries,
-    clearTable, fetchTable, countTableRows, selectInTable, selectEpidemicData,
-    selectAvailableCities, selectAvailableProvinces, selectAvailableCountries, refreshAvailablePlaces,
+    clearTable, countTableRows, selectInTable, selectEpidemicData,
+    selectAvailableCities, selectAvailableProvinces, selectAvailableCountries,
     insertArticleEntry, insertArticleEntries, selectArticles,
-    updateClientInfo, getClientInfo
+    updateClientInfo, getClientInfo,
+    doSql, doSqls, beginTransaction, commit,
 };

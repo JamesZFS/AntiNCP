@@ -10,7 +10,7 @@
       <br/>
       <h3>Credit:</h3>
       <br/>
-      <p>疫情数据来源: <a :href="source.epidemic">canghailan/Wuhan-2019-nCoV</a></p>
+      <p>疫情数据来源: <a :href="source.epidemicChina">canghailan/Wuhan-2019-nCoV</a> &nbsp; <a :href="source.epidemicUS">CSSEGISandData/COVID-19</a></p>
       <p>新闻数据来源：BBC, CNN, China Daily 等多家媒体的RSS API</p>
       <p>参考API：<a :href="source.postman">Postman团队提供的API列表</a></p>
       <p>UI框架参考：<a :href="source.framework">Google Contact UI Layout</a></p>
@@ -20,18 +20,19 @@
 </template>
 
 <script>
-  import api from '@/api';
+  import api from '../api';
 
   export default {
     name: "About",
     async created() {
-      this.clientCount = (await this.axios.get(api.GET_CLIENT_COUNT)).data;
+      this.clientCount = (await this.axios.get(api.GET_CLIENT_COUNT)).data.count;
     },
     data() {
       return {
         clientCount: null,
         source: {
-          epidemic: 'https://raw.githubusercontent.com/canghailan/Wuhan-2019-nCoV/master/Wuhan-2019-nCoV.csv',
+          epidemicChina: 'https://raw.githubusercontent.com/canghailan/Wuhan-2019-nCoV/master/Wuhan-2019-nCoV.csv',
+          epidemicUS: 'https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_daily_reports_us',
           postman: 'https://covid-19-apis.postman.com/?mkt_tok=eyJpIjoiTXpGaE5tUm1ZVFl6Tm1JNSIsInQiOiIxSUtFcm40QzJmRkF3eU5STjltVExiK0VCS2RMZ21zVUZqb0dlUUh2d1BUYU1XSWp4YUFkd1JDaytUVE5CZE5nTWlsMlAzRHVQdTh3MGdScmV1ZnZWMGpha1dFc3FUdStGSFViQWxhdkVwZ3Zkc3V2bmtITVROQm5WZlZPVEI1MCJ9',
           framework: 'https://github.com/vuetifyjs/vuetify/tree/master/packages/docs/src/layouts/layouts/demos/google-contacts.vue',
           other: 'https://github.com/pomber/covid19'

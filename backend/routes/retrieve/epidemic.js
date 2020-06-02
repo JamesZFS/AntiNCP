@@ -6,17 +6,37 @@ const db = require('../../database');
 const cache = require('./cache');
 const {EPIDEMIC_DATA_KINDS} = require('../../fetch/third-party/epidemic');
 const {URL} = require('url');
+const dateFormat = require('dateformat');
+require('../../utils/date');
 
-// TODO use param like way, /:dateMin/:dateMax/:dataKinds ...
+const defaultQueryDays = 30;
+
+router.use('/timeline', function (req, res, next) {
+    // parse date
+    let dateMin = req.query.dateMin;
+    let dateMax = req.query.dateMax;
+    try {
+        dateMax = db.escape(dateFormat(dateMax || new Date(), 'yyyy-mm-dd'));
+        dateMin = db.escape(dateFormat(dateMin || new Date().addDay(-defaultQueryDays), 'yyyy-mm-dd'));
+        req.parsed = {dateMin, dateMax};
+    } catch (err) {
+        res.status(400).render('error', {message: err.message, status: 400});
+        return;
+    }
+    next();
+});
+
 /**
  * @api {get} /api/retrieve/epidemic/timeline/world  Get world epidemic data timeline api
  * @apiName GetEpidemicDataTimelineWorld
- * @apiVersion 0.3.1
+ * @apiVersion 0.4.0
  * @apiGroup Epidemic
  * @apiPermission everyone
  *
  * @apiParam (Query) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query) {none} verbose       return {name:..., value:...} or just the value buffer.
+ * @apiParam (Query) {string}  dateMin    min query date, default: 30 days ago
+ * @apiParam (Query) {string}  dateMax    max query date (INCLUDED), default: today
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/world/?dataKind=confirmedCount,deadCount"
@@ -49,6 +69,8 @@ const {URL} = require('url');
 router.get('/timeline/world', async function (req, res) {
     let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
+    let dateMin = req.parsed.dateMin;
+    let dateMax = req.parsed.dateMax;
     // type & usage check
     if (dataKinds === undefined || (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
         // handle 400 error
@@ -62,7 +84,7 @@ router.get('/timeline/world', async function (req, res) {
         { // Look up in the cache
             var url = getNormalizeUrl(req);
             let val = await cache.get(url);
-            if (val !== null) { // hit
+            if (val != null) { // hit
                 res.status(200).send(val);
                 return;
             }
@@ -76,11 +98,11 @@ router.get('/timeline/world', async function (req, res) {
             for (let dataKind of dataKinds) {
                 worldTimeline.datasets[dataKind] = [];
             }
-            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds.map(val => `SUM(${val}) AS ${val}`));
-            let condition = `province=''`; // for where clause
+            let fields = [`DATE_FORMAT(date,'%m-%d') AS label`].concat(dataKinds.map(val => `SUM(${val}) AS ${val}`));
+            let condition = `province='' AND date BETWEEN ${dateMin} AND ${dateMax}`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
-                worldTimeline.labels.push(item.date);
+                worldTimeline.labels.push(item.label);
                 for (let dataKind of dataKinds) {
                     worldTimeline.datasets[dataKind].push(item[dataKind]);
                 }
@@ -91,7 +113,7 @@ router.get('/timeline/world', async function (req, res) {
             countries = countries.map(value => value.country);
             // columns to select:
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `country`].concat(dataKinds);
-            let condition = `province=''`; // province == '' means country entry
+            let condition = `province='' AND date BETWEEN ${dateMin} AND ${dateMax}`; // province == '' means country entry
             let result = await db.selectEpidemicData(fields, condition, false,
                 'GROUP BY country, date ORDER BY date ASC, country ASC');
             var series = {};
@@ -154,13 +176,15 @@ router.get('/timeline/world', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/country  Get country epidemic data timeline api
  * @apiName GetEpidemicDataTimelineCountry
- * @apiVersion 0.3.0
+ * @apiVersion 0.4.0
  * @apiGroup Epidemic
  * @apiPermission everyone
  *
  * @apiParam (Query) {string}  country
  * @apiParam (Query) {string}  dataKind    epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query) {none} verbose       return {name:..., value:...} or just the value buffer
+ * @apiParam (Query) {string}  dateMin    min query date, default: 30 days ago
+ * @apiParam (Query) {string}  dateMax    max query date (INCLUDED), default: today
  *
  * @apiExample {curl} Example usage:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/country/?country=中国&dataKind=confirmedCount,deadCount"
@@ -195,6 +219,8 @@ router.get('/timeline/country', async function (req, res) {
     let country = req.query.country;
     let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
+    let dateMin = req.parsed.dateMin;
+    let dateMax = req.parsed.dateMax;
     // type & usage check
     if (country === undefined || dataKinds === undefined ||
         (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
@@ -209,7 +235,7 @@ router.get('/timeline/country', async function (req, res) {
         { // Look up in the cache
             var url = getNormalizeUrl(req);
             let val = await cache.get(url);
-            if (val !== null) { // hit
+            if (val != null) { // hit
                 res.status(200).send(val);
                 return;
             }
@@ -223,11 +249,11 @@ router.get('/timeline/country', async function (req, res) {
             for (let dataKind of dataKinds) {
                 countryTimeline.datasets[dataKind] = [];
             }
-            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
-            let condition = `country=${db.escape(country)} AND province=''`; // for where clause
+            let fields = [`DATE_FORMAT(date,'%m-%d') AS label`].concat(dataKinds);
+            let condition = `country=${db.escape(country)} AND province='' AND date BETWEEN ${dateMin} AND ${dateMax}`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
-                countryTimeline.labels.push(item.date);
+                countryTimeline.labels.push(item.label);
                 for (let dataKind of dataKinds) {
                     countryTimeline.datasets[dataKind].push(item[dataKind]);
                 }
@@ -238,7 +264,7 @@ router.get('/timeline/country', async function (req, res) {
             provinces = provinces.map(value => value.province);
             // columns to select:
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `province`].concat(dataKinds);
-            let condition = `country=${db.escape(country)} AND province<>'' AND city=''`; // city == '' means province entry
+            let condition = `country=${db.escape(country)} AND province<>'' AND city='' AND date BETWEEN ${dateMin} AND ${dateMax}`; // city == '' means province entry
             let result = await db.selectEpidemicData(fields, condition, false,
                 'GROUP BY province, date ORDER BY date ASC, province ASC');
             var series = {};
@@ -302,7 +328,7 @@ router.get('/timeline/country', async function (req, res) {
 /**
  * @api {get} /api/retrieve/epidemic/timeline/province  Get province epidemic data timeline api
  * @apiName GetEpidemicDataTimelineProvince
- * @apiVersion 0.3.0
+ * @apiVersion 0.4.0
  * @apiGroup Epidemic
  * @apiPermission everyone
  *
@@ -310,6 +336,8 @@ router.get('/timeline/country', async function (req, res) {
  * @apiParam (Query) {string}  province
  * @apiParam (Query) {string}  dataKind       epidemic data kind, in {'confirmedCount', 'activeCount', 'curedCount', 'deadCount'}, can be multiple
  * @apiParam (Query) {none} verbose        return {name:..., value:...} or just the value buffer. see the example 2 for details
+ * @apiParam (Query) {string}  dateMin    min query date, default: 30 days ago
+ * @apiParam (Query) {string}  dateMax    max query date (INCLUDED), default: today
  *
  * @apiExample {curl} Example usage 1:
  *     curl "http://localhost:3000/api/retrieve/epidemic/timeline/province/?country=中国&province=四川省&dataKind=confirmedCount,deadCount"
@@ -373,6 +401,8 @@ router.get('/timeline/province', async function (req, res) {
     let province = req.query.province;
     let dataKinds = req.query.dataKind;
     let verbose = req.query.verbose !== undefined;
+    let dateMin = req.parsed.dateMin;
+    let dateMax = req.parsed.dateMax;
     // type & usage check
     if (country === undefined || province === undefined || dataKinds === undefined ||
         (dataKinds = dataKinds.split(',')).some(value => EPIDEMIC_DATA_KINDS.indexOf(value) < 0)) { // invalid dataKind
@@ -387,7 +417,7 @@ router.get('/timeline/province', async function (req, res) {
         { // Look up in the cache
             var url = getNormalizeUrl(req);
             let val = await cache.get(url);
-            if (val !== null) { // hit
+            if (val != null) { // hit
                 res.status(200).send(val);
                 return;
             }
@@ -401,11 +431,11 @@ router.get('/timeline/province', async function (req, res) {
             for (let dataKind of dataKinds) {
                 provinceTimeline.datasets[dataKind] = [];
             }
-            let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`].concat(dataKinds);
-            let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city=''`; // for where clause
+            let fields = [`DATE_FORMAT(date,'%m-%d') AS label`].concat(dataKinds);
+            let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city='' AND date BETWEEN ${dateMin} AND ${dateMax}`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false, 'GROUP BY date ORDER BY date ASC');
             for (let item of result) {
-                provinceTimeline.labels.push(item.date);
+                provinceTimeline.labels.push(item.label);
                 for (let dataKind of dataKinds) {
                     provinceTimeline.datasets[dataKind].push(item[dataKind]);
                 }
@@ -416,7 +446,7 @@ router.get('/timeline/province', async function (req, res) {
             cities = cities.map(value => value.city);
             // columns to select:
             let fields = [`DATE_FORMAT(date,'%Y-%m-%d') AS date`, `city`].concat(dataKinds);
-            let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city<>''`; // for where clause
+            let condition = `country=${db.escape(country)} AND province=${db.escape(province)} AND city<>'' AND date BETWEEN ${dateMin} AND ${dateMax}`; // for where clause
             let result = await db.selectEpidemicData(fields, condition, false,
                 'GROUP BY city, date ORDER BY date ASC, city ASC');
             var series = {};

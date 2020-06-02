@@ -1,11 +1,11 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Home from '@/views/Home'
-import Map from '@/views/Map'
-import Trends from '@/views/Trends';
-import Reports from '@/views/Reports';
-import About from '@/views/About';
-import NotFound from "@/views/NotFound";
+import Home from '../views/Home'
+import Map from '../views/Map'
+import Trends from '../views/Trends';
+import Reports from '../views/Reports';
+import About from '../views/About';
+import NotFound from "../views/NotFound";
 
 Vue.use(Router);
 

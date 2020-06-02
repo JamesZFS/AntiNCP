@@ -10,8 +10,9 @@
     >
       <v-system-bar/>
       <v-card-text justify="center" align="center">
-        <v-btn @click="returnworldmap()"  class="font-weight-light">全球疫情地图</v-btn>
-        <v-btn @click="returnchinamap()"  class="font-weight-light">中国疫情地图</v-btn>
+        <v-btn @click="returnWorldMap()"  class="font-weight-light" :width="buttonwidth">全球疫情地图</v-btn>
+        <v-btn @click="returnCountryMap('china')"  class="font-weight-light" :width="buttonwidth">中国疫情地图</v-btn>
+        <v-btn @click="returnCountryMap('USA')"  class="font-weight-light" :width="buttonwidth">美国疫情地图</v-btn>
       </v-card-text>
       <v-skeleton-loader
               v-if="first && loading"
@@ -22,6 +23,7 @@
       <TimelineHeatMap
               ref="myheatmap"
               class="mx-auto"
+              @get_more_data="more_epidemic_data"
               :style="first && loading && `visibility: hidden`"
       />
 
@@ -66,10 +68,10 @@
 </template>
 
 <script>
-  import TimelineHeatMap from '@/components/TimelineHeatMap'
-  import NewDataChart from '@/components/NewDataChart'
+  import TimelineHeatMap from '../components/TimelineHeatMap'
+  import NewDataChart from '../components/NewDataChart'
   import vue from "vue";
-  import apis from "@/api";
+  import apis from "../api";
   //用于在发请求之前进行name转换
   var request_filter = {
     '北京': '北京市', '天津': '天津市', '上海': '上海市',
@@ -83,7 +85,8 @@
     '甘肃': '甘肃省', '福建': '福建省', '西藏': '西藏自治区',
     '贵州': '贵州省', '辽宁': '辽宁省', '重庆': '重庆市',
     '陕西': '陕西省', '青海': '青海省', '香港': '香港特别行政区',
-    '黑龙江': '黑龙江省'
+    '黑龙江': '黑龙江省',
+    'china': '中国', 'USA':'美国'
   };
   export default {
     name: 'PandemicMap',
@@ -91,26 +94,61 @@
     data() {
       return {
         count: 0,
+        timeline_len: 30,
         first: true,
         loading: false,
         chartloading: false,
-        cur_superiorPlace: 'world',
+        show_more: false,
+        cur_superiorCountry: '',
+        cur_superiorProvince: '',
         cur_superiorLevel: 'world',
         map_changed: true, //标记当前鼠标点击事件发生之后，地图是否改变，如果发生了改变则该变量为true，响应事件结束之后此变量变回false
+        tmieline_change: true,//时间轴是否发生变化
         place_changed: true,//如果这个变量为true，那么两个图都需要变化，否则都维持原样
         notify: false,
         notifyMessage: '',
       }
     },
+    computed:{
+      buttonwidth: function() {
+        if(this.$vuetify.breakpoint.xs)
+        {
+          return '30%';
+        }
+        else
+        {
+          return '';
+        }
+      }
+    },
     methods: {
-      returnworldmap() {
-        this.cur_superiorPlace = 'world';
+      more_epidemic_data(){
+        this.timeline_len = this.timeline_len * 2;
+        this.show_more = true;
+        this.map_changed = false;
+        if(this.cur_superiorLevel === 'province')
+        {
+          if(this.cur_superiorCountry === 'USA')
+          {
+            this.cur_superiorLevel = 'country';
+          }
+        }
+        this.$refs.mypredictionchart.backup_data();
+        this.passPlaceandLevel();
+        this.get_epidemic_data();
+        this.map_changed = true;
+        this.show_more = false;
+      },
+      returnWorldMap() {
+        this.cur_superiorCountry = '';
+        this.cur_superiorProvince= '';
         this.cur_superiorLevel = 'world';
         this.passPlaceandLevel();
         this.get_epidemic_data();
       },
-      returnchinamap() {
-        this.cur_superiorPlace = 'china';
+      returnCountryMap(tmp_country) {
+        this.cur_superiorCountry = tmp_country;
+        this.cur_superiorProvince= '';
         this.cur_superiorLevel = 'country';
         this.passPlaceandLevel();
         this.get_epidemic_data();
@@ -118,12 +156,23 @@
       passPlaceandLevel() {//传递this.cur_superiorPlace,this.cur_superiorLevel给子组件
         if (this.map_changed) {
           //热度图切换
-          this.$refs.myheatmap.placechange(this.cur_superiorPlace, this.cur_superiorLevel);
+          this.timeline_len = 30;
+          this.$refs.myheatmap.placechange(this.cur_superiorCountry,this.cur_superiorProvince, this.cur_superiorLevel);
         }
         //以及折线图的切换
-        this.$refs.mypredictionchart.placechange(this.cur_superiorPlace, this.cur_superiorLevel);
+        this.$refs.mypredictionchart.placechange(this.cur_superiorCountry,this.cur_superiorProvince, this.cur_superiorLevel);
       },
       async get_epidemic_data() {//只在这个父页面获取一次数据即可
+        //get datemin datemax
+        const today = new Date();
+        let date = {
+          max: today.format('yyyy-mm-dd'),
+          min: today.addDay(-this.timeline_len + 1).format('yyyy-mm-dd'),
+        };
+        if(this.show_more)
+        {
+          date.max = today.addDay(-this.timeline_len/2).format('yyyy-mm-dd');
+        }
         if (this.map_changed) {
           this.loading = true;
         }
@@ -131,25 +180,26 @@
         let res = '';
         //国家
         if (this.cur_superiorLevel === 'country') {
-          var request_country = this.cur_superiorPlace;
-          if (this.cur_superiorPlace === 'china')
+          var request_country = this.cur_superiorCountry;
+          if (this.cur_superiorCountry === 'china')
             request_country = '中国';
-          else if (this.cur_superiorPlace === 'USA')
+          else if (this.cur_superiorCountry === 'USA')
             request_country = '美国';
           try {
             res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_COUNTRY, {
               params: {
                 dataKind: 'activeCount,confirmedCount,curedCount,deadCount',
                 country: request_country,
-                verbose: ''
+                verbose: '',
+                dateMin: date.min,
+                dateMax: date.max
               }
             });
-            // console.log(res);
           } catch (err) {
             console.error(` Cannot fetch country timeline data from backend with ${err}`);
           }
           if (!this.map_changed) {
-            this.cur_superiorPlace = 'world';
+            this.cur_superiorCountry = '';
             this.cur_superiorLevel = 'world';
           }
         } else if (this.cur_superiorLevel === 'province') {
@@ -157,11 +207,13 @@
             res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_PROVINCE, {
               params: {
                 dataKind: 'activeCount,confirmedCount,curedCount,deadCount',
-                country: '中国',
-                province: request_filter[this.cur_superiorPlace],
-                verbose: ''
+                country: request_filter[this.cur_superiorCountry],
+                province: (this.cur_superiorCountry === 'china')?request_filter[this.cur_superiorProvince]:this.cur_superiorProvince,
+                verbose: '',
+                dateMin: date.min,
+                dateMax: date.max
               }
-            })
+            });
           } catch (err) {
             console.error(` Cannot fetch province timeline data from backend with ${err}`);
           }
@@ -170,10 +222,11 @@
             res = await vue.axios.get(apis.GET_EPIDEMIC_TIMELINE_WORLD, {
               params: {
                 dataKind: 'activeCount,confirmedCount,curedCount,deadCount',
-                verbose: ''
+                verbose: '',
+                dateMin: date.min,
+                dateMax: date.max
               }
             })
-            // console.log(res);
           } catch (err) {
             console.error(` Cannot fetch world timeline data from backend with ${err}`);
           }
@@ -190,7 +243,6 @@
           this.$refs.myheatmap.dataImport(res);
         }
         this.$refs.mypredictionchart.dataImport(res);
-        // console.log("drawpic");
       },
       drawTimeAxis() {//统一调用两个子组件的绘图
         if (this.map_changed) {
@@ -198,14 +250,13 @@
         }
         this.$refs.mypredictionchart.drawTimeAxis();
       },
-      placechange(tmp_place) {//将修改cur_superiorPlace和cur_superiorLevel的工作集中到当前父页面中，子组件只需根据所传参数修改子组件当中的数据即可
-        // console.log(tmp_place);
+      placechange(tmp_place) {//将修改cur_superiorCountry、cur_superiorProvince和cur_superiorLevel的工作集中到当前父页面中，子组件只需根据所传参数修改子组件当中的数据即可
         if (this.cur_superiorLevel === 'world') {
           if (tmp_place === '中国') {
-            this.cur_superiorPlace = 'china';
+            this.cur_superiorCountry = 'china';
             this.cur_superiorLevel = 'country';
           } else if (tmp_place === '美国') {
-            this.cur_superiorPlace = 'USA';
+            this.cur_superiorCountry = 'USA';
             this.cur_superiorLevel = 'country';
           } else { // other countries:
             if (!vue.$cookies.get('notified')) {
@@ -214,16 +265,23 @@
               vue.$cookies.set('notified', true);
             }
             //这种情况下只修改折线图
-            this.cur_superiorPlace = tmp_place;
+            this.cur_superiorCountry = tmp_place;
             this.cur_superiorLevel = 'country';
             this.map_changed = false;//告诉echart map不用变
           }
-        } else if (this.cur_superiorLevel === 'country' && this.cur_superiorPlace === 'china') {
+        } else if (this.cur_superiorLevel === 'country') {
+          if(this.cur_superiorCountry !== 'china')
+          {
+            this.map_changed = false;//告诉echart map不用变
+          }
           this.cur_superiorLevel = 'province';
-          this.cur_superiorPlace = tmp_place;
+          this.cur_superiorProvince = tmp_place;
         } else if (this.cur_superiorLevel === 'province') {
-          this.place_changed = false;//两个图都不用刷新
-          return;
+          this.map_changed = false;//map不用刷新
+          if(this.cur_superiorCountry !== 'china')
+          {
+            this.cur_superiorProvince = tmp_place;
+          }
         }
         this.passPlaceandLevel();
       },
@@ -239,13 +297,9 @@
         await this.get_epidemic_data()
       });
       this.$refs.myheatmap.charts.on('click', (params) => {
-        // console.log(params);
         if (params.componentType === 'series') {
           this.placechange(params.name);
-          if (this.place_changed) {
-            this.get_epidemic_data();
-          }
-          this.place_changed = true;
+          this.get_epidemic_data();
         }
       });
     }

@@ -1,16 +1,38 @@
 'use strict';
 const express = require('express');
-const debug = require('debug')('backend:index');
 const router = express.Router();
-const retrieveRouter = require('./retrieve');
-const db = require('../database');
+const port = require('../app/port');
+const axios = require('axios');
+const {TOPIC_NAME_API} = require('../fetch/config');
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
-    res.render('index', {title: 'AntiNCP Backend', content: 'See our `/doc` for api usage.'});
+    res.render('index', {title: `AntiNCP Backend (port=${port})`, content: 'See our `/doc` for api usage.'});
 });
 
-router.use('/retrieve', retrieveRouter);
+router.use('/retrieve', require('./retrieve'));
+
+/**
+ * @api {get} /api/topicNames Get article topic names
+ * @apiVersion 0.1.0
+ * @apiName GetTopicNames
+ * @apiGroup Articles
+ * @apiPermission everyone
+ *
+ * @apiDescription Get article topic names
+ *
+ * @apiExample Example usage:
+ * curl http://localhost/api/topicNames
+ *
+ * @apiExample Response (example):
+ {
+    "topic_names": ["china", "us", ...]
+ }
+ * @apiSampleRequest /api/topicNames
+ */
+router.get('/topicNames', async function (req, res) {
+    res.status(200).send((await axios.get(TOPIC_NAME_API)).data)
+});
 
 /**
  * @api {get} /api/test Test api
@@ -33,31 +55,7 @@ router.get('/test', function (req, res) {
     res.status(200).send("OK!");
 });
 
-/**
- * @api {get} /api/clientCount  Get client count api
- * @apiVersion 0.1.0
- * @apiName GetClientCount
- * @apiGroup MetaData
- * @apiPermission everyone
- *
- * @apiDescription This api will return how many users has visited this website (recorded via ip)
- *
- * @apiExample Example usage:
- * curl http://localhost/api/clientCount
- *
- * @apiSuccess {String}   Stringified number of client count
- *
- * @apiExample Response (example):
- *     "3"
- */
-router.get('/clientCount', async function (req, res) {
-    try {
-        let count = await db.countTableRows('Clients');
-        res.status(200).send(count.toString());
-    } catch (err) {
-        res.status(500).end();
-        debug('Unconfirmed error:', err);
-    }
-});
+
+router.use('/count', require('./count'));
 
 module.exports = router;
