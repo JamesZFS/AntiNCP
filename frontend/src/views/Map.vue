@@ -133,7 +133,6 @@
         }
         else if(this.cur_superiorLevel === 'world' && this.cur_superiorCountry === '')
         {
-          this.cur_superiorLevel = 'world';
           this.show_more = false;
         }
         else{
