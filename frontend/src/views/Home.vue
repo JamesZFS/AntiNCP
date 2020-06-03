@@ -142,7 +142,7 @@
         },
         {
           text: 'Source code',
-          href: '/code'
+          href: 'https://github.com/JamesZFS/AntiNCP'
         }
       ],
       relatives: [
@@ -155,7 +155,7 @@
           href: 'https://iamcovid-19.netlify.com/'
         },
         {
-          text: 'Coronaviurs Map by NY Times',
+          text: 'Coronavirus Map by NY Times',
           href: 'https://www.nytimes.com/interactive/2020/world/coronavirus-maps.html#us'
         }
       ],

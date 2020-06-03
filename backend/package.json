@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node ./bin/www",
     "feeder": "node ./bin/feeder.js",
+    "topic": "cd topic && INIT_CLF=1 python3 server.py && cd -",
     "download": "node ./bin/feeder.js --download",
     "refetch": "node ./bin/feeder.js --refetch",
     "rebuild": "node ./bin/feeder.js --rebuild",

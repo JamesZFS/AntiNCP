@@ -126,14 +126,18 @@
         this.timeline_len = this.timeline_len * 2;
         this.show_more = true;
         this.map_changed = false;
-        if(this.cur_superiorLevel === 'province')
+        if(this.cur_superiorLevel === 'province' && this.cur_superiorCountry === 'USA')
         {
-          if(this.cur_superiorCountry === 'USA')
-          {
-            this.cur_superiorLevel = 'country';
-          }
+          this.cur_superiorLevel = 'country';
+          this.show_more = false;
         }
-        this.$refs.mypredictionchart.backup_data();
+        else if(this.cur_superiorLevel === 'world' && this.cur_superiorCountry === '')
+        {
+          this.show_more = false;
+        }
+        else{
+          this.$refs.mypredictionchart.backup_data();
+        }
         this.passPlaceandLevel();
         this.get_epidemic_data();
         this.map_changed = true;
