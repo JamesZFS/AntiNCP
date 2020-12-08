@@ -21,7 +21,7 @@
     "debug": "~2.6.9",
     "download-file": "^0.1.5",
     "express": "~4.16.0",
-    "fast-csv": "^4.1.1",
+    "fast-csv": "^4.3.6",
     "http-errors": "~1.6.2",
     "log4js": "^6.1.2",
     "morgan": "~1.9.0",
